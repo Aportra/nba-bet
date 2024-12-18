@@ -118,14 +118,19 @@ for url in urls:
             data.append(result)
         else:
             failed_pages.append(result)
-            print(f'Failed Pages lenght: {len(failed_pages)}')
-
-    for count,(game_id,game_date) in enumerate(failed_pages):
-        print(f'processing # {count} from failed pages {round(count/len(failed_pages)*100)}% complete')
+            print(f'Failed Pages length: {len(failed_pages)}')
+    
+    while failed_pages:
+        game_id,game_date = failed_pages.pop(0)
+        print(f'processing # {game_id} from failed pages')
         page = f'https://www.nba.com{game_id}/box-score'
         result = process_page(page,game_id,game_date)
-
-        data.append(result)
+        if isinstance(result,pd.DataFrame):
+            data.append(result)
+            print(f'processed # {game_id} from failed pages')
+        else:
+            failed_pages.append((game_id,game_date))
+            print(f'failed # {game_id} from failed pages, readded to be processed')
 
     combined_dataframes = pd.concat(data,ignore_index= True)
 
