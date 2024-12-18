@@ -70,86 +70,68 @@ def process_page(page,game_id,game_date):
         
     else:
         print(f"No stats tables found for: {page}")
-        return page
+        return game_id,game_date
 
-url = 'https://www.nba.com/stats/teams/boxscores?Season=2022-23'
+urls = {'NBA_Season_2021-2022_uncleaned':'https://www.nba.com/stats/teams/boxscores?Season=2021-22',
+        'NBA_Season_2022-2023_uncleaned':'https://www.nba.com/stats/teams/boxscores?Season=2022-23',
+        'NBA_Season_2023-2024_uncleaned':'https://www.nba.com/stats/teams/boxscores?Season=2023-24'}
 
-driver = webdriver.Firefox()
+for url in urls:
 
-driver.get(url)
-select_all_option()
-source = driver.page_source
+    driver = webdriver.Firefox()
 
-
-soup = BeautifulSoup(source, 'html5lib')
-
-text = soup.find_all('a',class_ = 'Anchor_anchor__cSc3P')
-
-# page_number = driver.find_element(By.XPATH,'/html/body/div[1]/div[2]/div[2]/div[3]/section[2]/div/div[2]/div[2]/div[1]/div[4]').text
-# page_number = page_number.split()[1]
-# number_of_pages = int(page_number)
+    driver.get(urls[url])
+    select_all_option()
+    source = driver.page_source
 
 
-href = [str(h.get('href')) for h in text if '/game' in h.get('href')]
+    soup = BeautifulSoup(source, 'html5lib')
 
-dates = [re.findall('\/games\?date=\d{4}-\d{2}-\d{2}',h) for h in href]
+    text = soup.find_all('a',class_ = 'Anchor_anchor__cSc3P')
 
-flat_dates = [item for sublist in dates for item in sublist]
-
-matches = [re.findall('\/game\/[0-9]+',h) for h in href]
-
-flat_matches = [item for sublist in matches for item in sublist]
+    # page_number = driver.find_element(By.XPATH,'/html/body/div[1]/div[2]/div[2]/div[3]/section[2]/div/div[2]/div[2]/div[1]/div[4]').text
+    # page_number = page_number.split()[1]
+    # number_of_pages = int(page_number)
 
 
-data = []
-failed_pages = []
-i = 0
-for game_id,game_date in zip(flat_matches,flat_dates):
-    page = f'https://www.nba.com{game_id}/box-score'
-    i += 1
-    if i %100 == 0:
-        print(f'processing the {i} request')
-    result = process_page(page,game_id,game_date)
-    if isinstance(result, pd.DataFrame):
+    href = [str(h.get('href')) for h in text if '/game' in h.get('href')]
+
+    dates = [re.findall('\/games\?date=\d{4}-\d{2}-\d{2}',h) for h in href]
+
+    flat_dates = [item for sublist in dates for item in sublist]
+
+    matches = [re.findall('\/game\/[0-9]+',h) for h in href]
+
+    flat_matches = [item for sublist in matches for item in sublist]
+
+
+    data = []
+    failed_pages = []
+    i = 0
+    for game_id,game_date in zip(flat_matches,flat_dates):
+        page = f'https://www.nba.com{game_id}/box-score'
+        i += 1
+        if i %100 == 0:
+            print(f'processing the {i} request {round(len(data)/len(flat_matches)*100,2)}% complete')
+        result = process_page(page,game_id,game_date)
+        if isinstance(result, pd.DataFrame):
+            data.append(result)
+        else:
+            failed_pages.append(result)
+            print(f'Failed Pages lenght: {len(failed_pages)}')
+
+    for count,(game_id,game_date) in enumerate(failed_pages):
+        print(f'processing # {count} from failed pages {round(count/len(failed_pages)*100)}% complete')
+        page = f'https://www.nba.com{game_id}/box-score'
+        result = process_page(page,game_id,game_date)
+
         data.append(result)
-    else:
-        failed_pages.append([result,game_date])
 
+    combined_dataframes = pd.concat(data,ignore_index= True)
 
-failed_pages = ['/game/0022201153/box-score', '/game/0022201144/box-score', '/game/0022201115/box-score', '/game/0022201082/box-score', '/game/0022201031/box-score', '/game/0022201026/box-score', '/game/0022201019/box-score', '/game/0022201004/box-score', '/game/0022200965/box-score', '/game/0022200785/box-score', '/game/0022200756/box-score', '/game/0022200762/box-score', '/game/0022200657/box-score', '/game/0022200578/box-score', '/game/0022200576/box-score', '/game/0022200540/box-score', '/game/0022200535/box-score', '/game/0022200511/box-score', '/game/0022200475/box-score', '/game/0022200421/box-score', '/game/0022200372/box-score', 'https://www.nba.com/game/0022200335/box-score', 'https://www.nba.com/game/0022200284/box-score', 'https://www.nba.com/game/0022200188/box-score', 'https://www.nba.com/game/0022200171/box-score', 'https://www.nba.com/game/0022200156/box-score', 'https://www.nba.com/game/0022200143/box-score', 'https://www.nba.com/game/0022200102/box-score', 'https://www.nba.com/game/0022200069/box-score']
+    client = bigquery.Client('miscellaneous-projects-444203')
 
-failed_pages = [i.lstrip('https://www.nba.com') for i in failed_pages]
-failed_pages = ['/' + i if not i.startswith('/') else i for i in failed_pages]
-failed_pages= [i.rstrip('/box-score') for i in failed_pages]
-f = [(game,game_date) for game,game_date in zip(flat_matches,flat_dates) if game in failed_pages]
+    combined_dataframes.columns
 
-for count,link in enumerate(failed_pages):
-    print(f'processing # {count} from failed pages')
-
-    result = process_page(page)
-
-    data.append(result)
-
-
-for game, game_date in f:
-    print(f'processing # {count} from failed pages')
-    page = f'https://www.nba.com{game}/box-score'
-    result = process_page(page,game,game_date)
-
-    data.append(result)
-
-drop_dupes = []
-
-for i in data:
-    i.drop_duplicates(subset = 'game_id',keep = 'first',inplace = True)
-    drop_dupes.append(i)
-
-
-combined_dataframes = pd.concat(data,ignore_index= True)
-
-client = bigquery.Client('miscellaneous-projects-444203')
-
-combined_dataframes.columns
-
-combined_dataframes.rename(columns={'+/-':'plus_mins'},inplace=True)
-pgbq.to_gbq(combined_dataframes,destination_table= 'miscellaneous-projects-444203.capstone_data.2022-2023_NBA_Season')
+    combined_dataframes.rename(columns={'+/-':'plus_mins'},inplace=True)
+    pgbq.to_gbq(combined_dataframes,project_id= 'miscellaneous-projects-444203',destination_table= f'miscellaneous-projects-444203.capstone_data.{url}')
