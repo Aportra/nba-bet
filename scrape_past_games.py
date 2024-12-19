@@ -11,10 +11,10 @@ import time
 import pandas_gbq
 
 #need to rerun 2022-2023, 2023-2024
-urls = {#'NBA_Season_2021-2022_uncleaned':'https://www.nba.com/stats/teams/boxscores?Season=2021-22',
-        #'NBA_Season_2022-2023_uncleaned':'https://www.nba.com/stats/teams/boxscores?Season=2022-23',
-        #'NBA_Season_2023-2024_uncleaned':'https://www.nba.com/stats/teams/boxscores?Season=2023-24',
-        'NBA_Season_2023-2024_uncleaned':'https://www.nba.com/stats/teams/boxscores?Season=2024-25'}
+urls = {'NBA_Season_2021-2022_uncleaned':'https://www.nba.com/stats/teams/boxscores?Season=2021-22',
+        'NBA_Season_2022-2023_uncleaned':'https://www.nba.com/stats/teams/boxscores?Season=2022-23',
+        'NBA_Season_2023-2024_uncleaned':'https://www.nba.com/stats/teams/boxscores?Season=2023-24',
+        'NBA_Season_2024-2025_uncleaned':'https://www.nba.com/stats/teams/boxscores?Season=2024-25'}
 
 driver = main.establish_driver()
 
@@ -69,11 +69,10 @@ for url in urls:
         game_id,game_date,matchup = failed_pages.pop(0)
         if (game_id,game_date,matchup) in retries:
             retries[(game_id,game_date,matchup)] += 1
-            print(f'Retry Count:{retries[game_id]}')
+            print(f'Retry Count:{retries[(game_id,game_date,matchup)]}')
         else:
-            retries[(game_id,game_date,matchup)] = 0
-            retries[(game_id,game_date,matchup)] += 1
-            print(f'Retry Count:{retries[game_id]}')
+            retries[(game_id,game_date,matchup)] = 1
+            print(f'Retry Count:{retries[(game_id,game_date,matchup)]}')
 
         print(f'processing # {game_id} from failed pages')
         page = f'{game_id}/box-score'

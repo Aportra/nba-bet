@@ -8,12 +8,15 @@ import regex as re
 import time
 import pandas_gbq as pgbq
 from datetime import datetime
-
+import smtplib
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
+import os
 
 def establish_driver():
     options = webdriver.FirefoxOptions()
     options.add_argument('--headless')  # Run in headless mode for efficiency
-    return webdriver.Firefox(options=options)
+    return webdriver.Firefox()
 
 #Select all option only works when at least half screen due to blockage of the all option when not in headerless option
 
@@ -79,6 +82,27 @@ def process_page(page,game_id,game_date,matchup,driver):
         print(f'Could not process: {page}')
         return game_id,game_date,matchup
 
+def send_email(subject,body):
+    sender_email = os.getenv('SERVER_EMAIL')
+    receiver_email = os.getenv('EMAIL_USERNAME')
+    password = os.getenv('EMAIL_PASSWORD')
+
+    msg = MIMEMultipart()
+    msg['From'] = send_email
+    msg['To'] = receiver_email
+    msg['Subject'] = subject
+    
+    msg.attach(MIMEText(body,'plain'))
+
+    try:
+        server = smtplib.SMTP('smtp.gmail.com',587)
+        server.starttls()
+        server.login(send_email,password)
+        server.send_message(msg)
+    except Exception as e:
+        print(f"failed due to send email: {e}")
+    finally:
+        server.quit()
 
 #Makes it so we are not connecting to driver on import
 if __name__ == "__main__":

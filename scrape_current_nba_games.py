@@ -8,6 +8,9 @@ from google.cloud import bigquery
 import regex as re
 import time
 from datetime import datetime as date
+#For email notifications
+
+
 
 driver = main.establish_driver()
 
@@ -40,52 +43,66 @@ for row in rows:
 data = []
 failed_pages = []
 i = 0
-
-if game_data:
-    for game_id,date,matchup in game_data:
-        page = game_id
-        i += 1
-        if i %100 == 0:
-            print(f'processing the {i} request {round(len(data)/len(game_data)*100,2)}% complete')
-        result = main.process_page(page,game_id,game_date,matchup,driver)
-        if isinstance(result, pd.DataFrame):
-            data.append(result)
-        else:
-            failed_pages.append(result)
-            print(f'Failed Pages length: {len(failed_pages)}')
-
-
-    retries = {}
-    while failed_pages:
-        game_id,game_date,matchup = failed_pages.pop(0)
-        if (game_id,game_date) in retries:
-            retries[(game_id,game_date)] += 1
-            print(f'Retry Count:{retries[game_id]}')
-        else:
-            retries[(game_id,game_date)] = 0
-            retries[(game_id,game_date)] += 1
-            print(f'Retry Count:{retries[game_id]}')
-
-        print(f'processing # {game_id} from failed pages')
-        page = f'https://www.nba.com{game_id}/box-score'
-        result = main.process_page(page,game_id,game_date,matchup,driver)
-
-        if isinstance(result,pd.DataFrame):
-            data.append(result)
-            print(f'processed # {game_id} from failed pages')
-        else:
-            failed_pages.append((game_id))
-            print(f'failed # {game_id} from failed pages, readded to be processed')
-    
-        combined_dataframes = pd.concat(data,ignore_index= True)
-
-    client = bigquery.Client('miscellaneous-projects-444203')
-
-    combined_dataframes.columns
-
-    combined_dataframes.rename(columns={'+/-':'plus_mins'},inplace=True)
+try:
+    if game_data:
+        for game_id,date,matchup in game_data:
+            page = game_id
+            i += 1
+            if i %100 == 0:
+                print(f'processing the {i} request {round(len(data)/len(game_data)*100,2)}% complete')
+            result = main.process_page(page,game_id,game_date,matchup,driver)
+            if isinstance(result, pd.DataFrame):
+                data.append(result)
+            else:
+                failed_pages.append(result)
+                print(f'Failed Pages length: {len(failed_pages)}')
 
 
-    pandas_gbq.to_gbq(combined_dataframes,project_id= 'miscellaneous-projects-444203',destination_table= f'miscellaneous-projects-444203.capstone_data.{url}')
-else:
-    print('no games today')
+        retries = {}
+        while failed_pages:
+            game_id,game_date,matchup = failed_pages.pop(0)
+            if (game_id,game_date) in retries:
+                retries[(game_id,game_date)] += 1
+                print(f'Retry Count:{retries[game_id]}')
+            else:
+                retries[(game_id,game_date)] = 0
+                retries[(game_id,game_date)] += 1
+                print(f'Retry Count:{retries[game_id]}')
+
+            print(f'processing # {game_id} from failed pages')
+            page = f'https://www.nba.com{game_id}/box-score'
+            result = main.process_page(page,game_id,game_date,matchup,driver)
+
+            if isinstance(result,pd.DataFrame):
+                data.append(result)
+                print(f'processed # {game_id} from failed pages')
+            else:
+                failed_pages.append((game_id))
+                print(f'failed # {game_id} from failed pages, readded to be processed')
+        
+            combined_dataframes = pd.concat(data,ignore_index= True)
+
+        client = bigquery.Client('miscellaneous-projects-444203')
+
+        combined_dataframes.columns
+
+        combined_dataframes.rename(columns={'+/-':'plus_mins'},inplace=True)
+
+
+        pandas_gbq.to_gbq(combined_dataframes,project_id= 'miscellaneous-projects-444203',destination_table= f'miscellaneous-projects-444203.capstone_data.{url}')
+
+        send_email(
+        subject = f"NBA SCRAPING: COMPLTETED # OF GAME {len(game_data)}",
+        body = f'{len(game_data)} games scraped as of {date.today()}'
+    )
+    else:
+        send_email(
+        subject = "NBA SCRAPING: NO GAMES",
+        body = f'No games as of {date.today()}'
+    )
+
+except Exception as e:
+    send_email(
+        subject = "NBA SCRAPING: SCIRPT CRASHED",
+        body = f'The script encountered an error: \n{str(e)}'
+    )
