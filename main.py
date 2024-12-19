@@ -15,7 +15,7 @@ def establish_driver():
     options.add_argument('--headless')  # Run in headless mode for efficiency
     return webdriver.Firefox(options=options)
 
-#select all option only works when at least half screen due to blockage of the all option
+#Select all option only works when at least half screen due to blockage of the all option when not in headerless option
 
 def select_all_option(driver):
     try:
@@ -24,7 +24,6 @@ def select_all_option(driver):
         dropdown = WebDriverWait(driver,10).until(
             EC.element_to_be_clickable((By.XPATH, "/html/body/div[1]/div[2]/div[2]/div[3]/section[2]/div/div[2]/div[2]/div[1]/div[3]/div/label"))
         )
-        # dropdown.click()
         driver.execute_script("arguments[0].click();", dropdown)
         # Click the "All" option
         all_option = WebDriverWait(driver, 10).until(
@@ -38,7 +37,7 @@ def select_all_option(driver):
 
 
 def process_page(page,game_id,game_date,matchup,driver):
-    driver.get(f'{page}')
+    driver.get(page)
     
     driver.set_page_load_timeout(120)
     driver.implicitly_wait(10)
@@ -48,7 +47,7 @@ def process_page(page,game_id,game_date,matchup,driver):
     
     # Find all divs containing the data tables
     tables = soup.find_all('div', class_='StatsTable_st__g2iuW')
-    
+    last_updated = datetime.today()
     # Check if tables exist
     if tables:
         for table_index, table in enumerate(tables):
@@ -64,12 +63,12 @@ def process_page(page,game_id,game_date,matchup,driver):
             for row in rows[1:-1]:  # Skip the header row
                 cols = row.find_all('td')
                 row_data = [col.get_text(strip=True) for col in cols]
-                row_data.extend([game_id,game_date,matchup,page])
+                row_data.extend([game_id,game_date,matchup,page,last_updated])
                 data.append(row_data)
             
             # Create a DataFrame for this table
             if headers and data:
-                headers.extend(['game_id','game_date','matchup','url'])
+                headers.extend(['game_id','game_date','matchup','url','last_updated'])
                 df = pd.DataFrame(data, columns=headers)
             else:
                 df = pd.DataFrame(data)  # Use generic column names if no headers
@@ -81,7 +80,7 @@ def process_page(page,game_id,game_date,matchup,driver):
         return game_id,game_date,matchup
 
 
-
+#Makes it so we are not connecting to driver on import
 if __name__ == "__main__":
     driver = establish_driver()
     select_all_option(driver)
