@@ -1,5 +1,6 @@
 import pandas as pd
-from selenium import webdriver
+import main
+from datetime import datetime as date
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.by import By
@@ -9,79 +10,17 @@ import regex as re
 import time
 import pandas_gbq as pgbq
 
-
-def select_all_option():
-    try:
-        # Click the dropdown
-        dropdown = WebDriverWait(driver, 10).until(
-            EC.element_to_be_clickable((By.XPATH, "/html/body/div[1]/div[2]/div[2]/div[3]/section[2]/div/div[2]/div[2]/div[1]/div[3]/div/label"))
-        )
-        dropdown.click()
-
-        # Click the "All" option
-        all_option = WebDriverWait(driver, 10).until(
-            EC.element_to_be_clickable((By.XPATH, "/html/body/div[1]/div[2]/div[2]/div[3]/section[2]/div/div[2]/div[2]/div[1]/div[3]/div/label/div/select/option[1]"))
-        )
-        all_option.click()
-
-        print("Successfully selected the 'All' option.")
-    except Exception as e:
-        print(f"Error selecting the 'All' option: {e}")
-
-def process_page(page,game_id,game_date):
-
-    driver.get(f'{page}')
-    
-    driver.set_page_load_timeout(120)
-    driver.implicitly_wait(10)
-
-    ps = driver.page_source
-    soup = BeautifulSoup(ps, 'html5lib')
-    
-    # Find all divs containing the data tables
-    tables = soup.find_all('div', class_='StatsTable_st__g2iuW')
-    
-    # Check if tables exist
-    if tables:
-        for table_index, table in enumerate(tables):
-            # Extract the table rows
-            rows = table.find_all('tr')
-            
-            # Get the header row (if it exists)
-            headers = [th.get_text(strip=True) for th in rows[0].find_all('th')] if rows else []
-            
-            # Get the data rows
-            data = []
-            for row in rows[1:-1]:  # Skip the header row
-                cols = row.find_all('td')
-                row_data = [col.get_text(strip=True) for col in cols]
-                row_data.extend([game_id,game_date])
-                data.append(row_data)
-            
-            # Create a DataFrame for this table
-            if headers and data:
-                headers.extend(['game_id','game_date'])
-                df = pd.DataFrame(data, columns=headers)
-            else:
-                df = pd.DataFrame(data)  # Use generic column names if no headers
-            
-            # Append the DataFrame to the appropriate team entries in the dictionary
-            return df
-        
-    else:
-        print(f"No stats tables found for: {page}")
-        return game_id,game_date
-
-urls = {'NBA_Season_2021-2022_uncleaned':'https://www.nba.com/stats/teams/boxscores?Season=2021-22',
+#need to rerun 2022-2023, 2023-2024
+urls = {#'NBA_Season_2021-2022_uncleaned':'https://www.nba.com/stats/teams/boxscores?Season=2021-22',
         'NBA_Season_2022-2023_uncleaned':'https://www.nba.com/stats/teams/boxscores?Season=2022-23',
         'NBA_Season_2023-2024_uncleaned':'https://www.nba.com/stats/teams/boxscores?Season=2023-24'}
 
+driver = main.establish_driver()
+
 for url in urls:
 
-    driver = webdriver.Firefox()
-
     driver.get(urls[url])
-    select_all_option()
+    main.select_all_option(driver)
     source = driver.page_source
 
 
@@ -89,49 +28,78 @@ for url in urls:
 
     text = soup.find_all('a',class_ = 'Anchor_anchor__cSc3P')
 
-    # page_number = driver.find_element(By.XPATH,'/html/body/div[1]/div[2]/div[2]/div[3]/section[2]/div/div[2]/div[2]/div[1]/div[4]').text
-    # page_number = page_number.split()[1]
-    # number_of_pages = int(page_number)
-
-
     href = [str(h.get('href')) for h in text if '/game' in h.get('href')]
 
-    dates = [re.findall('\/games\?date=\d{4}-\d{2}-\d{2}',h) for h in href]
+    rows = driver.find_elements(By.XPATH, "/html/body/div[1]/div[2]/div[2]/div[3]/section[2]/div/div[2]/div[3]/table/tbody/tr")
+    dates = []
+    matchups = []
+    game_ids = []
+    for row in rows:
+        date_element = row.find_element(By.XPATH, "./td[3]/a")
+        game_date_text = date_element.text.strip()
+        
+        # Convert the extracted date text to a datetime.date object
+        game_date = date.strptime(game_date_text, "%m/%d/%Y").date()
+        print(f"Game Date: {game_date}")  # Debugging output
 
-    flat_dates = [item for sublist in dates for item in sublist]
+        matchup_element = row.find_element(By.XPATH, "./td[2]/a")
+        game_id = matchup_element.get_attribute('href')
+        matchup_text = matchup_element.text.strip()
+        matchup_element.get_attribute('')
+        if "@" in matchup_text:
+            teams = matchup_text.split(" @ ")
+        elif "vs." in matchup_text:
+            teams = matchup_text.split(" vs. ")
 
-    matches = [re.findall('\/game\/[0-9]+',h) for h in href]
+        game_ids.append(game_id)
+        matchups.append(teams[1])
+        dates.append(game_date)
 
-    flat_matches = [item for sublist in matches for item in sublist]
+    # matches = [re.findall('\/game\/[0-9]+',h) for h in href]
+
+    # game_ids = [item for sublist in matches for item in sublist]
 
 
     data = []
     failed_pages = []
     i = 0
-    for game_id,game_date in zip(flat_matches,flat_dates):
+    for game_id,date,matchup in zip(game_ids,dates,matchups):
         page = f'https://www.nba.com{game_id}/box-score'
         i += 1
+        print(date,game_id,matchup)
         if i %100 == 0:
-            print(f'processing the {i} request {round(len(data)/len(flat_matches)*100,2)}% complete')
-        result = process_page(page,game_id,game_date)
+            print(f'processing the {i} request {round(len(data)/len(game_ids)*100,2)}% complete')
+        result = main.process_page(page,game_id,driver,matchup,date)
         if isinstance(result, pd.DataFrame):
             data.append(result)
         else:
             failed_pages.append(result)
             print(f'Failed Pages length: {len(failed_pages)}')
-    
+
+
+    retries = {}
     while failed_pages:
         game_id,game_date = failed_pages.pop(0)
+        if (game_id,game_date) in retries:
+            retries[(game_id,game_date)] += 1
+            print(f'Retry Count:{retries[game_id]}')
+        else:
+            retries[(game_id,game_date)] = 0
+            retries[(game_id,game_date)] += 1
+            print(f'Retry Count:{retries[game_id]}')
+
         print(f'processing # {game_id} from failed pages')
         page = f'https://www.nba.com{game_id}/box-score'
-        result = process_page(page,game_id,game_date)
+        result = main.process_page(page,game_id,driver,date,)
+
         if isinstance(result,pd.DataFrame):
             data.append(result)
             print(f'processed # {game_id} from failed pages')
         else:
-            failed_pages.append((game_id,game_date))
+            failed_pages.append((game_id))
             print(f'failed # {game_id} from failed pages, readded to be processed')
 
+    #combine dataframes to upload to GBQ
     combined_dataframes = pd.concat(data,ignore_index= True)
 
     client = bigquery.Client('miscellaneous-projects-444203')
