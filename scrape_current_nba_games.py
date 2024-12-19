@@ -26,7 +26,7 @@ for row in rows:
     game_date_text = date_element.text.strip()
     
     # Convert the extracted date text to a datetime.date object
-    game_date = date.strptime(game_date_text, "%m/%d/%Y").date() 
+    game_date = date.strptime(game_date_text, "%m/%d/%Y").date()
     if game_date == date.today():
         #get matchup data
         matchup_element = row.find_element(By.XPATH, "./td[2]/a")
@@ -88,8 +88,19 @@ try:
 
         combined_dataframes.rename(columns={'+/-':'plus_mins'},inplace=True)
 
+        invalid_rows = ~combined_dataframes['MIN'].str.match(valid_time_pattern)
 
-        pandas_gbq.to_gbq(combined_dataframes,project_id= 'miscellaneous-projects-444203',destination_table= f'miscellaneous-projects-444203.capstone_data.{url}')
+        columns_to_swap = ['FGM','FGA','FG%','3PM','3PA']
+        valid_columns = ['game_id','game_date','matchup','url','last_updated']
+
+        combined_dataframes.loc[invalid_rows,valid_columns] = combined_dataframes.loc[invalid_rows,columns_to_swap].to_numpy()
+
+        combined_dataframes.loc[invalid_rows,columns_to_swap] = None
+
+        combined_dataframes['game_date'] = pd.to_datetime(combined_dataframes['game_date'])
+        combined_dataframes['last_updated'] = pd.to_datetime(combined_dataframes['last_updated'])
+
+        pandas_gbq.to_gbq(combined_dataframes,project_id= 'miscellaneous-projects-444203',destination_table= f'miscellaneous-projects-444203.capstone_data.{url}',if_exists = 'append')
 
         send_email(
         subject = f"NBA SCRAPING: COMPLTETED # OF GAME {len(game_data)}",

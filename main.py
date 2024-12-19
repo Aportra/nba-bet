@@ -50,7 +50,7 @@ def process_page(page,game_id,game_date,matchup,driver):
     
     # Find all divs containing the data tables
     tables = soup.find_all('div', class_='StatsTable_st__g2iuW')
-    last_updated = datetime.today()
+    last_updated = datetime.today().date()
     # Check if tables exist
     if tables:
         for table_index, table in enumerate(tables):
