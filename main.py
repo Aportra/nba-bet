@@ -16,7 +16,7 @@ def establish_driver():
     options = webdriver.FirefoxOptions()
     options.add_argument('--headless')  # Run in headless mode for efficiency
     options.binary_location = "/snap/bin/firefox" 
-    return webdriver.Firefox(executable_path="/snap/bin/geckodriver", options=options)
+    return webdriver.Firefox(options=options)
 
 #Select all option only works when at least half screen due to blockage of the all option when not in headerless option
 
