@@ -19,7 +19,7 @@ def establish_driver():
         options.binary_location = "/usr/bin/firefox" 
     except:
         return webdriver.Firefox()
-    return webdriver.Firefox()
+    return webdriver.Firefox(options=options)
 
 #Select all option only works when at least half screen due to blockage of the all option when not in headerless option
 
