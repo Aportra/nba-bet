@@ -11,21 +11,21 @@ jobs:
 
 
     steps:
-      -name: Checkout repository
-      -uses: actions/checkout@v3
+      - name: Checkout repository
+      - uses: actions/checkout@v3
 
-      -name: Set up Python
-      -uses: actions/setup-python@v4
+      - name: Set up Python
+      - uses: actions/setup-python@v4
       with:
         python-version: '3.9'
 
-      -name: Install Dependencies
-      run:
+      - name: Install Dependencies
+      run: |
         python -m pip install --upgrade pip
         pip install -r requirements.txt
 
 
-      -name: Run scraper
+      - name: Run scraper
       run: scrape_current_nba_games.py
       env:
           SERVER_EMAIL: ${{ secrets.SERVER_EMAIL }}
