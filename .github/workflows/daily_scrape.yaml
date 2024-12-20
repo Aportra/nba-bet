@@ -32,7 +32,9 @@ jobs:
         uses: actions/setup-python@v4
         with:
           python-version: '3.9'
-
+      - name: Add Snap to PATH
+        run: |
+          echo "export PATH=$PATH:/snap/bin" >> $GITHUB_ENV
       - name: Install Dependencies
         run: |
           python -m pip install --upgrade pip
