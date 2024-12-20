@@ -16,7 +16,7 @@ urls = {'NBA_Season_2021-2022_uncleaned':'https://www.nba.com/stats/teams/boxsco
         'NBA_Season_2023-2024_uncleaned':'https://www.nba.com/stats/teams/boxscores?Season=2023-24',
         'NBA_Season_2024-2025_uncleaned':'https://www.nba.com/stats/teams/boxscores?Season=2024-25'
 }
-valid_time_pattern = r"^\d{2}:\d{2}$"
+valid_time_pattern = r"^\d{1,2}:\d{1,2}$"
 
 driver = main.establish_driver()
 
@@ -111,7 +111,7 @@ for url in urls:
     columns_to_swap = ['FGM','FGA','FG%','3PM','3PA','3P%']
     valid_columns = ['team','game_id','game_date','matchup','url','last_updated']
 
-    combined_dataframes.loc[invalid_rows,valid_columns] = combined_dataframes.loc[invalid_rows,columns_to_swap].to_numpy()
+    combined_dataframes.loc[invalid_rows, valid_columns] = combined_dataframes.loc[invalid_rows, columns_to_swap].values
 
     combined_dataframes.loc[invalid_rows,columns_to_swap] = None
 
@@ -120,5 +120,8 @@ for url in urls:
     combined_dataframes['url'] = combined_dataframes['url'].astype(str).str.strip()
     combined_dataframes['game_id'] = combined_dataframes['game_id'].str.lstrip('https://www.nba.com/game/')
 
-    combined_dataframes[['FGM','FGA','FG%','3PM','3PA','3P%','FTM','FTA','FT%','OREB','DREB','REB','AST','STL','BLK','TO','PF','PTS','plus_mins']] = combined_dataframes[['FGM','FGA','FG%','3PM','3PA','3P%','FTM','FTA','FT%','OREB','DREB','REB','AST','STL','BLK','TO','PF','PTS','plus_mins']].astype('float64')
+    num_columns = ['FGM', 'FGA', 'FG%', '3PM', '3PA', '3P%', 'FTM', 'FTA', 'FT%', 'OREB', 'DREB', 'REB', 'AST', 'STL', 'BLK', 'TO', 'PF', 'PTS', 'plus_mins']
+    combined_dataframes[num_columns] = combined_dataframes[num_columns].apply(pd.to_numeric, errors='coerce')
+
+
     pandas_gbq.to_gbq(combined_dataframes,project_id= 'miscellaneous-projects-444203',destination_table= f'miscellaneous-projects-444203.capstone_data.{url}',if_exists='replace')

@@ -20,7 +20,7 @@ url = {'NBA_Season_2021-2022_uncleaned':'https://www.nba.com/stats/teams/boxscor
 
 driver.get(url['NBA_Season_2021-2022_uncleaned'])
 
-valid_time_pattern = r"^\d{2}:\d{2}$"
+valid_time_pattern = r"^\d{1,2}:\d{1,2}$"
 
 rows = driver.find_elements(By.XPATH, "/html/body/div[1]/div[2]/div[2]/div[3]/section[2]/div/div[2]/div[3]/table/tbody/tr")
 game_data = []
@@ -92,21 +92,24 @@ try:
 
         client = bigquery.Client('miscellaneous-projects-444203')
 
-        combined_dataframes.columns
-
         combined_dataframes.rename(columns={'+/-':'plus_mins'},inplace=True)
 
         invalid_rows = ~combined_dataframes['MIN'].str.match(valid_time_pattern)
 
-        columns_to_swap = ['FGM','FGA','FG%','3PM','3PA']
-        valid_columns = ['game_id','game_date','matchup','url','last_updated']
+        columns_to_swap = ['FGM','FGA','FG%','3PM','3PA','3P%']
+        valid_columns = ['team','game_id','game_date','matchup','url','last_updated']
 
-        combined_dataframes.loc[invalid_rows,valid_columns] = combined_dataframes.loc[invalid_rows,columns_to_swap].to_numpy()
+        combined_dataframes.loc[invalid_rows, valid_columns] = combined_dataframes.loc[invalid_rows, columns_to_swap].values
 
         combined_dataframes.loc[invalid_rows,columns_to_swap] = None
 
-        combined_dataframes['game_date'] = pd.to_datetime(combined_dataframes['game_date'],errors = 'coerce')
-        combined_dataframes['last_updated'] = pd.to_datetime(combined_dataframes['last_updated'],errors = 'coerce')
+        combined_dataframes['game_date'] = pd.to_datetime(combined_dataframes['game_date'],errors='coerce')
+        combined_dataframes['last_updated'] = pd.to_datetime(combined_dataframes['last_updated'],errors='coerce')
+        combined_dataframes['url'] = combined_dataframes['url'].astype(str).str.strip()
+        combined_dataframes['game_id'] = combined_dataframes['game_id'].str.lstrip('https://www.nba.com/game/')
+
+        num_columns = ['FGM', 'FGA', 'FG%', '3PM', '3PA', '3P%', 'FTM', 'FTA', 'FT%', 'OREB', 'DREB', 'REB', 'AST', 'STL', 'BLK', 'TO', 'PF', 'PTS', 'plus_mins']
+        combined_dataframes[num_columns] = combined_dataframes[num_columns].apply(pd.to_numeric, errors='coerce')
 
         pandas_gbq.to_gbq(combined_dataframes,project_id= 'miscellaneous-projects-444203',destination_table= f'miscellaneous-projects-444203.capstone_data.{url.keys}',if_exists = 'append')
 
