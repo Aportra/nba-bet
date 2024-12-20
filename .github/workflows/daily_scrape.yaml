@@ -14,6 +14,9 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
+        
+      - name: List files in root directory
+        run: ls -al 
 
       - name: Set up Python
         uses: actions/setup-python@v4
