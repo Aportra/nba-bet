@@ -23,7 +23,11 @@ jobs:
           tar -xvzf geckodriver-v0.33.0-linux64.tar.gz
           chmod +x geckodriver
           sudo mv geckodriver /usr/local/bin/
-
+      - name: Debug Firefox and GeckoDriver
+        run: |
+          firefox --version
+          which firefox
+          which geckodriver
       - name: Set up Python
         uses: actions/setup-python@v4
         with:

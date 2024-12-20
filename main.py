@@ -15,10 +15,7 @@ import os
 def establish_driver():
     options = webdriver.FirefoxOptions()
     options.add_argument('--headless')  # Run in headless mode for efficiency
-    try:
-        options.binary_location = "/usr/bin/firefox" 
-    except:
-        return webdriver.Firefox()
+    options.binary_location = "/usr/bin/firefox" 
     return webdriver.Firefox(options=options)
 
 #Select all option only works when at least half screen due to blockage of the all option when not in headerless option
