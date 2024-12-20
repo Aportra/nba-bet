@@ -65,27 +65,30 @@ try:
 
         retries = {}
         while failed_pages:
-            game_id,game_date,matchup = failed_pages.pop(0)
-            if (game_id,game_date) in retries:
-                retries[(game_id,game_date)] += 1
-                print(f'Retry Count:{retries[game_id]}')
+            game_id,game_date,home,away = failed_pages.pop(0)
+
+            key = (game_id,game_date,home,away)
+
+            if key in retries:
+                retries[key] += 1
+                print(f'Retry Count:{retries[key]}')
             else:
-                retries[(game_id,game_date)] = 0
-                retries[(game_id,game_date)] += 1
-                print(f'Retry Count:{retries[game_id]}')
+                retries[key] = 1
+                print(f'Retry Count:{retries[key]}')
 
             print(f'processing # {game_id} from failed pages')
-            page = f'https://www.nba.com{game_id}/box-score'
+            page = f'{game_id}/box-score'
             result = main.process_page(page,game_id,game_date,home,away,driver)
 
             if isinstance(result,pd.DataFrame):
                 data.append(result)
                 print(f'processed # {game_id} from failed pages')
+            #Catch for if they fail again
             else:
-                failed_pages.append((page,game_id,game_date,home,away,driver))
+                failed_pages.append((game_id,game_date,home,away))
                 print(f'failed # {game_id} from failed pages, readded to be processed')
         
-            combined_dataframes = pd.concat(data,ignore_index= True)
+        combined_dataframes = pd.concat(data,ignore_index= True)
 
         client = bigquery.Client('miscellaneous-projects-444203')
 
@@ -108,17 +111,17 @@ try:
         pandas_gbq.to_gbq(combined_dataframes,project_id= 'miscellaneous-projects-444203',destination_table= f'miscellaneous-projects-444203.capstone_data.{url.keys}',if_exists = 'append')
 
         main.send_email(
-        subject = f"NBA SCRAPING: COMPLTETED # OF GAMES {len(game_data)}",
-        body = f'{len(game_data)} games scraped as of {date.today()}'
+        subject = str(f"NBA SCRAPING: COMPLTETED # OF GAMES {len(game_data)}"),
+        body = str(f'{len(game_data)} games scraped as of {date.today()}')
     )
     else:
         main.send_email(
         subject = "NBA SCRAPING: NO GAMES",
-        body = f'No games as of {date.today()}'
+        body = str(f'No games as of {date.today()}')
     )
 
 except Exception as e:
     main.send_email(
-        subject = "NBA SCRAPING: SCIRPT CRASHED",
-        body = f'The script encountered an error: \n{str(e)}'
+        subject = str("NBA SCRAPING: SCIRPT CRASHED"),
+        body = str(f'The script encountered an error: \n{str(e)}')
     )

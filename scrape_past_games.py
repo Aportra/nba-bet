@@ -14,7 +14,7 @@ import pandas_gbq
 urls = {'NBA_Season_2021-2022_uncleaned':'https://www.nba.com/stats/teams/boxscores?Season=2021-22',
         'NBA_Season_2022-2023_uncleaned':'https://www.nba.com/stats/teams/boxscores?Season=2022-23',
         'NBA_Season_2023-2024_uncleaned':'https://www.nba.com/stats/teams/boxscores?Season=2023-24',
-        #'NBA_Season_2024-2025_uncleaned':'https://www.nba.com/stats/teams/boxscores?Season=2024-25'
+        'NBA_Season_2024-2025_uncleaned':'https://www.nba.com/stats/teams/boxscores?Season=2024-25'
 }
 valid_time_pattern = r"^\d{2}:\d{2}$"
 
@@ -84,7 +84,7 @@ for url in urls:
             retries[key] += 1
             print(f'Retry Count:{retries[key]}')
         else:
-            retries[] = 1
+            retries[key] = 1
             print(f'Retry Count:{retries[key]}')
 
         print(f'processing # {game_id} from failed pages')
