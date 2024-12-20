@@ -6,7 +6,6 @@ from selenium.webdriver.common.by import By
 from bs4 import BeautifulSoup
 import regex as re
 import time
-import pandas_gbq as pgbq
 from datetime import datetime as date
 import smtplib
 from email.mime.text import MIMEText

@@ -9,7 +9,6 @@ from google.cloud import bigquery
 import regex as re
 import time
 import pandas_gbq
-import numpy as np
 
 #need to rerun 2022-2023, 2023-2024
 urls = {'NBA_Season_2021-2022_uncleaned':'https://www.nba.com/stats/teams/boxscores?Season=2021-22',
