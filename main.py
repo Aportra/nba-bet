@@ -7,7 +7,7 @@ from bs4 import BeautifulSoup
 import regex as re
 import time
 import pandas_gbq as pgbq
-from datetime import datetime
+from datetime import datetime as date
 import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
@@ -39,7 +39,7 @@ def select_all_option(driver):
         print(f"Error selecting the 'All' option: {e}")
 
 
-def process_page(page,game_id,game_date,matchup,driver):
+def process_page(page,game_id,game_date,home,away,driver):
     driver.get(page)
     
     driver.set_page_load_timeout(120)
@@ -50,13 +50,19 @@ def process_page(page,game_id,game_date,matchup,driver):
     
     # Find all divs containing the data tables
     tables = soup.find_all('div', class_='StatsTable_st__g2iuW')
-    last_updated = datetime.today().date()
+    last_updated = date.today()
+    df_data = []
     # Check if tables exist
     if tables:
         for table_index, table in enumerate(tables):
             # Extract the table rows
             rows = table.find_all('tr')
-            
+            if table_index == 1:
+                t1 = home
+                t2 = away
+            else:
+                t1 = away
+                t2 = home
             # Get the header row (if it exists)
             headers = [th.get_text(strip=True) for th in rows[0].find_all('th')] if rows else []
             
@@ -66,21 +72,24 @@ def process_page(page,game_id,game_date,matchup,driver):
             for row in rows[1:-1]:  # Skip the header row
                 cols = row.find_all('td')
                 row_data = [col.get_text(strip=True) for col in cols]
-                row_data.extend([game_id,game_date,matchup,page,last_updated])
+                row_data.extend([t1,game_id,game_date,t2,page,last_updated])
                 data.append(row_data)
             
             # Create a DataFrame for this table
             if headers and data:
-                headers.extend(['game_id','game_date','matchup','url','last_updated'])
+                headers.extend(['team','game_id','game_date','matchup','url','last_updated'])
                 df = pd.DataFrame(data, columns=headers)
             else:
                 df = pd.DataFrame(data)  # Use generic column names if no headers
             
+            df_data.append(df)
+        
+        df = pd.concat(df_data,ignore_index=True)
             # Append the DataFrame to the appropriate team entries in the dictionary
-            return df
+        return df
     else:
         print(f'Could not process: {page}')
-        return game_id,game_date,matchup
+        return game_id,game_date,home,away
 
 def send_email(subject,body):
     sender_email = os.getenv('SERVER_EMAIL')

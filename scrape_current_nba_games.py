@@ -19,6 +19,8 @@ nba_games = 'https://www.nba.com/stats/teams/boxscores?Season=2024-25'
 
 driver.get(nba_games)
 
+valid_time_pattern = r"^\d{2}:\d{2}$"
+
 rows = driver.find_elements(By.XPATH, "/html/body/div[1]/div[2]/div[2]/div[3]/section[2]/div/div[2]/div[3]/table/tbody/tr")
 game_data = []
 for row in rows:
@@ -26,8 +28,8 @@ for row in rows:
     game_date_text = date_element.text.strip()
     
     # Convert the extracted date text to a datetime.date object
-    game_date = date.strptime(game_date_text, "%m/%d/%Y").date()
-    if game_date == date.today():
+    game_date = date.strptime(game_date_text, "%m/%d/%Y")
+    if game_date.date() == date.today():
         #get matchup data
         matchup_element = row.find_element(By.XPATH, "./td[2]/a")
         game_id = matchup_element.get_attribute('href')
@@ -97,8 +99,8 @@ try:
 
         combined_dataframes.loc[invalid_rows,columns_to_swap] = None
 
-        combined_dataframes['game_date'] = pd.to_datetime(combined_dataframes['game_date'])
-        combined_dataframes['last_updated'] = pd.to_datetime(combined_dataframes['last_updated'])
+        combined_dataframes['game_date'] = pd.to_datetime(combined_dataframes['game_date'],errors='coerce')
+        combined_dataframes['last_updated'] = pd.to_datetime(combined_dataframes['last_updated']errors='coerce')
 
         pandas_gbq.to_gbq(combined_dataframes,project_id= 'miscellaneous-projects-444203',destination_table= f'miscellaneous-projects-444203.capstone_data.{url}',if_exists = 'append')
 
