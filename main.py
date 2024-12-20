@@ -112,7 +112,7 @@ def send_email(subject,body):
     try:
         server = smtplib.SMTP('smtp.gmail.com',587)
         server.starttls()
-        server.login(send_email,password)
+        server.login(sender_email,password)
         server.send_message(msg)
     except Exception as e:
         print(f"failed due to send email: {e}")
