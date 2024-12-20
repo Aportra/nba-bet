@@ -101,7 +101,9 @@ def send_email(subject,body):
     sender_email = os.getenv('SERVER_EMAIL')
     receiver_email = os.getenv('EMAIL_USERNAME')
     password = os.getenv('EMAIL_PASSWORD')
-
+    print("Sender email:", sender_email)
+    print("Receiver email:", receiver_email)
+    print("Password set:", password)
     msg = MIMEMultipart()
     msg['From'] = sender_email
     msg['To'] = receiver_email
