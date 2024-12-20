@@ -107,7 +107,7 @@ for url in urls:
     invalid_rows = ~combined_dataframes['MIN'].str.match(valid_time_pattern)
 
     columns_to_swap = ['FGM','FGA','FG%','3PM','3PA','3P%']
-    valid_columns = ['home','game_id','game_date','matchup','url','last_updated']
+    valid_columns = ['team','game_id','game_date','matchup','url','last_updated']
 
     combined_dataframes.loc[invalid_rows,valid_columns] = combined_dataframes.loc[invalid_rows,columns_to_swap].to_numpy()
 
