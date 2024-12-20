@@ -8,6 +8,7 @@ from google.cloud import bigquery
 import regex as re
 import time
 from datetime import datetime as date
+import pandas_gbq
 #For email notifications
 
 
@@ -15,9 +16,9 @@ from datetime import datetime as date
 driver = main.establish_driver()
 
 
-nba_games = 'https://www.nba.com/stats/teams/boxscores?Season=2024-25'
+url = {'NBA_Season_2021-2022_uncleaned':'https://www.nba.com/stats/teams/boxscores?Season=2024-25'}
 
-driver.get(nba_games)
+driver.get(url['NBA_Season_2021-2022_uncleaned'])
 
 valid_time_pattern = r"^\d{2}:\d{2}$"
 
@@ -101,23 +102,23 @@ try:
 
         combined_dataframes.loc[invalid_rows,columns_to_swap] = None
 
-        combined_dataframes['game_date'] = pd.to_datetime(combined_dataframes['game_date'],errors='coerce')
-        combined_dataframes['last_updated'] = pd.to_datetime(combined_dataframes['last_updated']errors='coerce')
+        combined_dataframes['game_date'] = pd.to_datetime(combined_dataframes['game_date'],errors = 'coerce')
+        combined_dataframes['last_updated'] = pd.to_datetime(combined_dataframes['last_updated'],errors = 'coerce')
 
-        pandas_gbq.to_gbq(combined_dataframes,project_id= 'miscellaneous-projects-444203',destination_table= f'miscellaneous-projects-444203.capstone_data.{url}',if_exists = 'append')
+        pandas_gbq.to_gbq(combined_dataframes,project_id= 'miscellaneous-projects-444203',destination_table= f'miscellaneous-projects-444203.capstone_data.{url.keys}',if_exists = 'append')
 
-        send_email(
-        subject = f"NBA SCRAPING: COMPLTETED # OF GAME {len(game_data)}",
+        main.send_email(
+        subject = f"NBA SCRAPING: COMPLTETED # OF GAMES {len(game_data)}",
         body = f'{len(game_data)} games scraped as of {date.today()}'
     )
     else:
-        send_email(
+        main.send_email(
         subject = "NBA SCRAPING: NO GAMES",
         body = f'No games as of {date.today()}'
     )
 
 except Exception as e:
-    send_email(
+    main.send_email(
         subject = "NBA SCRAPING: SCIRPT CRASHED",
         body = f'The script encountered an error: \n{str(e)}'
     )
