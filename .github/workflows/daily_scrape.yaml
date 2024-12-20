@@ -23,6 +23,11 @@ jobs:
           tar -xvzf geckodriver-v0.33.0-linux64.tar.gz
           chmod +x geckodriver
           sudo mv geckodriver /usr/local/bin/
+
+      - name: Remove Snap Firefox
+        run: |
+          sudo snap remove firefox || true
+          sudo apt-get purge -y snapd || true
       - name: Debug Firefox and GeckoDriver
         run: |
           firefox --version
