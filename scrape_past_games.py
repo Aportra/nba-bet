@@ -77,12 +77,15 @@ for url in urls:
     #Rerunning failed pages
     while failed_pages:
         game_id,game_date,home,away = failed_pages.pop(0)
-        if (game_id,game_date,away) in retries:
-            retries[(game_id,game_date,home,away)] += 1
-            print(f'Retry Count:{retries[(game_id,game_date,home,away)]}')
+
+        key = (game_id,game_date,home,away)
+
+        if key in retries:
+            retries[key] += 1
+            print(f'Retry Count:{retries[key]}')
         else:
-            retries[(game_id,game_date,away)] = 1
-            print(f'Retry Count:{retries[(game_id,game_date,home,away)]}')
+            retries[] = 1
+            print(f'Retry Count:{retries[key]}')
 
         print(f'processing # {game_id} from failed pages')
         page = f'{game_id}/box-score'
