@@ -96,7 +96,7 @@ def send_email(subject,body):
     password = os.getenv('EMAIL_PASSWORD')
 
     msg = MIMEMultipart()
-    msg['From'] = send_email
+    msg['From'] = sender_email
     msg['To'] = receiver_email
     msg['Subject'] = subject
     
