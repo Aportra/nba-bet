@@ -3,6 +3,8 @@ from selenium import webdriver
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.by import By
+from selenium.webdriver.firefox.service import Service
+from subprocess import getoutput
 from bs4 import BeautifulSoup
 import regex as re
 import time
@@ -15,12 +17,11 @@ import os
 def establish_driver():
     options = webdriver.FirefoxOptions()
     options.add_argument('--headless')  # Run in headless mode for efficiency
-    try: 
-        options.binary_location = "/usr/bin/firefox" 
-        return webdriver.Firefox(options=options)
-    except:        
-        options.binary_location = "/snap/bin/firefox" 
-        return webdriver.Firefox(options=options)
+
+    options.binary_location = getoutput("find /snap/firefox -name firefox").split("\n")[-1]
+
+   
+    return webdriver.Firefox(service = Service(executable_path = getoutput("find /snap/firefox -name geckodriver").split("\n")[-1]), options = options) 
 
 
 #Select all option only works when at least half screen due to blockage of the all option when not in headerless option
