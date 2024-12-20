@@ -36,23 +36,25 @@ for row in rows:
         matchup_text = matchup_element.text.strip()
         matchup_element.get_attribute('')
         if "@" in matchup_text:
-            teams = matchup_text.split(" @ ")
+            matchup = matchup_text.split(" @ ")
+            away, home = matchup
         elif "vs." in matchup_text:
-            teams = matchup_text.split(" vs. ")
-        
-        game_data.append((game_id,game_date,teams[1]))
+            matchup = matchup_text.split(" vs. ")
+            home, away = matchup
+
+        game_data.append((game_id,game_date,home,away))
 
 data = []
 failed_pages = []
 i = 0
 try:
     if game_data:
-        for game_id,date,matchup in game_data:
+        for game_id,game_date,home,away in game_data:
             page = game_id
             i += 1
             if i %100 == 0:
                 print(f'processing the {i} request {round(len(data)/len(game_data)*100,2)}% complete')
-            result = main.process_page(page,game_id,game_date,matchup,driver)
+            result = main.process_page(page,game_id,game_date,home,away,driver)
             if isinstance(result, pd.DataFrame):
                 data.append(result)
             else:
@@ -73,13 +75,13 @@ try:
 
             print(f'processing # {game_id} from failed pages')
             page = f'https://www.nba.com{game_id}/box-score'
-            result = main.process_page(page,game_id,game_date,matchup,driver)
+            result = main.process_page(page,game_id,game_date,home,away,driver)
 
             if isinstance(result,pd.DataFrame):
                 data.append(result)
                 print(f'processed # {game_id} from failed pages')
             else:
-                failed_pages.append((game_id))
+                failed_pages.append((page,game_id,game_date,home,away,driver))
                 print(f'failed # {game_id} from failed pages, readded to be processed')
         
             combined_dataframes = pd.concat(data,ignore_index= True)

@@ -80,10 +80,10 @@ for url in urls:
         game_id,game_date,home,away = failed_pages.pop(0)
         if (game_id,game_date,away) in retries:
             retries[(game_id,game_date,away)] += 1
-            print(f'Retry Count:{retries[(game_id,game_date,away)]}')
+            print(f'Retry Count:{retries[(game_id,game_date,home,away)]}')
         else:
             retries[(game_id,game_date,away)] = 1
-            print(f'Retry Count:{retries[(game_id,game_date,away)]}')
+            print(f'Retry Count:{retries[(game_id,game_date,home,away)]}')
 
         print(f'processing # {game_id} from failed pages')
         page = f'{game_id}/box-score'
