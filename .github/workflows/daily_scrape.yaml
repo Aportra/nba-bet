@@ -15,14 +15,27 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v3
 
-      - name: Install Firefox and GeckoDriver
+
+      - name: Install Snap
         run: |
           sudo apt-get update
-          sudo apt-get install -y firefox
-          wget https://github.com/mozilla/geckodriver/releases/download/v0.33.0/geckodriver-v0.33.0-linux64.tar.gz
-          tar -xvzf geckodriver-v0.33.0-linux64.tar.gz
-          chmod +x geckodriver
-          sudo mv geckodriver /usr/local/bin/
+          sudo apt-get install -y snapd
+          sudo systemctl start snapd
+          sudo systemctl enable snapd
+          export PATH=$PATH:/snap/bin
+
+      - name: Install Firefox and GeckoDriver via Snap
+        run: |
+          sudo snap install firefox --channel=latest/stable
+          sudo snap install geckodriver --channel=latest/stable
+      # - name: Install Firefox and GeckoDriver
+      #   run: |
+      #     sudo apt-get update
+      #     sudo apt-get install -y firefox
+      #     wget https://github.com/mozilla/geckodriver/releases/download/v0.33.0/geckodriver-v0.33.0-linux64.tar.gz
+      #     tar -xvzf geckodriver-v0.33.0-linux64.tar.gz
+      #     chmod +x geckodriver
+      #     sudo mv geckodriver /usr/local/bin/
       - name: Debug Firefox and GeckoDriver
         run: |
           firefox --version
