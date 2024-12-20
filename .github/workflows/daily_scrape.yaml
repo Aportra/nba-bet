@@ -28,10 +28,10 @@ jobs:
           sudo cp /snap/bin/firefox /usr/bin/firefox
           sudo chmod +x /usr/bin/firefox
           ls -l /usr/bin/firefox
-        - name: Prioritize /usr/bin in PATH
-          run: |
-            export PATH="/usr/bin:$PATH"
-            echo "export PATH=/usr/bin:$PATH" >> $GITHUB_ENV
+      - name: Prioritize /usr/bin in PATH
+        run: |
+          export PATH="/usr/bin:$PATH"
+          echo "export PATH=/usr/bin:$PATH" >> $GITHUB_ENV
       - name: Debug Firefox and GeckoDriver
         run: |
           firefox --version
