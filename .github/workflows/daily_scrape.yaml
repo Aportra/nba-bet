@@ -1,8 +1,9 @@
 name: Daily Scraper
 
 on:
-  schedule:
-    - cron: '0 6 * * *'
+  workflow_dispatch:
+  # schedule:
+  #   - cron: '0 6 * * *'
 
 
 jobs:
@@ -26,7 +27,7 @@ jobs:
 
 
       - name: Run scraper
-        run: scrape_current_nba_games.py
+        run: python scrape_current_nba_games.py
         env:
           SERVER_EMAIL: ${{ secrets.SERVER_EMAIL }}
           EMAIL_USERNAME: ${{ secrets.EMAIL_USERNAME }}
