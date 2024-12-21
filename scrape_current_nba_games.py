@@ -3,6 +3,7 @@ import main
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.by import By
+from selenium import webdriver
 from bs4 import BeautifulSoup
 from google.cloud import bigquery
 import regex as re
@@ -11,17 +12,13 @@ from datetime import datetime as date
 from datetime import timedelta
 import pandas_gbq
 #For email notifications
-x = date.today() - timedelta(1)
-
-print(x.date())
 
 
 driver = main.establish_driver()
 
+url = {'NBA_Season_2024-2025_uncleaned':'https://www.nba.com/stats/teams/boxscores?Season=2024-25'}
 
-url = {'NBA_Season_2021-2022_uncleaned':'https://www.nba.com/stats/teams/boxscores?Season=2024-25'}
-
-driver.get(url['NBA_Season_2021-2022_uncleaned'])
+driver.get(url['NBA_Season_2024-2025_uncleaned'])
 
 valid_time_pattern = r"^\d{1,2}:\d{1,2}$"
 
@@ -33,7 +30,8 @@ for row in rows:
     
     # Convert the extracted date text to a datetime.date object
     game_date = date.strptime(game_date_text, "%m/%d/%Y")
-    if game_date.date() == x:
+    if game_date.date() == date.today().date():
+        print('its working')
         #get matchup data
         matchup_element = row.find_element(By.XPATH, "./td[2]/a")
         game_id = matchup_element.get_attribute('href')
@@ -114,7 +112,7 @@ try:
         num_columns = ['FGM', 'FGA', 'FG%', '3PM', '3PA', '3P%', 'FTM', 'FTA', 'FT%', 'OREB', 'DREB', 'REB', 'AST', 'STL', 'BLK', 'TO', 'PF', 'PTS', 'plus_mins']
         combined_dataframes[num_columns] = combined_dataframes[num_columns].apply(pd.to_numeric, errors='coerce')
 
-        pandas_gbq.to_gbq(combined_dataframes,project_id= 'miscellaneous-projects-444203',destination_table= f'miscellaneous-projects-444203.capstone_data.{url.keys}',if_exists = 'append')
+        pandas_gbq.to_gbq(combined_dataframes,project_id= 'miscellaneous-projects-444203',destination_table= f'miscellaneous-projects-444203.capstone_data.NBA_Season_2024-2025_uncleaned',if_exists = 'append')
 
         main.send_email(
         subject = str(f"NBA SCRAPING: COMPLTETED # OF GAMES {len(game_data)}"),
