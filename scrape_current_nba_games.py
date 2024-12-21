@@ -8,9 +8,12 @@ from google.cloud import bigquery
 import regex as re
 import time
 from datetime import datetime as date
+from datetime import timedelta
 import pandas_gbq
 #For email notifications
+x = date.today() - timedelta(1)
 
+print(x.date())
 
 
 driver = main.establish_driver()
@@ -30,7 +33,7 @@ for row in rows:
     
     # Convert the extracted date text to a datetime.date object
     game_date = date.strptime(game_date_text, "%m/%d/%Y")
-    if game_date.date() == date.today():
+    if game_date.date() == x:
         #get matchup data
         matchup_element = row.find_element(By.XPATH, "./td[2]/a")
         game_id = matchup_element.get_attribute('href')
