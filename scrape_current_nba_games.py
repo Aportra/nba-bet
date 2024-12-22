@@ -14,8 +14,8 @@ import pandas_gbq
 #For email notifications
 
 
-# driver = main.establish_driver()
-driver = webdriver.Firefox()
+driver = main.establish_driver()
+
 
 
 scrape_date = date.today() - timedelta(1)
