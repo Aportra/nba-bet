@@ -2,73 +2,63 @@ name: Daily Scraper
 
 on:
   schedule:
-    - cron: '0 6 * * *'
+    - cron: '0 6 * * *'  # Run daily at 6 AM UTC
   workflow_dispatch:
-  
+
 env:
   ACTIONS_STEP_DEBUG: true
 
 jobs:
   scrape:
-    runs-on: 'ubuntu-latest'
-
+    runs-on: ubuntu-latest
 
     steps:
+      # Step 1: Checkout the repository
       - name: Checkout repository
         uses: actions/checkout@v3
 
-      # - name: Install Firefox and GeckoDriver
-      #   run: |
-      #     sudo apt-get update
-      #     sudo apt-get install -y firefox
-      #     wget https://github.com/mozilla/geckodriver/releases/download/v0.33.0/geckodriver-v0.33.0-linux64.tar.gz
-      #     tar -xvzf geckodriver-v0.33.0-linux64.tar.gz
-      #     chmod +x geckodriver
-      #     sudo mv geckodriver /usr/local/bin/
-      # - name: Move Snap Firefox to /usr/bin
-      #   run: |
-      #     sudo cp /snap/bin/firefox /usr/bin/firefox
-      #     sudo chmod +x /usr/bin/firefox
-      #     ls -l /usr/bin/firefox
-      # - name: Prioritize /usr/bin in PATH
-      #   run: |
-      #     export PATH="/usr/bin:$PATH"
-      #     echo "export PATH=/usr/bin:$PATH" >> $GITHUB_ENV
-      # - name: Debug Firefox and GeckoDriver
-      #   run: |
-      #     firefox --version
-      #     which firefox
-      #     which geckodriver
-    - name: Install Google Chrome
-      run: |
-        sudo apt-get update
-        sudo apt-get install -y wget unzip google-chrome-stable
-    - name: Install Chromedriver
-      run: |
-        CHROME_VERSION=$(google-chrome --version | grep -oP '\d+\.\d+\.\d+' | head -1)
-        CHROMEDRIVER_VERSION=$(wget -qO- "https://chromedriver.storage.googleapis.com/LATEST_RELEASE_$CHROME_VERSION")
-        wget -q "https://chromedriver.storage.googleapis.com/${CHROMEDRIVER_VERSION}/chromedriver_linux64.zip"
-        unzip chromedriver_linux64.zip -d /usr/local/bin/
-        rm chromedriver_linux64.zip
-      - name: Install Xvfb
-        run: sudo apt-get install -y xvfb
+      # Step 2: Install Google Chrome
+      - name: Install Google Chrome
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y wget unzip google-chrome-stable
 
+      # Step 3: Install Chromedriver
+      - name: Install Chromedriver
+        run: |
+          CHROME_VERSION=$(google-chrome --version | grep -oP '\d+\.\d+\.\d+' | head -1)
+          CHROMEDRIVER_VERSION=$(wget -qO- "https://chromedriver.storage.googleapis.com/LATEST_RELEASE_$CHROME_VERSION")
+          wget -q "https://chromedriver.storage.googleapis.com/${CHROMEDRIVER_VERSION}/chromedriver_linux64.zip"
+          unzip chromedriver_linux64.zip -d /usr/local/bin/
+          rm chromedriver_linux64.zip
+
+      # Step 4: Verify Installation
+      - name: Verify Chrome and Chromedriver Installation
+        run: |
+          google-chrome --version
+          chromedriver --version
+
+      # Step 5: Set up Python
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
           python-version: '3.9'
+
+      # Step 6: Install Dependencies
       - name: Install Dependencies
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
-
+      # Step 7: Run the Scraper
       - name: Run scraper
         run: python scrape_current_nba_games.py
         env:
           SERVER_EMAIL: ${{ secrets.SERVER_EMAIL }}
           EMAIL_USERNAME: ${{ secrets.EMAIL_USERNAME }}
           EMAIL_PASSWORD: ${{ secrets.EMAIL_PASSWORD }}
+
+      # Step 8: Upload Screenshot
       - name: Upload Screenshot
         if: always()  # Always upload the artifact even if the scraper fails
         uses: actions/upload-artifact@v3
