@@ -19,7 +19,7 @@ import os
 def establish_driver():
     options = Options()
 
-    options.binary_location('/usr/bin/firefox')
+    options.binary_location = '/usr/bin/firefox'
 
     driver = webdriver.Firefox(options=options)
     return driver
