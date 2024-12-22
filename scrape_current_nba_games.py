@@ -140,11 +140,12 @@ try:
         body = str(f'{len(game_data)} games scraped as of {scrape_date.date()}')
     )
     else:
-        main.send_email(
-        subject = "NBA SCRAPING: NO GAMES",
-        body = str(f'No games as of {scrape_date.date()}')
-    )
-    driver.save_screenshot('screenshot.png')
+    #     main.send_email(
+    #     subject = "NBA SCRAPING: NO GAMES",
+    #     body = str(f'No games as of {scrape_date.date()}')
+    # )
+        print(str(f'No games as of {scrape_date.date()}'))
+        driver.save_screenshot('screenshot.png')
 except Exception as e:
     error_traceback = traceback.format_exc()
     
@@ -159,9 +160,9 @@ except Exception as e:
     Full Traceback:
     {error_traceback}
     """
-    
+    print(error_message)
     # Send the email with detailed information
-    main.send_email(
-        subject="NBA SCRAPING: SCRIPT CRASHED",
-        body=error_message
-    )
+    # main.send_email(
+    #     subject="NBA SCRAPING: SCRIPT CRASHED",
+    #     body=error_message
+    # )
