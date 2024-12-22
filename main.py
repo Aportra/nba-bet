@@ -5,7 +5,11 @@ from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.by import By
 from selenium.webdriver.firefox.service import Service
 import chromedriver_autoinstaller
+import undetected_chromedriver as uc
+
 from pyvirtualdisplay import Display
+
+
 from subprocess import getoutput
 from bs4 import BeautifulSoup
 import regex as re
@@ -16,34 +20,34 @@ from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 import os
 
-def establish_driver():
-    display = Display(visible=0, size=(1920, 1200))  
-    display.start()
-    chromedriver_autoinstaller.install() 
-    chrome_options = webdriver.ChromeOptions()    
-    # Add your options as needed    
-    options = [
-    # Define window size here
-     "--window-size=1920,1200",
-        "--ignore-certificate-errors",
-        "--no-sandbox",
-        "--disable-dev-shm-usage",
-        "--disable-extensions",
-        "--headless",  # Uncomment for CI/CD
-        "--enable-logging",
-        "--v=1",
-        "--disable-javascript"
-    ]
 
-    for option in options:
-        chrome_options.add_argument(option)
+def establish_driver():
+    # display = Display(visible=0, size=(1920, 1200))  
+    # display.start()
+    chromedriver_autoinstaller.install() 
+    chrome_options = uc.ChromeOptions()    
+    # Add your options as needed    
+    chrome_options = uc.ChromeOptions()
+    chrome_options.add_argument("--window-size=1920,1200")
+    chrome_options.add_argument("--ignore-certificate-errors")
+    chrome_options.add_argument("--no-sandbox")
+    chrome_options.add_argument("--disable-dev-shm-usage")
+    chrome_options.add_argument("--disable-extensions")
+    chrome_options.add_argument("--disable-blink-features=AutomationControlled")  # Prevent detection
+    chrome_options.add_argument("--headless")  # Enable headless mode for CI/CD
+    chrome_options.add_argument("--disable-popup-blocking")
+    chrome_options.add_argument("--disable-javascript")  # Optional: disable JavaScript
+    chrome_options.add_argument(
+        "user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/96.0.4664.45 Safari/537.36"
+    )
+
 
     chrome_options.add_argument(
         "user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/96.0.4664.45 Safari/537.36"
     )
     
    
-    driver = webdriver.Chrome(options = chrome_options)
+    driver = uc.Chrome(options = chrome_options)
 
     return driver
 
