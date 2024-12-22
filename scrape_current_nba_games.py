@@ -18,7 +18,7 @@ import traceback
 
 
 # driver = main.establish_driver()
-driver = webdriver.Firefox()
+driver = webdriver.Chrome()
 
 scrape_date = date.today() - timedelta(2)
 
