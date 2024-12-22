@@ -16,8 +16,8 @@ import os
 
 def establish_driver():
     options = webdriver.FirefoxOptions()
-     # Run in headless mode for efficiency
-
+    options.add_argument('--headless')  # Run in headless mode for efficiency
+    options.add_argument("user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36")
 
     options.binary_location = getoutput("find /snap/firefox -name firefox").split("\n")[-1]
 
