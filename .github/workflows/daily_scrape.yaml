@@ -42,10 +42,14 @@ jobs:
             xdg-utils \
             libu2f-udev
 
-      # Step 3: Install Geckodriver
-      - name: Install Geckodriver
+      # Step 3: Install Geckodriver Manually
+      - name: Install Geckodriver Manually
         run: |
-          sudo apt-get install -y geckodriver
+          GECKODRIVER_VERSION=$(curl -s https://api.github.com/repos/mozilla/geckodriver/releases/latest | jq -r '.tag_name')
+          echo "Detected Geckodriver version: $GECKODRIVER_VERSION"
+          wget -q "https://github.com/mozilla/geckodriver/releases/download/${GECKODRIVER_VERSION}/geckodriver-${GECKODRIVER_VERSION}-linux64.tar.gz"
+          tar -xvzf geckodriver-${GECKODRIVER_VERSION}-linux64.tar.gz -C /usr/local/bin/
+          rm geckodriver-${GECKODRIVER_VERSION}-linux64.tar.gz
 
       # Step 4: Verify Firefox and Geckodriver Installation
       - name: Verify Firefox and Geckodriver
