@@ -15,7 +15,7 @@ import traceback
 #For email notifications
 
 
-driver = main.establish_driver()
+# driver = main.establish_driver()
 # driver = webdriver.Firefox()
 
 
@@ -41,7 +41,7 @@ for row in rows:
         main.send_email(
         subject = "NBA SCRAPING: DATE ERRORS",
         body = str(f"Unrecognized date format: {game_date_text}"))
-
+    print(f'Game date:{game_date} Scrape_date:{scrape_date.date()}')
     if game_date == scrape_date.date():
         print('its working')
         #get matchup data
