@@ -17,7 +17,8 @@ import traceback
 #For email notifications
 
 
-driver = main.establish_driver()
+# driver = main.establish_driver()
+driver = webdriver.Firefox()
 
 scrape_date = date.today() - timedelta(2)
 
@@ -171,3 +172,6 @@ except Exception as e:
     #     subject="NBA SCRAPING: SCRIPT CRASHED",
     #     body=error_message
     # )
+
+print('Quitting Driver')
+driver.quit()

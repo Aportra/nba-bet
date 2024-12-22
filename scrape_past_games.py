@@ -4,6 +4,7 @@ from datetime import datetime as date
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.by import By
+from selenium import webdriver
 from bs4 import BeautifulSoup
 from google.cloud import bigquery
 import regex as re
@@ -18,7 +19,7 @@ urls = {#'NBA_Season_2021-2022_uncleaned':'https://www.nba.com/stats/teams/boxsc
 }
 valid_time_pattern = r"^\d{1,2}:\d{1,2}$"
 
-driver = main.establish_driver()
+driver = webdriver.Firefox()
 
 for url in urls:
 

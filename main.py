@@ -9,7 +9,6 @@ import undetected_chromedriver as uc
 
 from pyvirtualdisplay import Display
 
-
 from subprocess import getoutput
 from bs4 import BeautifulSoup
 import regex as re
@@ -40,7 +39,6 @@ def establish_driver():
     chrome_options.add_argument("--disable-dev-shm-usage")
     chrome_options.add_argument("--disable-extensions")
     chrome_options.add_argument("--disable-blink-features=AutomationControlled")
-    chrome_options.add_argument("--headless")  # Enable headless mode for CI/CD
     chrome_options.add_argument("--disable-popup-blocking")
     chrome_options.add_argument(f"user-agent={random_user_agent}")
 
