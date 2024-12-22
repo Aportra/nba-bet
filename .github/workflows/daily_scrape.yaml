@@ -55,3 +55,9 @@ jobs:
           SERVER_EMAIL: ${{ secrets.SERVER_EMAIL }}
           EMAIL_USERNAME: ${{ secrets.EMAIL_USERNAME }}
           EMAIL_PASSWORD: ${{ secrets.EMAIL_PASSWORD }}
+      - name: Upload Screenshot
+          if: always()  # Always upload the artifact even if the scraper fails
+          uses: actions/upload-artifact@v3
+          with:
+          name: screenshots
+          path: screenshot.png
