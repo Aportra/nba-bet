@@ -51,27 +51,6 @@ jobs:
             xdg-utils \
             libu2f-udev
 
-      # Step 5: Install Chromedriver for Chrome 115+
-      - name: Install Chromedriver for Chrome 115+
-        run: |
-          CHROME_VERSION=$(google-chrome --version | grep -oP '\d+\.\d+\.\d+' | head -1)
-          CHROMEDRIVER_VERSION=$(curl -s "https://googlechromelabs.github.io/chrome-for-testing/LATEST_RELEASE_${CHROME_VERSION%%.*}")
-          echo "Detected Chrome version: $CHROME_VERSION"
-          echo "Fetching Chromedriver version: $CHROMEDRIVER_VERSION"
-          wget -q "https://edgedl.me.gvt1.com/edgedl/chrome/chrome-for-testing/${CHROMEDRIVER_VERSION}/linux64/chromedriver-linux64.zip"
-          unzip chromedriver-linux64.zip -d /usr/local/bin/
-          rm chromedriver-linux64.zip
-
-      # Step 6: Verify Chromedriver Installation
-      - name: Verify Chromedriver Installation
-        run: chromedriver --version
-
-      # Step 7: Debug Google Chrome Installation
-      - name: Debug Google Chrome Installation
-        run: |
-          google-chrome --version
-          which google-chrome
-
       # Step 8: Set up Python
       - name: Set up Python
         uses: actions/setup-python@v4
