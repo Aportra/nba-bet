@@ -39,6 +39,13 @@ jobs:
           firefox --version
           which firefox
           which geckodriver
+      - name: Install Xvfb
+        run: sudo apt-get install -y xvfb
+
+      - name: Start Xvfb
+        run: |
+          export DISPLAY=:99
+          Xvfb :99 -screen 0 1920x1080x24 > /dev/null 2>&1 &
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
