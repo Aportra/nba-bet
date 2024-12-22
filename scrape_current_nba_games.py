@@ -118,12 +118,12 @@ try:
 
         main.send_email(
         subject = str(f"NBA SCRAPING: COMPLTETED # OF GAMES {len(game_data)}"),
-        body = str(f'{len(game_data)} games scraped as of {date.today()}')
+        body = str(f'{len(game_data)} games scraped as of {scrape_date}')
     )
     else:
         main.send_email(
         subject = "NBA SCRAPING: NO GAMES",
-        body = str(f'No games as of {date.today()}')
+        body = str(f'No games as of {scrape_date}')
     )
 
 except Exception as e:
