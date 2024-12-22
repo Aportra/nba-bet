@@ -15,10 +15,10 @@ import traceback
 #For email notifications
 
 
-# driver = main.establish_driver()
-options = webdriver.FirefoxOptions()
-options.add_argument('--headless')
-driver = webdriver.Firefox(options=options)
+driver = main.establish_driver()
+# options = webdriver.FirefoxOptions()
+# options.add_argument('--headless')
+# driver = webdriver.Firefox(options=options)
 
 
 scrape_date = date.today() - timedelta(1)
@@ -137,7 +137,7 @@ try:
         subject = "NBA SCRAPING: NO GAMES",
         body = str(f'No games as of {scrape_date.date()}')
     )
-
+    driver.save_screenshot('screenshot.png')
 except Exception as e:
     error_traceback = traceback.format_exc()
     
