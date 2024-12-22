@@ -42,6 +42,11 @@ jobs:
       # - name: Verify Chromedriver Installation
       #   run: chromedriver --version
 
+      - name: Debug Google Chrome Installation
+        run: |
+          google-chrome --version
+          which google-chrome
+
       # Step 6: Set up Python
       - name: Set up Python
         uses: actions/setup-python@v4
