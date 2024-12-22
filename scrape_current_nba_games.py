@@ -27,7 +27,7 @@ valid_time_pattern = r"^\d{1,2}:\d{1,2}$"
 
 rows = driver.find_elements(By.XPATH, "/html/body/div[1]/div[2]/div[2]/div[3]/section[2]/div/div[2]/div[3]/table/tbody/tr")
 game_data = []
-for row in rows[]:
+for row in rows:
     date_element = row.find_element(By.XPATH, "./td[3]/a")
     game_date_text = date_element.text.strip()
     
