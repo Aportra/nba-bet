@@ -28,7 +28,7 @@ valid_time_pattern = r"^\d{1,2}:\d{1,2}$"
 
 try:
     WebDriverWait(driver, 30).until(
-        EC.presence_of_element_located((By.XPATH, "/html/body/div[1]/div[2]/div[2]/div[3]/section[2]/div/div[2]/div[3]/table/tbody/tr"))
+        EC.presence_of_element_located((By.XPATH, "/html/body/div[1]/div[2]/div[2]/div[3]/section[2]/div/div[2]/div[3]/table"))
     )
     print("The section has loaded!")
 except TimeoutException:
