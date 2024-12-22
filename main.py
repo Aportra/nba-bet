@@ -17,7 +17,7 @@ import os
 def establish_driver():
     options = webdriver.FirefoxOptions()
     options.add_argument('--headless')  # Run in headless mode for efficiency
-    options.add_argument("user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36")
+    # options.add_argument("user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36")
 
     options.binary_location = getoutput("find /snap/firefox -name firefox").split("\n")[-1]
 
@@ -26,9 +26,6 @@ def establish_driver():
         service=Service(executable_path=getoutput("find /snap/firefox -name geckodriver").split("\n")[-1]),
         options=options
     )
-
-
-    driver.set_window_size(2560, 1440)
 
     return driver
 
