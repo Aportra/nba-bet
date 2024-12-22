@@ -23,34 +23,29 @@ import os
 
 
 def establish_driver():
-    # display = Display(visible=0, size=(1920, 1200))  
-    # display.start()
-    chromedriver_autoinstaller.install()     
-    
+    # Automatically install the correct version of Chromedriver
+    chromedriver_autoinstaller.install()
 
+    # Initialize ChromeOptions
+    chrome_options = uc.ChromeOptions()
+
+    # Generate a random User-Agent
     ua = UserAgent()
     random_user_agent = ua.random
-   
-    # Add your options as needed    
-    chrome_options = uc.ChromeOptions()
+
+    # Add Chrome options
     chrome_options.add_argument("--window-size=1920,1200")
     chrome_options.add_argument("--ignore-certificate-errors")
     chrome_options.add_argument("--no-sandbox")
     chrome_options.add_argument("--disable-dev-shm-usage")
     chrome_options.add_argument("--disable-extensions")
-    chrome_options.add_argument("--disable-blink-features=AutomationControlled")  # Prevent detection
+    chrome_options.add_argument("--disable-blink-features=AutomationControlled")
     chrome_options.add_argument("--headless")  # Enable headless mode for CI/CD
     chrome_options.add_argument("--disable-popup-blocking")
     chrome_options.add_argument(f"user-agent={random_user_agent}")
-    # chrome_options.add_argument("--disable-javascript")  # Optional: disable JavaScript
-    chrome_options.add_argument(
-        "user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/96.0.4664.45 Safari/537.36"
-    )
 
-    
-   
-    driver = uc.Chrome(options = chrome_options)
-
+    # Return a new undetected Chrome driver instance
+    driver = uc.Chrome(options=chrome_options)
     return driver
 
 #Select all option only works when at least half screen due to blockage of the all option when not in headerless option
