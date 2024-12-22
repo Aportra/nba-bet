@@ -3,8 +3,9 @@ from selenium import webdriver
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.by import By
-from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.chrome.service import Service
+from selenium.webdriver.chrome.options import Options
+from webdriver_manager.chrome import ChromeDriverManager
 from subprocess import getoutput
 from bs4 import BeautifulSoup
 import regex as re
@@ -16,16 +17,20 @@ from email.mime.multipart import MIMEMultipart
 import os
 
 
+
 def establish_driver():
-    options = Options()
+    chrome_service = Service(ChromeDriverManager().install())
     
-    options.binary_location = '/usr/bin/firefox'
-    service = Service('/usr/local/bin/geckodriver')
+    # Set Chrome options
+    chrome_options = Options()
+    chrome_options.add_argument("--headless")  # Run in headless mode
+    chrome_options.add_argument("--disable-gpu")  # Disable GPU
+    chrome_options.add_argument("--no-sandbox")  # Disable sandboxing
+    chrome_options.add_argument("--disable-dev-shm-usage")  # Prevent shared memory issues
+    chrome_options.add_argument("--window-size=1920,1080")  # Set screen size
+    chrome_options.add_argument("--disable-extensions")  # Disable extensions
 
-    options.add_argument("--no-sandbox")
-    options.add_argument("--headless")
-
-    driver = webdriver.Firefox(service=service,options=options)
+    driver = webdriver.Chrome(service=chrome_service, options=chrome_options)
     return driver
 
 #Select all option only works when at least half screen due to blockage of the all option when not in headerless option
