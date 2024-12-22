@@ -20,7 +20,7 @@ driver = main.establish_driver()
 
 scrape_date = date.today() - timedelta(1)
 
-url = {'NBA_Season_2024-2025_uncleaned':'https://www.nba.com/stats/teams/boxscores?Season=2023-24'}
+url = {'NBA_Season_2024-2025_uncleaned':'https://www.nba.com/stats/teams/boxscores?Season=2024-25'}
 
 driver.get(url['NBA_Season_2024-2025_uncleaned'])
 
@@ -28,7 +28,7 @@ valid_time_pattern = r"^\d{1,2}:\d{1,2}$"
 
 try:
     WebDriverWait(driver, 30).until(
-        EC.presence_of_element_located((By.XPATH, "/html/body/div[1]/div[2]/div[2]/div[3]"))
+        EC.presence_of_element_located((By.XPATH, "/html/body/div[1]/div[2]/div[2]/div[3]/section[2]/div/div[2]/div[3]/table/tbody/tr"))
     )
     print("The section has loaded!")
 except TimeoutException:
