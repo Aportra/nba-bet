@@ -19,18 +19,13 @@ import os
 
 
 def establish_driver():
-    chrome_service = Service(ChromeDriverManager().install())
-    
-    # Set Chrome options
-    chrome_options = Options()
-    # chrome_options.add_argument("--headless")  # Run in headless mode
-    chrome_options.add_argument("--disable-gpu")  # Disable GPU
-    chrome_options.add_argument("--no-sandbox")  # Disable sandboxing
-    chrome_options.add_argument("--disable-dev-shm-usage")  # Prevent shared memory issues
-    chrome_options.add_argument("--window-size=1920,1080")  # Set screen size
-    chrome_options.add_argument("--disable-extensions")  # Disable extensions
+    options = Options()
+    options.binary_location = getoutput("find /snap/firefox -name firefox").split("\n")[-1]
 
-    driver = webdriver.Chrome(service=chrome_service, options=chrome_options)
+    driver = webdriver.Firefox(service =
+        Service(executable_path = getoutput("find /snap/firefox -name geckodriver").split("\n")[-1]),
+        options = options)
+    
     return driver
 
 #Select all option only works when at least half screen due to blockage of the all option when not in headerless option
