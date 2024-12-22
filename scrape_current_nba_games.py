@@ -15,8 +15,10 @@ import traceback
 #For email notifications
 
 
-driver = main.establish_driver()
-# driver = webdriver.Firefox()
+# driver = main.establish_driver()
+options = webdriver.FirefoxOptions()
+options.add_argument('--headless')
+driver = webdriver.Firefox(options=options)
 
 
 scrape_date = date.today() - timedelta(1)
