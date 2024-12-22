@@ -27,30 +27,31 @@ jobs:
       - name: Verify Google Chrome Installation
         run: google-chrome --version
         
+      # Step 4: Install Dependencies for Chrome
       - name: Install Dependencies for Chrome
         run: |
           sudo apt-get update
           sudo apt-get install -y \
-          ca-certificates \
-          fonts-liberation \
-          libappindicator3-1 \
-          libasound2 \
-          libatk-bridge2.0-0 \
-          libatk1.0-0 \
-          libcups2 \
-          libdbus-1-3 \
-          libdrm2 \
-          libgbm1 \
-          libnspr4 \
-          libnss3 \
-          libx11-xcb1 \
-          libxcomposite1 \
-          libxdamage1 \
-          libxrandr2 \
-          xdg-utils \
-          libu2f-udev
+            ca-certificates \
+            fonts-liberation \
+            libappindicator3-1 \
+            libasound2 \
+            libatk-bridge2.0-0 \
+            libatk1.0-0 \
+            libcups2 \
+            libdbus-1-3 \
+            libdrm2 \
+            libgbm1 \
+            libnspr4 \
+            libnss3 \
+            libx11-xcb1 \
+            libxcomposite1 \
+            libxdamage1 \
+            libxrandr2 \
+            xdg-utils \
+            libu2f-udev
 
-      Step 4: Install Chromedriver
+      # Step 5: Install Chromedriver
       - name: Install Chromedriver
         run: |
           CHROME_VERSION=$(google-chrome --version | cut -d' ' -f3)
@@ -61,28 +62,29 @@ jobs:
           unzip chromedriver_linux64.zip -d /usr/local/bin/
           rm chromedriver_linux64.zip
 
-      # Step 5: Verify Chromedriver Installation
+      # Step 6: Verify Chromedriver Installation
       - name: Verify Chromedriver Installation
         run: chromedriver --version
 
+      # Step 7: Debug Google Chrome Installation
       - name: Debug Google Chrome Installation
         run: |
           google-chrome --version
           which google-chrome
 
-      # Step 6: Set up Python
+      # Step 8: Set up Python
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
           python-version: '3.9'
 
-      # Step 7: Install Dependencies
+      # Step 9: Install Dependencies
       - name: Install Dependencies
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
-      # Step 8: Run the Scraper
+      # Step 10: Run the Scraper
       - name: Run scraper
         run: python scrape_current_nba_games.py
         env:
@@ -90,7 +92,7 @@ jobs:
           EMAIL_USERNAME: ${{ secrets.EMAIL_USERNAME }}
           EMAIL_PASSWORD: ${{ secrets.EMAIL_PASSWORD }}
 
-      # Step 9: Upload Screenshot
+      # Step 11: Upload Screenshot
       - name: Upload Screenshot
         if: always()  # Always upload the artifact even if the scraper fails
         uses: actions/upload-artifact@v3
@@ -98,7 +100,7 @@ jobs:
           name: screenshots
           path: screenshot.png
 
-      # Step 10: Upload Logs
+      # Step 12: Upload Logs
       - name: Upload Logs
         if: always()  # Always upload logs for debugging
         uses: actions/upload-artifact@v3
