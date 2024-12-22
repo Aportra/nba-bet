@@ -73,6 +73,9 @@ for row in rows:
             home, away = matchup
 
         game_data.append((game_id,game_date,home,away))
+print(len(game_data))
+print('Quitting Driver')
+driver.quit()
 
 data = []
 failed_pages = []
@@ -174,5 +177,3 @@ except Exception as e:
     #     body=error_message
     # )
 
-print('Quitting Driver')
-driver.quit()
