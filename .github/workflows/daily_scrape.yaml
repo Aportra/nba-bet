@@ -17,28 +17,28 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v3
 
-      - name: Install Firefox and GeckoDriver
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y firefox
-          wget https://github.com/mozilla/geckodriver/releases/download/v0.33.0/geckodriver-v0.33.0-linux64.tar.gz
-          tar -xvzf geckodriver-v0.33.0-linux64.tar.gz
-          chmod +x geckodriver
-          sudo mv geckodriver /usr/local/bin/
-      - name: Move Snap Firefox to /usr/bin
-        run: |
-          sudo cp /snap/bin/firefox /usr/bin/firefox
-          sudo chmod +x /usr/bin/firefox
-          ls -l /usr/bin/firefox
-      - name: Prioritize /usr/bin in PATH
-        run: |
-          export PATH="/usr/bin:$PATH"
-          echo "export PATH=/usr/bin:$PATH" >> $GITHUB_ENV
-      - name: Debug Firefox and GeckoDriver
-        run: |
-          firefox --version
-          which firefox
-          which geckodriver
+      # - name: Install Firefox and GeckoDriver
+      #   run: |
+      #     sudo apt-get update
+      #     sudo apt-get install -y firefox
+      #     wget https://github.com/mozilla/geckodriver/releases/download/v0.33.0/geckodriver-v0.33.0-linux64.tar.gz
+      #     tar -xvzf geckodriver-v0.33.0-linux64.tar.gz
+      #     chmod +x geckodriver
+      #     sudo mv geckodriver /usr/local/bin/
+      # - name: Move Snap Firefox to /usr/bin
+      #   run: |
+      #     sudo cp /snap/bin/firefox /usr/bin/firefox
+      #     sudo chmod +x /usr/bin/firefox
+      #     ls -l /usr/bin/firefox
+      # - name: Prioritize /usr/bin in PATH
+      #   run: |
+      #     export PATH="/usr/bin:$PATH"
+      #     echo "export PATH=/usr/bin:$PATH" >> $GITHUB_ENV
+      # - name: Debug Firefox and GeckoDriver
+      #   run: |
+      #     firefox --version
+      #     which firefox
+      #     which geckodriver
       - name: Install Xvfb
         run: sudo apt-get install -y xvfb
 
