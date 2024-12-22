@@ -41,7 +41,7 @@ for row in rows:
         main.send_email(
         subject = "NBA SCRAPING: DATE ERRORS",
         body = str(f"Unrecognized date format: {game_date_text}"))
-    print(f'Game date:{game_date} Scrape_date:{scrape_date.date()}')
+    print(f'Game date:{game_date} Scrape_date:{scrape_date.date()}',flush = True)
     if game_date == scrape_date.date():
         print('its working')
         #get matchup data
