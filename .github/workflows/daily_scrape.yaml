@@ -17,11 +17,11 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v3
 
-      # Step 2: Install Google Chrome and Dependencies
-      - name: Install Google Chrome and Dependencies
+      # Step 2: Install Firefox and Dependencies
+      - name: Install Firefox and Dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y wget unzip google-chrome-stable
+          sudo apt-get install -y wget unzip firefox
           sudo apt-get install -y \
             ca-certificates \
             fonts-liberation \
@@ -42,24 +42,22 @@ jobs:
             xdg-utils \
             libu2f-udev
 
-      # Step 3: Verify Google Chrome Installation
-      - name: Verify Google Chrome Installation
-        run: google-chrome --version
+      # Step 3: Verify Firefox Installation
+      - name: Verify Firefox Installation
+        run: firefox --version
 
-      # Step 4: Install Chromedriver
-      - name: Install Chromedriver
+      # Step 4: Install Geckodriver
+      - name: Install Geckodriver
         run: |
-          CHROME_VERSION=$(google-chrome --version | grep -oP '\d+\.\d+\.\d+' | head -1)
-          CHROMEDRIVER_VERSION=$(curl -s "https://googlechromelabs.github.io/chrome-for-testing/LATEST_RELEASE_${CHROME_VERSION%%.*}")
-          echo "Detected Chrome version: $CHROME_VERSION"
-          echo "Fetching Chromedriver version: $CHROMEDRIVER_VERSION"
-          wget -q "https://edgedl.me.gvt1.com/edgedl/chrome/chrome-for-testing/${CHROMEDRIVER_VERSION}/linux64/chromedriver-linux64.zip"
-          unzip chromedriver-linux64.zip -d /usr/local/bin/
-          rm chromedriver-linux64.zip
+          GECKODRIVER_VERSION=$(curl -s https://github.com/mozilla/geckodriver/releases/latest | grep -oP 'v\d+\.\d+\.\d+')
+          echo "Detected Geckodriver version: $GECKODRIVER_VERSION"
+          wget -q "https://github.com/mozilla/geckodriver/releases/download/${GECKODRIVER_VERSION}/geckodriver-${GECKODRIVER_VERSION}-linux64.tar.gz"
+          tar -xvzf geckodriver-${GECKODRIVER_VERSION}-linux64.tar.gz -C /usr/local/bin/
+          rm geckodriver-${GECKODRIVER_VERSION}-linux64.tar.gz
 
-      # Step 5: Verify Chromedriver Installation
-      - name: Verify Chromedriver Installation
-        run: chromedriver --version
+      # Step 5: Verify Geckodriver Installation
+      - name: Verify Geckodriver Installation
+        run: geckodriver --version
 
       # Step 6: Set up Python
       - name: Set up Python
