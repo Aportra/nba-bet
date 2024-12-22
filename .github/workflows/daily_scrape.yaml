@@ -49,7 +49,8 @@ jobs:
       # Step 4: Install Geckodriver
       - name: Install Geckodriver
         run: |
-          GECKODRIVER_VERSION=$(curl -s https://github.com/mozilla/geckodriver/releases/latest | grep -oP 'v\d+\.\d+\.\d+')
+          sudo apt-get install -y jq
+          GECKODRIVER_VERSION=$(curl -s https://api.github.com/repos/mozilla/geckodriver/releases/latest | jq -r '.tag_name')
           echo "Detected Geckodriver version: $GECKODRIVER_VERSION"
           wget -q "https://github.com/mozilla/geckodriver/releases/download/${GECKODRIVER_VERSION}/geckodriver-${GECKODRIVER_VERSION}-linux64.tar.gz"
           tar -xvzf geckodriver-${GECKODRIVER_VERSION}-linux64.tar.gz -C /usr/local/bin/
