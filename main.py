@@ -5,8 +5,6 @@ from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.by import By
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.chrome.service import Service
-from webdriver_manager.chrome import ChromeDriverManager
-from webdriver_manager.core.os_manager import ChromeType
 from subprocess import getoutput
 from bs4 import BeautifulSoup
 import regex as re
@@ -18,22 +16,22 @@ from email.mime.multipart import MIMEMultipart
 import os
 
 
-def establish_driver():
-    # Automatically install the correct version of Chromedriver
-    chrome_service = Service(ChromeDriverManager(chrome_type=ChromeType.CHROMIUM).install())
+# def establish_driver():
+#     # Automatically install the correct version of Chromedriver
+#     chrome_service = Service(ChromeDriverManager(chrome_type=ChromeType.CHROMIUM).install())
 
-    chrome_options = Options()
-    chrome_options.add_argument("--headless")  # Run in headless mode
-    chrome_options.add_argument("--disable-gpu")  # Disable GPU
-    chrome_options.add_argument("--window-size=1920,1080")  # Set screen size
-    chrome_options.add_argument("--ignore-certificate-errors")  # Ignore SSL errors
-    chrome_options.add_argument("--no-sandbox")  # Disable sandboxing
-    chrome_options.add_argument("--disable-dev-shm-usage")  # Prevent shared memory issues
-    chrome_options.add_argument("--disable-extensions")  # Disable extensions
-    chrome_options.add_argument("--remote-debugging-port=9222")  # Enable debugging for Chrome
+#     chrome_options = Options()
+#     chrome_options.add_argument("--headless")  # Run in headless mode
+#     chrome_options.add_argument("--disable-gpu")  # Disable GPU
+#     chrome_options.add_argument("--window-size=1920,1080")  # Set screen size
+#     chrome_options.add_argument("--ignore-certificate-errors")  # Ignore SSL errors
+#     chrome_options.add_argument("--no-sandbox")  # Disable sandboxing
+#     chrome_options.add_argument("--disable-dev-shm-usage")  # Prevent shared memory issues
+#     chrome_options.add_argument("--disable-extensions")  # Disable extensions
+#     chrome_options.add_argument("--remote-debugging-port=9222")  # Enable debugging for Chrome
 
-    driver = webdriver.Chrome(service=chrome_service, options=chrome_options)
-    return driver
+#     driver = webdriver.Chrome(service=chrome_service, options=chrome_options)
+#     return driver
 
 #Select all option only works when at least half screen due to blockage of the all option when not in headerless option
 
