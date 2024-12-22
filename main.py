@@ -20,8 +20,9 @@ def establish_driver():
     options = Options()
 
     options.binary_location = '/usr/bin/firefox'
+    service = Service('/usr/local/bin/geckodriver')
 
-    driver = webdriver.Firefox(options=options)
+    driver = webdriver.Firefox(service=service,options=options)
     return driver
 
 #Select all option only works when at least half screen due to blockage of the all option when not in headerless option
