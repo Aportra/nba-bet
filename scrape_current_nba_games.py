@@ -133,7 +133,7 @@ try:
     else:
         main.send_email(
         subject = "NBA SCRAPING: NO GAMES",
-        body = str(f'No games as of {scrape_date,date()}')
+        body = str(f'No games as of {scrape_date.date()}')
     )
 
 except Exception as e:
