@@ -32,9 +32,10 @@ try:
     )
     print("The section has loaded!")
 except TimeoutException:
-        main.send_email(
-        subject = "NBA SCRAPING: DATE ERRORS",
-        body = str("The section did not load in time."))
+        # main.send_email(
+        # subject = "NBA SCRAPING: DATE ERRORS",
+        # body = str("The section did not load in time."))
+        print("This section did not load.")
 
 rows = driver.find_elements(By.XPATH, "/html/body/div[1]/div[2]/div[2]/div[3]/section[2]/div/div[2]/div[3]/table/tbody/tr")
 game_data = []

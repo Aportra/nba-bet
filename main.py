@@ -17,7 +17,7 @@ from email.mime.multipart import MIMEMultipart
 import os
 
 def establish_driver():
-    display = Display(visible=0, size=(800, 800))  
+    display = Display(visible=0, size=(1920, 1200))  
     display.start()
     chromedriver_autoinstaller.install() 
     chrome_options = webdriver.ChromeOptions()    
