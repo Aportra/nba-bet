@@ -59,5 +59,5 @@ jobs:
           if: always()  # Always upload the artifact even if the scraper fails
           uses: actions/upload-artifact@v3
           with:
-          name: screenshots
-          path: screenshot.png
+            name: screenshots
+            path: screenshot.png
