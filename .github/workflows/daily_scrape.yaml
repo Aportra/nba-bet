@@ -2,7 +2,7 @@ name: Daily Scraper
 
 on:
   schedule:
-    - cron: '55 6 * * *'
+    - cron: '15 7 * * *'
 
 
 jobs:
