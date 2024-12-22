@@ -15,7 +15,7 @@ import traceback
 #For email notifications
 
 
-# driver = main.establish_driver()
+driver = main.establish_driver()
 # driver = webdriver.Firefox()
 
 
