@@ -3,6 +3,7 @@ import main
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.by import By
+from selenium.common.exceptions import TimeoutException 
 from selenium import webdriver
 from bs4 import BeautifulSoup
 from google.cloud import bigquery
@@ -16,10 +17,6 @@ import traceback
 
 
 driver = main.establish_driver()
-# options = webdriver.FirefoxOptions()
-# options.add_argument('--headless')
-# driver = webdriver.Firefox(options=options)
-
 
 scrape_date = date.today() - timedelta(1)
 
@@ -30,11 +27,14 @@ driver.get(url['NBA_Season_2024-2025_uncleaned'])
 valid_time_pattern = r"^\d{1,2}:\d{1,2}$"
 
 try:
-    WebDriverWait(driver, 120).until(
-        EC.presence_of_element_located((By.XPATH, "/html/body/div[1]/div[2]/div[2]/div[3]/section[2]/div/div[2]/div[3]/table/tbody/tr"))  # Example selector
+    WebDriverWait(driver, 30).until(
+        EC.presence_of_element_located((By.CSS_SELECTOR, ".block__block___6ZM07.nba-stats-content-block"))
     )
-except Exception as e:
-    print("Element not found:", e)
+    print("The section has loaded!")
+except TimeoutException:
+        main.send_email(
+        subject = "NBA SCRAPING: DATE ERRORS",
+        body = str("The section did not load in time."))
 
 rows = driver.find_elements(By.XPATH, "/html/body/div[1]/div[2]/div[2]/div[3]/section[2]/div/div[2]/div[3]/table/tbody/tr")
 game_data = []
