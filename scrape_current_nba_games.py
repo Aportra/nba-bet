@@ -14,7 +14,8 @@ import pandas_gbq
 #For email notifications
 
 
-driver = main.establish_driver()
+# driver = main.establish_driver()
+driver = webdriver.Firefox()
 
 
 scrape_date = date.today() - timedelta(1)
@@ -40,7 +41,7 @@ for row in rows:
         subject = "NBA SCRAPING: DATE ERRORS",
         body = str(f"Unrecognized date format: {game_date_text}"))
 
-    if game_date.date() == scrape_date.date():
+    if game_date == scrape_date.date():
         print('its working')
         #get matchup data
         matchup_element = row.find_element(By.XPATH, "./td[2]/a")
