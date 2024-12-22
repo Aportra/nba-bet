@@ -11,11 +11,12 @@ import time
 from datetime import datetime as date
 from datetime import timedelta
 import pandas_gbq
+import traceback
 #For email notifications
 
 
-driver = main.establish_driver()
-
+# driver = main.establish_driver()
+driver = webdriver.Firefox()
 
 
 scrape_date = date.today() - timedelta(1)
@@ -40,7 +41,7 @@ for row in rows:
         main.send_email(
         subject = "NBA SCRAPING: DATE ERRORS",
         body = str(f"Unrecognized date format: {game_date_text}"))
-
+    print(scrape_date.date(),game_date)
     if game_date == scrape_date.date():
         print('its working')
         #get matchup data
@@ -136,7 +137,22 @@ try:
     )
 
 except Exception as e:
+    error_traceback = traceback.format_exc()
+    
+    # Prepare a detailed error message
+    error_message = f"""
+    NBA SCRAPING: SCRIPT CRASHED
+
+    The script encountered an error:
+    Type: {type(e).__name__}
+    Message: {str(e)}
+
+    Full Traceback:
+    {error_traceback}
+    """
+    
+    # Send the email with detailed information
     main.send_email(
-        subject = str("NBA SCRAPING: SCIRPT CRASHED"),
-        body = str(f'The script encountered an error: \n{str(e)}')
+        subject="NBA SCRAPING: SCRIPT CRASHED",
+        body=error_message
     )
