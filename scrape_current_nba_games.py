@@ -16,6 +16,7 @@ import pandas_gbq
 
 driver = main.establish_driver()
 
+
 scrape_date = date.today() - timedelta(1)
 
 url = {'NBA_Season_2024-2025_uncleaned':'https://www.nba.com/stats/teams/boxscores?Season=2024-25'}
@@ -26,12 +27,19 @@ valid_time_pattern = r"^\d{1,2}:\d{1,2}$"
 
 rows = driver.find_elements(By.XPATH, "/html/body/div[1]/div[2]/div[2]/div[3]/section[2]/div/div[2]/div[3]/table/tbody/tr")
 game_data = []
-for row in rows:
+for row in rows[]:
     date_element = row.find_element(By.XPATH, "./td[3]/a")
     game_date_text = date_element.text.strip()
     
     # Convert the extracted date text to a datetime.date object
-    game_date = date.strptime(game_date_text, "%m/%d/%Y")
+    try:
+    # First, try parsing with the expected format
+        game_date = date.strptime(game_date_text, "%m/%d/%Y").date()
+    except ValueError:
+        main.send_email(
+        subject = "NBA SCRAPING: DATE ERRORS",
+        body = str(f"Unrecognized date format: {game_date_text}"))
+
     if game_date.date() == scrape_date.date():
         print('its working')
         #get matchup data
