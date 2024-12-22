@@ -16,6 +16,8 @@ import pandas_gbq
 
 driver = main.establish_driver()
 
+scrape_date = date.today() - timedelta(1)
+
 url = {'NBA_Season_2024-2025_uncleaned':'https://www.nba.com/stats/teams/boxscores?Season=2024-25'}
 
 driver.get(url['NBA_Season_2024-2025_uncleaned'])
@@ -30,7 +32,7 @@ for row in rows:
     
     # Convert the extracted date text to a datetime.date object
     game_date = date.strptime(game_date_text, "%m/%d/%Y")
-    if game_date.date() == date.today().date():
+    if game_date.date() == scrape_date.date():
         print('its working')
         #get matchup data
         matchup_element = row.find_element(By.XPATH, "./td[2]/a")
