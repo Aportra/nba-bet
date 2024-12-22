@@ -18,6 +18,7 @@ from datetime import datetime as date
 import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
+from fake_useragent import UserAgent
 import os
 
 
@@ -26,6 +27,10 @@ def establish_driver():
     # display.start()
     chromedriver_autoinstaller.install() 
     chrome_options = uc.ChromeOptions()    
+    
+
+    ua = UserAgent()
+    chrome_options.add_argument(f"user-agent={ua.random}")
     # Add your options as needed    
     chrome_options = uc.ChromeOptions()
     chrome_options.add_argument("--window-size=1920,1200")

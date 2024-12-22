@@ -13,6 +13,10 @@ from datetime import datetime as date
 from datetime import timedelta
 import pandas_gbq
 import traceback
+from fake_useragent import UserAgent
+
+ua = UserAgent()
+chrome_options.add_argument(f"user-agent={ua.random}")
 #For email notifications
 
 
