@@ -13,16 +13,13 @@ from datetime import datetime as date
 from datetime import timedelta
 import pandas_gbq
 import traceback
-from fake_useragent import UserAgent
 
-ua = UserAgent()
-chrome_options.add_argument(f"user-agent={ua.random}")
 #For email notifications
 
 
 driver = main.establish_driver()
 
-scrape_date = date.today() - timedelta(1)
+scrape_date = date.today() - timedelta(2s)
 
 url = {'NBA_Season_2024-2025_uncleaned':'https://www.nba.com/stats/teams/boxscores?Season=2024-25'}
 

@@ -25,11 +25,11 @@ import os
 def establish_driver():
     # display = Display(visible=0, size=(1920, 1200))  
     # display.start()
-    chromedriver_autoinstaller.install() 
-    chrome_options = uc.ChromeOptions()    
+    chromedriver_autoinstaller.install()     
     
 
     ua = UserAgent()
+    random_user_agent = ua.random
    
     # Add your options as needed    
     chrome_options = uc.ChromeOptions()
@@ -41,7 +41,7 @@ def establish_driver():
     chrome_options.add_argument("--disable-blink-features=AutomationControlled")  # Prevent detection
     chrome_options.add_argument("--headless")  # Enable headless mode for CI/CD
     chrome_options.add_argument("--disable-popup-blocking")
-    chrome_options.add_argument(f"user-agent={ua.random}")
+    chrome_options.add_argument(f"user-agent={random_user_agent}")
     # chrome_options.add_argument("--disable-javascript")  # Optional: disable JavaScript
     chrome_options.add_argument(
         "user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/96.0.4664.45 Safari/537.36"
