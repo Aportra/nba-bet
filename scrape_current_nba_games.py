@@ -25,11 +25,9 @@ url = {'NBA_Season_2024-2025_uncleaned':'https://www.nba.com/stats/teams/boxscor
 
 driver.get(url['NBA_Season_2024-2025_uncleaned'])
 
-print(driver.page_source)
 
 driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
 
-print(driver.page_source)
 valid_time_pattern = r"^\d{1,2}:\d{1,2}$"
 
 try:
