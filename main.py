@@ -23,17 +23,14 @@ def establish_driver():
     chrome_service = Service(ChromeDriverManager(chrome_type=ChromeType.CHROMIUM).install())
 
     chrome_options = Options()
-    options = [
-        "--headless",
-        "--disable-gpu",
-        "--window-size=1920,1200",
-        "--ignore-certificate-errors",
-        "--disable-extensions",
-        "--no-sandbox",
-        "--disable-dev-shm-usage"
-]
-    for option in options:
-        chrome_options.add_argument(option)
+    chrome_options.add_argument("--headless")  # Run in headless mode
+    chrome_options.add_argument("--disable-gpu")  # Disable GPU
+    chrome_options.add_argument("--window-size=1920,1080")  # Set screen size
+    chrome_options.add_argument("--ignore-certificate-errors")  # Ignore SSL errors
+    chrome_options.add_argument("--no-sandbox")  # Disable sandboxing
+    chrome_options.add_argument("--disable-dev-shm-usage")  # Prevent shared memory issues
+    chrome_options.add_argument("--disable-extensions")  # Disable extensions
+    chrome_options.add_argument("--remote-debugging-port=9222")  # Enable debugging for Chrome
 
     driver = webdriver.Chrome(service=chrome_service, options=chrome_options)
     return driver
