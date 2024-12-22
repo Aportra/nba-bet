@@ -21,7 +21,7 @@ jobs:
       - name: Install Firefox and Dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y wget unzip firefox
+          sudo apt-get install -y firefox
           sudo apt-get install -y \
             ca-certificates \
             fonts-liberation \
@@ -42,37 +42,30 @@ jobs:
             xdg-utils \
             libu2f-udev
 
-      # Step 3: Verify Firefox Installation
-      - name: Verify Firefox Installation
-        run: firefox --version
-
-      # Step 4: Install Geckodriver
+      # Step 3: Install Geckodriver
       - name: Install Geckodriver
         run: |
-          sudo apt-get install -y jq
-          GECKODRIVER_VERSION=$(curl -s https://api.github.com/repos/mozilla/geckodriver/releases/latest | jq -r '.tag_name')
-          echo "Detected Geckodriver version: $GECKODRIVER_VERSION"
-          wget -q "https://github.com/mozilla/geckodriver/releases/download/${GECKODRIVER_VERSION}/geckodriver-${GECKODRIVER_VERSION}-linux64.tar.gz"
-          tar -xvzf geckodriver-${GECKODRIVER_VERSION}-linux64.tar.gz -C /usr/local/bin/
-          rm geckodriver-${GECKODRIVER_VERSION}-linux64.tar.gz
+          sudo apt-get install -y geckodriver
 
-      # Step 5: Verify Geckodriver Installation
-      - name: Verify Geckodriver Installation
-        run: geckodriver --version
+      # Step 4: Verify Firefox and Geckodriver Installation
+      - name: Verify Firefox and Geckodriver
+        run: |
+          firefox --version
+          geckodriver --version
 
-      # Step 6: Set up Python
+      # Step 5: Set up Python
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
           python-version: '3.9'
 
-      # Step 7: Install Dependencies
+      # Step 6: Install Python Dependencies
       - name: Install Dependencies
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
-      # Step 8: Run the Scraper
+      # Step 7: Run the Scraper
       - name: Run scraper
         run: python scrape_current_nba_games.py
         env:
@@ -80,7 +73,7 @@ jobs:
           EMAIL_USERNAME: ${{ secrets.EMAIL_USERNAME }}
           EMAIL_PASSWORD: ${{ secrets.EMAIL_PASSWORD }}
 
-      # Step 9: Upload Screenshot
+      # Step 8: Upload Screenshot
       - name: Upload Screenshot
         if: always()  # Always upload the artifact even if the scraper fails
         uses: actions/upload-artifact@v3
@@ -88,7 +81,7 @@ jobs:
           name: screenshots
           path: screenshot.png
 
-      # Step 10: Upload Logs
+      # Step 9: Upload Logs
       - name: Upload Logs
         if: always()  # Always upload logs for debugging
         uses: actions/upload-artifact@v3
