@@ -23,7 +23,7 @@ def establish_driver():
     
     # Set Chrome options
     chrome_options = Options()
-    chrome_options.add_argument("--headless")  # Run in headless mode
+    # chrome_options.add_argument("--headless")  # Run in headless mode
     chrome_options.add_argument("--disable-gpu")  # Disable GPU
     chrome_options.add_argument("--no-sandbox")  # Disable sandboxing
     chrome_options.add_argument("--disable-dev-shm-usage")  # Prevent shared memory issues
