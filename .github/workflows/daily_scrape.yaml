@@ -23,34 +23,38 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y wget unzip google-chrome-stable
 
-      # Step 3: Install Chromedriver
-      - name: Install Chromedriver
-        run: |
-          CHROME_VERSION=$(google-chrome --version | grep -oP '\d+\.\d+\.\d+' | head -1)
-          CHROMEDRIVER_VERSION=$(wget -qO- "https://chromedriver.storage.googleapis.com/LATEST_RELEASE_$CHROME_VERSION")
-          wget -q "https://chromedriver.storage.googleapis.com/${CHROMEDRIVER_VERSION}/chromedriver_linux64.zip"
-          unzip chromedriver_linux64.zip -d /usr/local/bin/
-          rm chromedriver_linux64.zip
+      # Step 3: Verify Google Chrome Installation
+      - name: Verify Google Chrome Installation
+        run: google-chrome --version
 
-      # Step 4: Verify Installation
-      - name: Verify Chrome and Chromedriver Installation
-        run: |
-          google-chrome --version
-          chromedriver --version
+      # Step 4: Install Chromedriver
+      # - name: Install Chromedriver
+      #   run: |
+      #     CHROME_VERSION=$(google-chrome --version | cut -d' ' -f3)
+      #     echo "Detected Chrome version: $CHROME_VERSION"
+      #     CHROMEDRIVER_VERSION=$(wget -qO- "https://chromedriver.storage.googleapis.com/LATEST_RELEASE_$CHROME_VERSION")
+      #     echo "Fetching Chromedriver version: $CHROMEDRIVER_VERSION"
+      #     wget -q "https://chromedriver.storage.googleapis.com/${CHROMEDRIVER_VERSION}/chromedriver_linux64.zip"
+      #     unzip chromedriver_linux64.zip -d /usr/local/bin/
+      #     rm chromedriver_linux64.zip
 
-      # Step 5: Set up Python
+      # # Step 5: Verify Chromedriver Installation
+      # - name: Verify Chromedriver Installation
+      #   run: chromedriver --version
+
+      # Step 6: Set up Python
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
           python-version: '3.9'
 
-      # Step 6: Install Dependencies
+      # Step 7: Install Dependencies
       - name: Install Dependencies
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
-      # Step 7: Run the Scraper
+      # Step 8: Run the Scraper
       - name: Run scraper
         run: python scrape_current_nba_games.py
         env:
@@ -58,10 +62,18 @@ jobs:
           EMAIL_USERNAME: ${{ secrets.EMAIL_USERNAME }}
           EMAIL_PASSWORD: ${{ secrets.EMAIL_PASSWORD }}
 
-      # Step 8: Upload Screenshot
+      # Step 9: Upload Screenshot
       - name: Upload Screenshot
         if: always()  # Always upload the artifact even if the scraper fails
         uses: actions/upload-artifact@v3
         with:
           name: screenshots
           path: screenshot.png
+
+      # Step 10: Upload Logs
+      - name: Upload Logs
+        if: always()  # Always upload logs for debugging
+        uses: actions/upload-artifact@v3
+        with:
+          name: logs
+          path: scraper.log
