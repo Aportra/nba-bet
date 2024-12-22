@@ -20,7 +20,7 @@ driver = main.establish_driver()
 
 scrape_date = date.today() - timedelta(1)
 
-url = {'NBA_Season_2024-2025_uncleaned':'https://www.nba.com/stats/teams/boxscores?Season=2024-25'}
+url = {'NBA_Season_2024-2025_uncleaned':'https://www.nba.com/stats/teams/boxscores'}
 
 driver.get(url['NBA_Season_2024-2025_uncleaned'])
 
