@@ -18,9 +18,12 @@ import os
 
 def establish_driver():
     options = Options()
-
+    
     options.binary_location = '/usr/bin/firefox'
     service = Service('/usr/local/bin/geckodriver')
+
+    options.add_argument("--no-sandbox")
+    options.add_argument("--headless")
 
     driver = webdriver.Firefox(service=service,options=options)
     return driver
