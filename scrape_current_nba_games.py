@@ -29,6 +29,13 @@ driver.get(url['NBA_Season_2024-2025_uncleaned'])
 
 valid_time_pattern = r"^\d{1,2}:\d{1,2}$"
 
+try:
+    WebDriverWait(driver, 120).until(
+        EC.presence_of_element_located((By.XPATH, "/html/body/div[1]/div[2]/div[2]/div[3]/section[2]/div/div[2]/div[3]/table/tbody/tr"))  # Example selector
+    )
+except Exception as e:
+    print("Element not found:", e)
+
 rows = driver.find_elements(By.XPATH, "/html/body/div[1]/div[2]/div[2]/div[3]/section[2]/div/div[2]/div[3]/table/tbody/tr")
 game_data = []
 for row in rows:
