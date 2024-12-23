@@ -19,17 +19,28 @@ import os
 
 
 def establish_driver():
-    options = Options() 
-    options.add_argument("--headless")  # Run in headless mode
-    options.add_argument("--disable-gpu")
-    options.add_argument("--no-sandbox")  # Recommended for CI
-    options.add_argument("--disable-dev-shm-usage")
-    options.binary_location = getoutput("find /snap/firefox -name firefox").split("\n")[-1]
+    from selenium.webdriver.firefox.options import Options
+    from selenium.webdriver.firefox.service import Service
+    from selenium import webdriver
 
-    driver = webdriver.Firefox(service =
-        Service(executable_path = getoutput("find /snap/firefox -name geckodriver").split("\n")[-1]),
-        options = options)
-    
+    options = Options()
+    options.add_argument("--headless")
+    options.add_argument("--disable-gpu")
+    options.add_argument("--no-sandbox")
+    options.add_argument("--disable-dev-shm-usage")
+
+    # Explicit paths
+    geckodriver_path = "/snap/bin/geckodriver"
+    firefox_binary_path = "/snap/bin/firefox"
+
+    options.binary_location = firefox_binary_path
+
+    print(f"Using Geckodriver at: {geckodriver_path}")
+    print(f"Using Firefox binary at: {firefox_binary_path}")
+
+    service = Service(geckodriver_path)
+    driver = webdriver.Firefox(service=service, options=options)
+
     return driver
 
 #Select all option only works when at least half screen due to blockage of the all option when not in headerless option
