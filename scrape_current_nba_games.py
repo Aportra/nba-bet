@@ -13,15 +13,17 @@ from datetime import datetime as date
 from datetime import timedelta
 import pandas_gbq
 import traceback
+from google.oauth2 import service_account
+
 
 #For email notifications
-
+credentials = '/etc/google/scraping_key.json'
 
 driver = main.establish_driver()
 # driver = webdriver.Firefox()
 
 
-scrape_date = date.today() - timedelta(2)
+scrape_date = date.today() - timedelta(1)
 
 url = {'NBA_Season_2024-2025_uncleaned':'https://www.nba.com/stats/teams/boxscores?Season=2024-25'}
 
@@ -38,10 +40,10 @@ try:
     )
     print("The section has loaded!")
 except TimeoutException:
-        # main.send_email(
-        # subject = "NBA SCRAPING: DATE ERRORS",
-        # body = str("The section did not load in time."))
-        print("This section did not load.")
+        main.send_email(
+        subject = "NBA SCRAPING: DATE ERRORS",
+        body = str("The section did not load in time."))
+
 
 rows = driver.find_elements(By.XPATH, "/html/body/div[1]/div[2]/div[2]/div[3]/section[2]/div/div[2]/div[3]/table/tbody/tr")
 game_data = []
@@ -57,9 +59,7 @@ for row in rows:
         main.send_email(
         subject = "NBA SCRAPING: DATE ERRORS",
         body = str(f"Unrecognized date format: {game_date_text}"))
-    print(f'Game date:{game_date} Scrape_date:{scrape_date.date()}',flush = True)
     if game_date == scrape_date.date():
-        print('its working')
         #get matchup data
         matchup_element = row.find_element(By.XPATH, "./td[2]/a")
         game_id = matchup_element.get_attribute('href')
@@ -73,9 +73,6 @@ for row in rows:
             home, away = matchup
 
         game_data.append((game_id,game_date,home,away))
-print(len(game_data))
-print('Quitting Driver')
-driver.quit()
 
 data = []
 failed_pages = []
@@ -145,18 +142,17 @@ try:
 
         # pandas_gbq.to_gbq(combined_dataframes,project_id= 'miscellaneous-projects-444203',destination_table= f'miscellaneous-projects-444203.capstone_data.NBA_Season_2024-2025_uncleaned',if_exists = 'append')
         
-        pandas_gbq.to_gbq(combined_dataframes,project_id= 'miscellaneous-projects-444203',destination_table= f'miscellaneous-projects-444203.capstone_data.test',if_exists = 'append')
+        pandas_gbq.to_gbq(combined_dataframes,project_id= 'miscellaneous-projects-444203',destination_table= f'miscellaneous-projects-444203.capstone_data.test',if_exists = 'append',credentials=credentials)
         main.send_email(
         subject = str(f"NBA SCRAPING: COMPLTETED # OF GAMES {len(game_data)}"),
         body = str(f'{len(game_data)} games scraped as of {scrape_date.date()}')
     )
     else:
-    #     main.send_email(
-    #     subject = "NBA SCRAPING: NO GAMES",
-    #     body = str(f'No games as of {scrape_date.date()}')
-    # )
-        print(str(f'No games as of {scrape_date.date()}'))
-        driver.save_screenshot('screenshot.png')
+        main.send_email(
+        subject = "NBA SCRAPING: NO GAMES",
+        body = str(f'No games as of {scrape_date.date()}')
+    )
+
 except Exception as e:
     error_traceback = traceback.format_exc()
     
@@ -172,9 +168,9 @@ except Exception as e:
     {error_traceback}
     """
     print(error_message)
-    # Send the email with detailed information
-    # main.send_email(
-    #     subject="NBA SCRAPING: SCRIPT CRASHED",
-    #     body=error_message
-    # )
+    #Send the email with detailed information
+    main.send_email(
+        subject="NBA SCRAPING: SCRIPT CRASHED",
+        body=error_message
+    )
 

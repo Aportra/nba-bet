@@ -5,7 +5,6 @@ from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.by import By
 from selenium.webdriver.firefox.service import Service
 from selenium.webdriver.firefox.options import Options
-from selenium.webdriver.firefox.firefox_profile import FirefoxProfile
 from bs4 import BeautifulSoup
 import regex as re
 import time
@@ -13,6 +12,7 @@ from datetime import datetime as date
 import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
+from dotenv import load_dotenv
 import os
 from selenium.webdriver import Remote
 
@@ -20,7 +20,6 @@ from selenium.webdriver import Remote
 
 def establish_driver():
     options = Options()
-    profile_path = '/home/aportra/snap/firefox/common/.mozilla/firefox/2p5eyja4.default-release'
     options.binary_location = '/usr/bin/firefox'
     options.add_argument("--headless")
     geckodriver_path = '/usr/local/bin/geckodriver'
@@ -103,6 +102,7 @@ def process_page(page,game_id,game_date,home,away,driver):
         return game_id,game_date,home,away
 
 def send_email(subject,body):
+    load_dotenv('/home/aportra99/Capstone/.env')
     sender_email = os.getenv('SERVER_EMAIL')
     receiver_email = os.getenv('EMAIL_USERNAME')
     password = os.getenv('EMAIL_PASSWORD')
