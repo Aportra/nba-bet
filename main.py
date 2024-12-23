@@ -59,7 +59,7 @@ def process_page(page,game_id,game_date,home,away,driver):
     soup = BeautifulSoup(ps, 'html5lib')
     
     # Find all divs containing the data tables
-    tables = soup.find_all('div', class_='StatsTable_st__g2iuW')
+    tables = soup.find_all('table', id=lambda x: x and "game-basic" in x, class_='sortable stats_table now_sortable')
     last_updated = date.today()
     df_data = []
     # Check if tables exist
@@ -74,29 +74,69 @@ def process_page(page,game_id,game_date,home,away,driver):
                 t1 = away
                 t2 = home
             # Get the header row (if it exists)
-            headers = [th.get_text(strip=True) for th in rows[0].find_all('th')] if rows else []
-            
+            thead = table.find('thead')
+            if thead:
+                header_row = thead.find_all('tr')[1]  # Second <tr> in <thead>
+                headers = [th.get_text(strip=True) for th in header_row.find_all('th')]
+                headers.extend(['team','game_id','game_date','matchup','url','last_updated'])
+            else:
+                headers = []  # Handle case if no headers are present
+
+            tfoot = table.find('tfoot')
+            tfoot_rows = []
+            if tfoot:
+                tfoot_rows = tfoot.find_all('tr')
             # Get the data rows
             data = []
             
-            for row in rows[1:-1]:  # Skip the header row
+            for row in rows:  # Skip the header row
+                if row in tfoot_rows:
+                    print(f"Skipping row in tfoot: {row.get_text(strip=True)}")
+                    continue
+                if 'thead' in row.get('class', []):
+                    continue
+
+                reason_cell = row.find('td', {'colspan': True})
+                if reason_cell:
+                    # Log the skipped row for debugging
+                    print(f"Skipping row due to colspan: {reason_cell.get_text(strip=True)}")
+                    continue
+                
+                first_cell = row.find('th')
+                first_value = first_cell.get_text(strip=True) if first_cell else None
+                if first_value in ["Starters", "Reserves", "Team Totals", ""] or not first_value:
+                    print(f"Skipping label or invalid row: {first_value}")
+                    continue
+                # Extract all <td> elements from the row
                 cols = row.find_all('td')
                 row_data = [col.get_text(strip=True) for col in cols]
-                row_data.extend([t1,game_id,game_date,t2,page,last_updated])
+                row_data.extend([t1, game_id, game_date, t2, page, last_updated])
+                # Prepend the first <th> value to the row
+                if first_value:
+                    row_data.insert(0, first_value)
+
+                # Check row length
+                if len(row_data) < len(headers):  # Pad short rows
+                    print(f"Padding row: {row_data}")
+                    row_data.extend([None] * (len(headers) - len(row_data)))
+                elif len(row_data) > len(headers):  # Trim long rows
+                    print(f"Trimming row: {row_data}")
+                    row_data = row_data[:len(headers)]
                 data.append(row_data)
+    
             
             # Create a DataFrame for this table
             if headers and data:
-                headers.extend(['team','game_id','game_date','matchup','url','last_updated'])
+                
                 df = pd.DataFrame(data, columns=headers)
             else:
-                df = pd.DataFrame(data)  # Use generic column names if no headers
+                df = pd.DataFrame(data)  
             
             df_data.append(df)
         
-        df = pd.concat(df_data,ignore_index=True)
+        final_df = pd.concat(df_data,ignore_index=True)
             # Append the DataFrame to the appropriate team entries in the dictionary
-        return df
+        return final_df
     else:
         print(f'Could not process: {page}')
         return game_id,game_date,home,away
