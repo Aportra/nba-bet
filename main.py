@@ -6,6 +6,7 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.chrome.options import Options
 from webdriver_manager.chrome import ChromeDriverManager
+from webdriver_manager.core.os_manager import ChromeType
 from subprocess import getoutput
 from bs4 import BeautifulSoup
 import regex as re
@@ -19,18 +20,22 @@ import os
 
 
 def establish_driver():
-    options = Options()
-    options.add_argument("--headless")
-    options.add_argument("--no-sandbox")
-    options.add_argument("--disable-dev-shm-usage")
+    chrome_service = Service(ChromeDriverManager(chrome_type=ChromeType.CHROMIUM).install())
 
-    # Specify the ChromeDriver path
-    chrome_driver_path = "/usr/local/bin/chromedriver"
+    chrome_options = Options()
+    options = [
+        "--headless",
+        "--disable-gpu",
+        "--window-size=1920,1200",
+        "--ignore-certificate-errors",
+        "--disable-extensions",
+        "--no-sandbox",
+        "--disable-dev-shm-usage"
+    ]
+    for option in options:
+    chrome_options.add_argument(option)
 
-    print(f"Using ChromeDriver at: {chrome_driver_path}")
-
-    # Initialize the WebDriver
-    service = Service(chrome_driver_path)
+    driver = webdriver.Chrome(service=chrome_service, options=chrome_options)
     driver = webdriver.Chrome(service=service, options=options)
 
     return driver
