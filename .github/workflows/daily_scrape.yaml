@@ -60,7 +60,12 @@ jobs:
         run: |
           firefox --version
           geckodriver --version
-
+      - name: Validate Geckodriver and Firefox
+        run: |
+          which firefox
+          which geckodriver
+          firefox --version
+          geckodriver --version
       # Step 5: Set up Python
       - name: Set up Python
         uses: actions/setup-python@v4
