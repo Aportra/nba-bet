@@ -5,8 +5,7 @@ from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.by import By
 from selenium.webdriver.firefox.service import Service
 from selenium.webdriver.firefox.options import Options
-from webdriver_manager.chrome import ChromeDriverManager
-from subprocess import getoutput
+from selenium.webdriver.firefox.firefox_profile import FirefoxProfile
 from bs4 import BeautifulSoup
 import regex as re
 import time
@@ -15,16 +14,18 @@ import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 import os
+from selenium.webdriver import Remote
 
 
 
 def establish_driver():
     options = Options()
-    options.binary_location = getoutput("find /snap/firefox -name firefox").split("\n")[-1]
+    profile_path = '/home/aportra/snap/firefox/common/.mozilla/firefox/2p5eyja4.default-release'
+    options.binary_location = '/usr/bin/firefox'
     options.add_argument("--headless")
-    driver = webdriver.Firefox(service =
-        Service(executable_path = getoutput("find /snap/firefox -name geckodriver").split("\n")[-1]),
-        options = options)
+    geckodriver_path = '/usr/local/bin/geckodriver'
+    service = Service(executable_path=geckodriver_path, log_path="geckodriver.log")
+    driver = webdriver.Firefox(service = service,options = options)
     
     return driver
 
