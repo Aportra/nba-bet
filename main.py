@@ -21,7 +21,7 @@ import os
 def establish_driver():
     options = Options()
     options.binary_location = getoutput("find /snap/firefox -name firefox").split("\n")[-1]
-    options.add_argument("--headless")
+
     driver = webdriver.Firefox(service =
         Service(executable_path = getoutput("find /snap/firefox -name geckodriver").split("\n")[-1]),
         options = options)
