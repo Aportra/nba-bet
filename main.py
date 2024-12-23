@@ -3,8 +3,8 @@ from selenium import webdriver
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.by import By
-from selenium.webdriver.firefox.service import Service
-from selenium.webdriver.firefox.options import Options
+from selenium.webdriver.chrome.service import Service
+from selenium.webdriver.chrome.options import Options
 from webdriver_manager.chrome import ChromeDriverManager
 from subprocess import getoutput
 from bs4 import BeautifulSoup
@@ -19,27 +19,19 @@ import os
 
 
 def establish_driver():
-    from selenium.webdriver.firefox.options import Options
-    from selenium.webdriver.firefox.service import Service
-    from selenium import webdriver
-
     options = Options()
     options.add_argument("--headless")
-    options.add_argument("--disable-gpu")
     options.add_argument("--no-sandbox")
     options.add_argument("--disable-dev-shm-usage")
 
-    # Explicit paths
-    geckodriver_path = "/snap/bin/geckodriver"
-    firefox_binary_path = "/snap/bin/firefox"
+    # Specify the ChromeDriver path
+    chrome_driver_path = "/usr/local/bin/chromedriver"
 
-    options.binary_location = firefox_binary_path
+    print(f"Using ChromeDriver at: {chrome_driver_path}")
 
-    print(f"Using Geckodriver at: {geckodriver_path}")
-    print(f"Using Firefox binary at: {firefox_binary_path}")
-
-    service = Service(geckodriver_path)
-    driver = webdriver.Firefox(service=service, options=options)
+    # Initialize the WebDriver
+    service = Service(chrome_driver_path)
+    driver = webdriver.Chrome(service=service, options=options)
 
     return driver
 
