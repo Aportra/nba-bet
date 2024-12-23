@@ -62,12 +62,14 @@ jobs:
       #     which firefox
       #     which geckodriver
            # Step 2: Install Chrome and Dependencies
-      - name: Install Chrome and Dependencies
+      - name: Install Older Chrome Version
         run: |
-          sudo apt-get update
-          sudo apt-get install -y google-chrome-stable
-          CHROME_VERSION=$(google-chrome --version | grep -oP '\d+\.\d+\.\d+' | head -1)
-          CHROMEDRIVER_VERSION=$(curl -s "https://chromedriver.storage.googleapis.com/LATEST_RELEASE_${CHROME_VERSION}" || echo "LATEST_RELEASE")
+          sudo apt-get purge google-chrome-stable -y
+          wget https://dl.google.com/linux/chrome/deb/pool/main/g/google-chrome-stable/google-chrome-stable_114.0.5735.90-1_amd64.deb
+          sudo dpkg -i google-chrome-stable_114.0.5735.90-1_amd64.deb
+      - name: Install ChromeDriver
+        run: |
+          CHROMEDRIVER_VERSION="116.0.5845.96"  # Closest available version
           echo "Using ChromeDriver version: $CHROMEDRIVER_VERSION"
           wget -q "https://chromedriver.storage.googleapis.com/${CHROMEDRIVER_VERSION}/chromedriver_linux64.zip"
           unzip chromedriver_linux64.zip
