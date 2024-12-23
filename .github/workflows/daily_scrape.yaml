@@ -59,6 +59,8 @@ jobs:
         run: |
           firefox --version
           geckodriver --version
+          which firefox
+          which geckodriver
 
       # Step 5: Set up Python
       - name: Set up Python
