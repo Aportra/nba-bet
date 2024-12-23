@@ -4,6 +4,10 @@ on:
   schedule:
     - cron: '0 6 * * *'  # Run daily at 6 AM UTC
   workflow_dispatch:
+  push:
+    branches:
+      - main       # Trigger on push to main
+      - your-branch-name  # Trigger on a specific branch
 
 env:
   ACTIONS_STEP_DEBUG: true
