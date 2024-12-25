@@ -1,3 +1,4 @@
+#!/home/aportra99/venv/bin/activate
 import pandas as pd
 import main
 from selenium.webdriver.support.ui import WebDriverWait
@@ -17,7 +18,7 @@ from google.oauth2 import service_account
 
 
 #For email notifications
-credentials = '/etc/google/scraping_key.json'
+credentials = '/home/aportra99/scraping_key.json'
 
 driver = main.establish_driver()
 # driver = webdriver.Firefox()
@@ -45,8 +46,9 @@ except TimeoutException:
         body = str("The section did not load in time."))
 
 
-rows = driver.find_elements(By.XPATH, "/html/body/div[1]/div[2]/div[2]/div[3]/section[2]/div/div[2]/div[3]/table/tbody/tr")
+rows = driver.find_elements(By.XPATH, "//tbody[@class='Crom_body__UYOcU']/tr")
 game_data = []
+unique_game_id = set()
 for row in rows:
     date_element = row.find_element(By.XPATH, "./td[3]/a")
     game_date_text = date_element.text.strip()
@@ -63,6 +65,9 @@ for row in rows:
         #get matchup data
         matchup_element = row.find_element(By.XPATH, "./td[2]/a")
         game_id = matchup_element.get_attribute('href')
+        if game_id in unique_game_id:
+            continue
+        unique_game_id.add(game_id)
         matchup_text = matchup_element.text.strip()
         matchup_element.get_attribute('')
         if "@" in matchup_text:
