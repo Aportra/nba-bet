@@ -18,7 +18,11 @@ from google.oauth2 import service_account
 
 
 #For email notifications
-credentials = '/home/aportra99/scraping_key.json'
+credentials = service_account.Credentials.from_service_account_file(
+    '/home/aportra99/scraping_key.json')
+
+scoped_credentials = credentials.with_scopes(
+    ['https://www.googleapis.com/auth/cloud-platform'])
 
 driver = main.establish_driver()
 # driver = webdriver.Firefox()
@@ -124,7 +128,7 @@ try:
         
         combined_dataframes = pd.concat(data,ignore_index= True)
 
-        client = bigquery.Client('miscellaneous-projects-444203')
+        client = bigquery.Client('miscellaneous-projects-444203',credentials= credentials)
 
         combined_dataframes.rename(columns={'+/-':'plus_mins'},inplace=True)
 
@@ -145,9 +149,9 @@ try:
         num_columns = ['FGM', 'FGA', 'FG%', '3PM', '3PA', '3P%', 'FTM', 'FTA', 'FT%', 'OREB', 'DREB', 'REB', 'AST', 'STL', 'BLK', 'TO', 'PF', 'PTS', 'plus_mins']
         combined_dataframes[num_columns] = combined_dataframes[num_columns].apply(pd.to_numeric, errors='coerce')
 
-        # pandas_gbq.to_gbq(combined_dataframes,project_id= 'miscellaneous-projects-444203',destination_table= f'miscellaneous-projects-444203.capstone_data.NBA_Season_2024-2025_uncleaned',if_exists = 'append')
+        pandas_gbq.to_gbq(combined_dataframes,project_id= 'miscellaneous-projects-444203',destination_table= f'miscellaneous-projects-444203.capstone_data.NBA_Season_2024-2025_uncleaned',if_exists = 'append',credentials=credentials)
         
-        pandas_gbq.to_gbq(combined_dataframes,project_id= 'miscellaneous-projects-444203',destination_table= f'miscellaneous-projects-444203.capstone_data.test',if_exists = 'append',credentials=credentials)
+        # pandas_gbq.to_gbq(combined_dataframes,project_id= 'miscellaneous-projects-444203',destination_table= f'miscellaneous-projects-444203.capstone_data.test',if_exists = 'append',credentials=credentials)
         main.send_email(
         subject = str(f"NBA SCRAPING: COMPLTETED # OF GAMES {len(game_data)}"),
         body = str(f'{len(game_data)} games scraped as of {scrape_date.date()}')
