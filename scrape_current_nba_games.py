@@ -183,3 +183,5 @@ except Exception as e:
         body=error_message
     )
 
+finally:
+    driver.quit()
