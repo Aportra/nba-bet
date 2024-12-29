@@ -25,7 +25,7 @@ options = Options()
 options.add_argument("--headless")
 
 driver = webdriver.Firefox(options=options)
-
+driver.set_window_size(1920, 1080)
 
 
 for url in urls:
@@ -36,18 +36,16 @@ for url in urls:
 
     #For each row collect game_date,game_id, and matchup
     rows = driver.find_elements(By.XPATH, "//tbody[@class='Crom_body__UYOcU']/tr")
-
     game_data =[]
     unique_game_id = set()
     for idx,row in enumerate(rows):
-        if (idx+1)%10:
-            print(f'p{round(idx+1/len(rows)*100,2)}% gathered')
+        if (idx+1) % 10 == 0:
+            print(f'{round((idx+1)/len(rows)*100,2)}% gathered')
         date_element = row.find_element(By.XPATH, ".//td[3]/a")
         game_date_text = date_element.text.strip()    
         
         # Convert the extracted date text to a datetime.date object
         game_date = date.strptime(game_date_text, "%m/%d/%Y")
-        print(game_date)
         #Get matchup data
         matchup_element = row.find_element(By.XPATH, ".//td[2]/a")
         game_id = matchup_element.get_attribute('href')
