@@ -19,7 +19,20 @@ driver.get(url)
 
 soup = BeautifulSoup()
 
+WebDriverWait(driver, 10).until(
+    EC.presence_of_all_elements_located((By.XPATH, "//tbody[@class='sportsbook-table__body']/tr"))
+)
+
+
 rows = driver.find_elements(By.XPATH, "//tbody[@class='sportsbook-table__body']/tr")
 
 for row in rows:
-    print(row)
+    print
+    try:
+        name_element = row.find_element(By.XPATH,"./th/div/div[1]/a/span")
+        name = name_element.text
+        print(name)
+    except Exception as e:
+        print(f"Error processing row: {e}")
+
+driver.quit()

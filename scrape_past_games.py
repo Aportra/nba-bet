@@ -135,4 +135,3 @@ for url in urls:
 
     pandas_gbq.to_gbq(combined_dataframes,project_id= 'miscellaneous-projects-444203',destination_table= f'miscellaneous-projects-444203.capstone_data.{url}',if_exists='replace')
 
-    driver.quit()
