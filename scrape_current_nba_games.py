@@ -19,7 +19,7 @@ from google.oauth2 import service_account
 
 #For email notifications
 credentials = service_account.Credentials.from_service_account_file(
-    '/home/aportra99/scraping_key.json')
+    '/home/aportra/scraping_key.json')
 
 scoped_credentials = credentials.with_scopes(
     ['https://www.googleapis.com/auth/cloud-platform'])
@@ -81,7 +81,7 @@ for row in rows:
             matchup = matchup_text.split(" vs. ")
             home, away = matchup
 
-        game_data.append((game_id,game_date.date(),home,away))
+        game_data.append((game_id,game_date,home,away))
 
 data = []
 failed_pages = []
@@ -149,9 +149,9 @@ try:
         num_columns = ['FGM', 'FGA', 'FG%', '3PM', '3PA', '3P%', 'FTM', 'FTA', 'FT%', 'OREB', 'DREB', 'REB', 'AST', 'STL', 'BLK', 'TO', 'PF', 'PTS', 'plus_mins']
         combined_dataframes[num_columns] = combined_dataframes[num_columns].apply(pd.to_numeric, errors='coerce')
 
-        pandas_gbq.to_gbq(combined_dataframes,project_id= 'miscellaneous-projects-444203',destination_table= f'miscellaneous-projects-444203.capstone_data.NBA_Season_2024-2025_uncleaned',if_exists = 'append',credentials=credentials)
+        # pandas_gbq.to_gbq(combined_dataframes,project_id= 'miscellaneous-projects-444203',destination_table= f'miscellaneous-projects-444203.capstone_data.NBA_Season_2024-2025_uncleaned',if_exists = 'append',credentials=credentials)
         
-        # pandas_gbq.to_gbq(combined_dataframes,project_id= 'miscellaneous-projects-444203',destination_table= f'miscellaneous-projects-444203.capstone_data.test',if_exists = 'append',credentials=credentials)
+        pandas_gbq.to_gbq(combined_dataframes,project_id= 'miscellaneous-projects-444203',destination_table= f'miscellaneous-projects-444203.capstone_data.test',if_exists = 'append',credentials=credentials)
         main.send_email(
         subject = str(f"NBA SCRAPING: COMPLTETED # OF GAMES {len(game_data)}"),
         body = str(f'{len(game_data)} games scraped as of {scrape_date.date()}')
@@ -182,6 +182,3 @@ except Exception as e:
         subject="NBA SCRAPING: SCRIPT CRASHED",
         body=error_message
     )
-
-finally:
-    driver.quit()

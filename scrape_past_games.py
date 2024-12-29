@@ -72,7 +72,6 @@ for url in urls:
         i += 1
         if i %100 == 0:
             print(f'processing the {i} request {round(len(data)/len(game_data)*100,2)}% complete')
-            print(game_date,type(game_date))
         result = main.process_page(page,game_id,date,home,away,driver)
         if isinstance(result, pd.DataFrame):
             data.append(result)
