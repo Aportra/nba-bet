@@ -81,7 +81,7 @@ for row in rows:
             matchup = matchup_text.split(" vs. ")
             home, away = matchup
 
-        game_data.append((game_id,game_date,home,away))
+        game_data.append((game_id,game_date.date(),home,away))
 
 data = []
 failed_pages = []
@@ -93,7 +93,7 @@ try:
             i += 1
             if i %100 == 0:
                 print(f'processing the {i} request {round(len(data)/len(game_data)*100,2)}% complete')
-            result = main.process_page(page,game_id,game_date,home,away,driver)
+            result = main.process_page(page,game_id,date,home,away,driver)
             if isinstance(result, pd.DataFrame):
                 data.append(result)
             else:

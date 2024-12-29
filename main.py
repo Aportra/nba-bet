@@ -50,6 +50,7 @@ def select_all_option(driver):
 
 
 def process_page(page,game_id,game_date,home,away,driver):
+    
     driver.get(page)
     
     driver.set_page_load_timeout(120)
@@ -57,7 +58,6 @@ def process_page(page,game_id,game_date,home,away,driver):
 
     ps = driver.page_source
     soup = BeautifulSoup(ps, 'html5lib')
-    
     # Find all divs containing the data tables
     tables = soup.find_all('div', class_='StatsTable_st__g2iuW')
     last_updated = date.today()

@@ -5,6 +5,7 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.by import By
 from selenium import webdriver
+from selenium.webdriver.firefox.options import Options
 from bs4 import BeautifulSoup
 from google.cloud import bigquery
 import regex as re
@@ -12,14 +13,20 @@ import time
 import pandas_gbq
 
 #need to rerun 2022-2023, 2023-2024
-urls = {#'NBA_Season_2021-2022_uncleaned':'https://www.nba.com/stats/teams/boxscores?Season=2021-22',
-        #'NBA_Season_2022-2023_uncleaned':'https://www.nba.com/stats/teams/boxscores?Season=2022-23',
-        #'NBA_Season_2023-2024_uncleaned':'https://www.nba.com/stats/teams/boxscores?Season=2023-24',
+urls = {'NBA_Season_2021-2022_uncleaned':'https://www.nba.com/stats/teams/boxscores?Season=2021-22',
+        'NBA_Season_2022-2023_uncleaned':'https://www.nba.com/stats/teams/boxscores?Season=2022-23',
+        'NBA_Season_2023-2024_uncleaned':'https://www.nba.com/stats/teams/boxscores?Season=2023-24',
         'NBA_Season_2024-2025_uncleaned':'https://www.nba.com/stats/teams/boxscores?Season=2024-25'
 }
 valid_time_pattern = r"^\d{1,2}:\d{1,2}$"
 
-driver = webdriver.Firefox()
+options = Options()
+
+options.add_argument("--headless")
+
+driver = webdriver.Firefox(options=options)
+
+
 
 for url in urls:
 
@@ -32,15 +39,17 @@ for url in urls:
 
     game_data =[]
     unique_game_id = set()
-    for row in rows:
-        date_element = row.find_element(By.XPATH, "./td[3]/a")
-        game_date_text = date_element.text.strip()
+    for idx,row in enumerate(rows):
+        if (idx+1)%10:
+            print(f'p{round(idx+1/len(rows)*100,2)}% gathered')
+        date_element = row.find_element(By.XPATH, ".//td[3]/a")
+        game_date_text = date_element.text.strip()    
         
         # Convert the extracted date text to a datetime.date object
         game_date = date.strptime(game_date_text, "%m/%d/%Y")
-
+        print(game_date)
         #Get matchup data
-        matchup_element = row.find_element(By.XPATH, "./td[2]/a")
+        matchup_element = row.find_element(By.XPATH, ".//td[2]/a")
         game_id = matchup_element.get_attribute('href')
         if game_id in unique_game_id:
             continue
@@ -65,7 +74,8 @@ for url in urls:
         i += 1
         if i %100 == 0:
             print(f'processing the {i} request {round(len(data)/len(game_data)*100,2)}% complete')
-        result = main.process_page(page,game_id,game_date,home,away,driver)
+            print(game_date,type(game_date))
+        result = main.process_page(page,game_id,date,home,away,driver)
         if isinstance(result, pd.DataFrame):
             data.append(result)
         else:
@@ -77,7 +87,7 @@ for url in urls:
 
     #Rerunning failed pages
     while failed_pages:
-        game_id,game_date,home,away = failed_pages.pop(0)
+        game_id,date,home,away = failed_pages.pop(0)
 
         key = (game_id,game_date,home,away)
 
@@ -90,7 +100,7 @@ for url in urls:
 
         print(f'processing # {game_id} from failed pages')
         page = f'{game_id}/box-score'
-        result = main.process_page(page,game_id,game_date,home,away,driver)
+        result = main.process_page(page,game_id,date,home,away,driver)
 
         if isinstance(result,pd.DataFrame):
             data.append(result)
@@ -126,3 +136,5 @@ for url in urls:
 
 
     pandas_gbq.to_gbq(combined_dataframes,project_id= 'miscellaneous-projects-444203',destination_table= f'miscellaneous-projects-444203.capstone_data.{url}',if_exists='replace')
+
+    driver.quit()
