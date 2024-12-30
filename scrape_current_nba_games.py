@@ -107,7 +107,7 @@ try:
         while failed_pages:
             game_id,date,home,away = failed_pages.pop(0)
 
-            key = (game_id,game_date,home,away)
+            key = (game_id,date,home,away)
 
             if key in retries:
                 retries[key] += 1
