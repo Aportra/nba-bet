@@ -90,7 +90,7 @@ failed_pages = []
 i = 0
 try:
     if game_data:
-        for game_id,game_date,home,away in game_data:
+        for game_id,date,home,away in game_data:
             page = game_id
             i += 1
             if i %100 == 0:
