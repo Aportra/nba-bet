@@ -104,7 +104,7 @@ for url in urls:
             print(f'processed # {game_id} from failed pages')
         #Catch for if they fail again
         else:
-            failed_pages.append((game_id,game_date,home,away))
+            failed_pages.append((game_id,date,home,away))
             print(f'failed # {game_id} from failed pages, readded to be processed')
 
     #Combine dataframes to upload to GBQ
