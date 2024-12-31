@@ -105,7 +105,7 @@ def send_email(subject,body):
     try:
         load_dotenv('/home/aportra99/Capstone/.env')
     except:
-        load_dotenv('/home/aportra/Capstone/Documents/.env')
+        load_dotenv('/home/aportra/Documents/Capstone/.env')
     sender_email = os.getenv('SERVER_EMAIL')
     receiver_email = os.getenv('EMAIL_USERNAME')
     password = os.getenv('EMAIL_PASSWORD')
