@@ -104,8 +104,10 @@ def process_page(page,game_id,game_date,home,away,driver):
 def send_email(subject,body):
     try:
         load_dotenv('/home/aportra99/Capstone/.env')
+        print('loaded the .env')
     except:
         load_dotenv('/home/aportra/Documents/Capstone/.env')
+        print('loaded the .env')
     sender_email = os.getenv('SERVER_EMAIL')
     receiver_email = os.getenv('EMAIL_USERNAME')
     password = os.getenv('EMAIL_PASSWORD')
