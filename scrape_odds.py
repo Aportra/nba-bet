@@ -47,6 +47,6 @@ for row in rows:
 
 driver.quit()
 
-combined_dataframes = pd.concat(df)
+combined_dataframes = pd.concat(data,ignore_index=True)
 
 pandas_gbq.to_gbq(combined_dataframes,project_id= 'miscellaneous-projects-444203',destination_table= f'miscellaneous-projects-444203.capstone_data.player_odds',if_exists = 'append')
