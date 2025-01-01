@@ -39,14 +39,22 @@ for row in rows:
 
         over = over.split()
         under = under.split()
-        
-        df = pd.DataFrame(data = zip(name,over[2],over[1],under[2]),columns=['Player','Over','Points','Under'])
-        data.append(df)
+
+        over_value = over[2]
+        under_value = under[2]
+        points_value = over[1]
+
+        data.append({
+            'Player': name,
+            'Points': points_value,
+            'Over': over_value,
+            'Under': under_value
+        })
     except Exception as e:
         print(f"Error processing row: {e}")
 
-driver.quit()
+# driver.quit()
 
-combined_dataframes = pd.concat(data,ignore_index=True)
+combined_data = pd.DataFrame(data)
 
-pandas_gbq.to_gbq(combined_dataframes,project_id= 'miscellaneous-projects-444203',destination_table= f'miscellaneous-projects-444203.capstone_data.player_odds',if_exists = 'append')
+pandas_gbq.to_gbq(combined_data,project_id= 'miscellaneous-projects-444203',destination_table= f'miscellaneous-projects-444203.capstone_data.player_odds',if_exists = 'append')
