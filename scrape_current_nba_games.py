@@ -90,12 +90,12 @@ failed_pages = []
 i = 0
 try:
     if game_data:
-        for game_id,date,home,away in game_data:
+        for game_id,g_date,home,away in game_data:
             page = game_id
             i += 1
             if i %100 == 0:
                 print(f'processing the {i} request {round(len(data)/len(game_data)*100,2)}% complete')
-            result = main.process_page(page,game_id,date,home,away,driver)
+            result = main.process_page(page,game_id,g_date,home,away,driver)
             if isinstance(result, pd.DataFrame):
                 data.append(result)
             else:
@@ -105,9 +105,9 @@ try:
 
         retries = {}
         while failed_pages:
-            game_id,date,home,away = failed_pages.pop(0)
+            game_id,g_date,home,away = failed_pages.pop(0)
 
-            key = (game_id,date,home,away)
+            key = (game_id,g_date,home,away)
 
             if key in retries:
                 retries[key] += 1
@@ -118,14 +118,14 @@ try:
 
             print(f'processing # {game_id} from failed pages')
             page = f'{game_id}/box-score'
-            result = main.process_page(page,game_id,date,home,away,driver)
+            result = main.process_page(page,game_id,g_date,home,away,driver)
 
             if isinstance(result,pd.DataFrame):
                 data.append(result)
                 print(f'processed # {game_id} from failed pages')
             #Catch for if they fail again
             else:
-                failed_pages.append((game_id,date,home,away))
+                failed_pages.append((game_id,g_date,home,away))
                 print(f'failed # {game_id} from failed pages, readded to be processed')
         
         combined_dataframes = pd.concat(data,ignore_index= True)
