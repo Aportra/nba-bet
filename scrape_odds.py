@@ -10,6 +10,7 @@ from selenium import webdriver
 from bs4 import BeautifulSoup
 from google.oauth2 import service_account
 from datetime import datetime as date
+import traceback
 
 driver = main.establish_driver()
 #driver = webdriver.Firefox()
@@ -59,7 +60,25 @@ for row in rows:
             'Date_Updated':scrape_date
         })
     except Exception as e:
-        print(f"Error processing row: {e}")
+        error_traceback = traceback.format_exc()
+    
+        # Prepare a detailed error message
+        error_message = f"""
+        NBA SCRAPING: SCRIPT CRASHED
+
+        The script encountered an error:
+        Type: {type(e).__name__}
+        Message: {str(e)}
+
+        Full Traceback:
+        {error_traceback}
+        """
+        print(error_message)
+        #Send the email with detailed information
+        main.send_email(
+            subject="NBA SCRAPING: SCRIPT CRASHED",
+            body=error_message
+        )
 
 # driver.quit()
 
