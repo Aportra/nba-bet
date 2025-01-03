@@ -8,12 +8,18 @@ from selenium.webdriver.common.by import By
 from selenium.common.exceptions import TimeoutException 
 from selenium import webdriver
 from bs4 import BeautifulSoup
-
+from google.oauth2 import service_account
 
 #driver = main.establish_driver()
 driver = webdriver.Firefox()
 
 url = 'https://sportsbook.draftkings.com/nba-player-props?category=player-points&subcategory=points-o%2Fu'
+
+
+try:
+    credentials = service_account.Credentials.from_service_account_file('/home/aportra/scraping_key.json') #For local server
+except FileNotFoundError:
+    credentials = service_account.Credentials.from_service_account_file('/home/aportra99/scraping_key.json') #For Google VM
 
 driver.get(url)
 
@@ -57,4 +63,4 @@ for row in rows:
 
 combined_data = pd.DataFrame(data)
 
-pandas_gbq.to_gbq(combined_data,project_id= 'miscellaneous-projects-444203',destination_table= f'miscellaneous-projects-444203.capstone_data.player_odds',if_exists = 'append')
+pandas_gbq.to_gbq(combined_data,project_id= 'miscellaneous-projects-444203',destination_table= f'miscellaneous-projects-444203.capstone_data.player_odds',if_exists = 'append',credentials=credentials)
