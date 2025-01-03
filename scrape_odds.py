@@ -82,7 +82,7 @@ for row in rows:
 
 combined_data = pd.DataFrame(data)
 
-pandas_gbq.to_gbq(combined_data,project_id= 'miscellaneous-projects-444203',destination_table= f'miscellaneous-projects-444203.capstone_data.player_odds',if_exists = 'replace',credentials=credentials)
+pandas_gbq.to_gbq(combined_data,project_id= 'miscellaneous-projects-444203',destination_table= f'miscellaneous-projects-444203.capstone_data.player_odds',if_exists = 'append',credentials=credentials)
 
 main.send_email(
 subject = str(f"ODDS SCRAPING: COMPLTETED # OF GAMES {len(data)}"),
