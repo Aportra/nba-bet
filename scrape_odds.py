@@ -18,10 +18,8 @@ driver = main.establish_driver()
 url = 'https://sportsbook.draftkings.com/nba-player-props?category=player-points&subcategory=points-o%2Fu'
 
 scrape_date = date.today()
-try:
-    credentials = service_account.Credentials.from_service_account_file('/home/aportra/scraping_key.json') #For local server
-except FileNotFoundError:
-    credentials = service_account.Credentials.from_service_account_file('/home/aportra99/scraping_key.json') #For Google VM
+
+credentials = service_account.Credentials.from_service_account_file('/home/aportra99/scraping_key.json')
 
 driver.get(url)
 
@@ -84,7 +82,7 @@ for row in rows:
 
 combined_data = pd.DataFrame(data)
 
-pandas_gbq.to_gbq(combined_data,project_id= 'miscellaneous-projects-444203',destination_table= f'miscellaneous-projects-444203.capstone_data.player_odds',if_exists = 'append',credentials=credentials)
+pandas_gbq.to_gbq(combined_data,project_id= 'miscellaneous-projects-444203',destination_table= f'miscellaneous-projects-444203.capstone_data.player_odds',if_exists = 'replace',credentials=credentials)
 
 main.send_email(
 subject = str(f"ODDS SCRAPING: COMPLTETED # OF GAMES {len(data)}"),
