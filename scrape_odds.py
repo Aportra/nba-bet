@@ -9,13 +9,14 @@ from selenium.common.exceptions import TimeoutException
 from selenium import webdriver
 from bs4 import BeautifulSoup
 from google.oauth2 import service_account
+from datetime import datetime as date
 
 driver = main.establish_driver()
 #driver = webdriver.Firefox()
 
 url = 'https://sportsbook.draftkings.com/nba-player-props?category=player-points&subcategory=points-o%2Fu'
 
-
+scrape_date = date.today()
 try:
     credentials = service_account.Credentials.from_service_account_file('/home/aportra/scraping_key.json') #For local server
 except FileNotFoundError:
@@ -54,7 +55,8 @@ for row in rows:
             'Player': name,
             'Points': points_value,
             'Over': over_value,
-            'Under': under_value
+            'Under': under_value,
+            'Date_Updated':scrape_date
         })
     except Exception as e:
         print(f"Error processing row: {e}")
@@ -64,3 +66,8 @@ for row in rows:
 combined_data = pd.DataFrame(data)
 
 pandas_gbq.to_gbq(combined_data,project_id= 'miscellaneous-projects-444203',destination_table= f'miscellaneous-projects-444203.capstone_data.player_odds',if_exists = 'append',credentials=credentials)
+
+main.send_email(
+subject = str(f"ODDS SCRAPING: COMPLTETED # OF GAMES {len(data)}"),
+body = str(f'{len(data)} games scraped as of {scrape_date.date()}')
+)
