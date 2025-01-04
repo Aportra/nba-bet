@@ -85,6 +85,6 @@ combined_data = pd.DataFrame(data)
 pandas_gbq.to_gbq(combined_data,project_id= 'miscellaneous-projects-444203',destination_table= f'miscellaneous-projects-444203.capstone_data.player_odds',if_exists = 'append',credentials=credentials)
 
 main.send_email(
-subject = str(f"ODDS SCRAPING: COMPLTETED # OF GAMES {len(data)}"),
-body = str(f'{len(data)} games scraped as of {scrape_date.date()}')
+subject = str(f"ODDS SCRAPING: COMPLTETED # OF PLAYERS {len(data)}"),
+body = str(f'{len(data)} players odds scraped as of {scrape_date.date()}')
 )
