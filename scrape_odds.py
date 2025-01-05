@@ -12,9 +12,8 @@ from google.oauth2 import service_account
 from datetime import datetime as date
 import traceback
 
-
-#driver = main.establish_driver()
-driver = webdriver.Firefox()
+driver = main.establish_driver()
+#driver = webdriver.Firefox()
 
 url = 'https://sportsbook.draftkings.com/nba-player-props?category=player-points&subcategory=points-o%2Fu'
 
