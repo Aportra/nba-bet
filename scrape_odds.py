@@ -23,7 +23,7 @@ credentials = service_account.Credentials.from_service_account_file('/home/aport
 
 driver.get(url)
 
-soup = BeautifulSoup()
+
 
 WebDriverWait(driver, 300).until(
     EC.presence_of_all_elements_located((By.XPATH, "//tbody[@class='sportsbook-table__body']/tr"))
