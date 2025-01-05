@@ -25,7 +25,7 @@ driver.get(url)
 
 soup = BeautifulSoup()
 
-WebDriverWait(driver, 10).until(
+WebDriverWait(driver, 300).until(
     EC.presence_of_all_elements_located((By.XPATH, "//tbody[@class='sportsbook-table__body']/tr"))
 )
 
@@ -78,7 +78,7 @@ for row in rows:
             body=error_message
         )
 
-# driver.quit()
+
 
 combined_data = pd.DataFrame(data)
 
@@ -88,3 +88,5 @@ main.send_email(
 subject = str(f"ODDS SCRAPING: COMPLTETED # OF PLAYERS {len(data)}"),
 body = str(f'{len(data)} players odds scraped as of {scrape_date.date()}')
 )
+
+driver.quit()
