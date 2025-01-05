@@ -184,3 +184,6 @@ except Exception as e:
         subject="NBA SCRAPING: SCRIPT CRASHED",
         body=error_message
     )
+
+
+driver.quit()
