@@ -100,7 +100,7 @@ try:
         main.send_email(
         subject = "TEAM RATINGS SCRAPING: NO GAMES",
         body = str(f'No games as of {scrape_date.date()}'))
-except:
+except Exception as e:
     error_traceback = traceback.format_exc()
     
     # Prepare a detailed error message
