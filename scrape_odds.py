@@ -11,15 +11,19 @@ from bs4 import BeautifulSoup
 from google.oauth2 import service_account
 from datetime import datetime as date
 import traceback
+from selenium.webdriver.firefox.options import Options
 
-driver = main.establish_driver()
-#driver = webdriver.Firefox()
+#driver = main.establish_driver()
+options = Options()
+options.add_argument('--headless')
+
+driver = webdriver.Firefox(options=options)
 
 url = 'https://sportsbook.draftkings.com/nba-player-props?category=player-points&subcategory=points-o%2Fu'
 
 scrape_date = date.today()
 
-credentials = service_account.Credentials.from_service_account_file('/home/aportra99/scraping_key.json')
+# credentials = service_account.Credentials.from_service_account_file('/home/aportra99/scraping_key.json')
 
 driver.get(url)
 
@@ -82,7 +86,7 @@ for row in rows:
 
 combined_data = pd.DataFrame(data)
 
-pandas_gbq.to_gbq(combined_data,project_id= 'miscellaneous-projects-444203',destination_table= f'miscellaneous-projects-444203.capstone_data.player_odds',if_exists = 'append',credentials=credentials)
+pandas_gbq.to_gbq(combined_data,project_id= 'miscellaneous-projects-444203',destination_table= f'miscellaneous-projects-444203.capstone_data.player_odds',if_exists = 'append')
 
 main.send_email(
 subject = str(f"ODDS SCRAPING: COMPLTETED # OF PLAYERS {len(data)}"),
