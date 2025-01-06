@@ -12,6 +12,8 @@ from google.cloud import bigquery
 import regex as re
 import time
 import pandas_gbq
+import traceback
+
 
 scrape_date = date.today() - timedelta(1)
 
@@ -97,6 +99,25 @@ try:
         subject = "TEAM RATINGS SCRAPING: NO GAMES",
         body = str(f'No games as of {scrape_date.date()}'))
 except:
-        main.send_email(
-        subject = "TEAM RATINGS SCRAPING SCRIPT CRASHED",
-        body = str(f'No games as of {scrape_date.date()}'))
+    error_traceback = traceback.format_exc()
+    
+    # Prepare a detailed error message
+    error_message = f"""
+    NBA SCRAPING: SCRIPT CRASHED
+
+    The script encountered an error:
+    Type: {type(e).__name__}
+    Message: {str(e)}
+
+    Full Traceback:
+    {error_traceback}
+    """
+    print(error_message)
+    #Send the email with detailed information
+    main.send_email(
+        subject="TEAM RATINGS SCRAPING: SCRIPT CRASHED",
+        body=error_message
+    )
+
+
+driver.quit()
