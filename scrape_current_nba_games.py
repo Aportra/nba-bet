@@ -18,10 +18,8 @@ from google.oauth2 import service_account
 
 
 #For email notifications
-try:
-    credentials = service_account.Credentials.from_service_account_file('/home/aportra/scraping_key.json') #For local server
-except FileNotFoundError:
-    credentials = service_account.Credentials.from_service_account_file('/home/aportra99/scraping_key.json') #For Google VM
+
+credentials = service_account.Credentials.from_service_account_file('/home/aportra99/scraping_key.json') #For Google VM
 
 scoped_credentials = credentials.with_scopes(
     ['https://www.googleapis.com/auth/cloud-platform'])

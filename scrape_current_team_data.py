@@ -13,9 +13,12 @@ import regex as re
 import time
 import pandas_gbq
 import traceback
+from google.oauth2 import service_account
 
 
 scrape_date = date.today() - timedelta(1)
+
+credentials = service_account.Credentials.from_service_account_file('/home/aportra99/scraping_key.json') #For Google VM
 
 urls = {
         '2024-2025_team_ratings':'https://www.nba.com/stats/teams/boxscores-advanced?Season=2024-25'
@@ -87,8 +90,8 @@ try:
         data = pd.DataFrame(game_data,columns = headers)
 
         data.rename(columns={'w/l':'win_loss','ast/to':'ast_to','ast\nratio':'ast_ratio'},inplace=True)
-        pandas_gbq.to_gbq(data,project_id= 'miscellaneous-projects-444203',destination_table= f'miscellaneous-projects-444203.capstone_data.{url}',if_exists='replace')
-
+        pandas_gbq.to_gbq(data,project_id= 'miscellaneous-projects-444203',destination_table= f'miscellaneous-projects-444203.capstone_data.{url}',if_exists='append',credentials=credentials)
+        #pandas_gbq.to_gbq(combined_dataframes,project_id= 'miscellaneous-projects-444203',destination_table= f'miscellaneous-projects-444203.capstone_data.NBA_Season_2024-2025_uncleaned',if_exists = 'append',credentials=credentials)
     if data:
         main.send_email(
         subject = str(f"TEAM RATINGS SCRAPING: COMPLTETED # OF GAMES {len(game_data)}"),
@@ -115,9 +118,12 @@ except:
     print(error_message)
     #Send the email with detailed information
     main.send_email(
-        subject="TEAM RATINGS SCRAPING: SCRIPT CRASHED",
+        subject="NBA SCRAPING: SCRIPT CRASHED",
         body=error_message
     )
+
+
+
 
 
 driver.quit()

@@ -11,9 +11,13 @@ from bs4 import BeautifulSoup
 from google.oauth2 import service_account
 from datetime import datetime as date
 import traceback
+from selenium.webdriver.firefox.options import Options
 
 driver = main.establish_driver()
-#driver = webdriver.Firefox()
+# options = Options()
+# options.add_argument('--headless')
+
+# driver = webdriver.Firefox(options=options)
 
 url = 'https://sportsbook.draftkings.com/nba-player-props?category=player-points&subcategory=points-o%2Fu'
 
