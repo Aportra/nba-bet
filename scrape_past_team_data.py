@@ -15,9 +15,9 @@ import pandas_gbq
 
 
 
-urls = {'2021-2022_team_ratings':'https://www.nba.com/stats/teams/boxscores-advanced?Season=2021-22',
-        '2022-2023_team_ratings':'https://www.nba.com/stats/teams/boxscores-advanced?Season=2022-23',
-        '2023-2024_team_ratings':'https://www.nba.com/stats/teams/boxscores-advanced?Season=2023-24',
+urls = {#'2021-2022_team_ratings':'https://www.nba.com/stats/teams/boxscores-advanced?Season=2021-22',
+        #'2022-2023_team_ratings':'https://www.nba.com/stats/teams/boxscores-advanced?Season=2022-23',
+        #'2023-2024_team_ratings':'https://www.nba.com/stats/teams/boxscores-advanced?Season=2023-24',
         '2024-2025_team_ratings':'https://www.nba.com/stats/teams/boxscores-advanced?Season=2024-25'
 }
 scrape_date = date.today() - timedelta(1)
@@ -73,6 +73,9 @@ for url in urls:
 
     data.rename(columns={'w/l':'win_loss','ast/to':'ast_to','ast\nratio':'ast_ratio'},inplace=True)
     pandas_gbq.to_gbq(data,project_id= 'miscellaneous-projects-444203',destination_table= f'miscellaneous-projects-444203.capstone_data.{url}',if_exists='replace')
+
+main.send_email(subject = "fixing scraping of 2024-2025 season done",
+                body = "very nice it is done")
 
 driver.quit()
 

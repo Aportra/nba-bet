@@ -64,7 +64,7 @@ try:
             game_date = date.strptime(game_date_text, "%m/%d/%Y").date()
             print(game_date)
             if game_date < scrape_date.date():
-                continue
+                break
             #Get matchup data
             matchup_element = row.find_element(By.XPATH, ".//td[2]/a")
             game_id = matchup_element.get_attribute('href')
