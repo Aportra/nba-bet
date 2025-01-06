@@ -64,7 +64,6 @@ try:
             # Convert the extracted date text to a datetime.date object
             # First, try parsing with the expected format
             game_date = date.strptime(game_date_text, "%m/%d/%Y").date()
-            print(game_date)
             if game_date < scrape_date.date():
                 break
             #Get matchup data
@@ -92,10 +91,10 @@ try:
         data.rename(columns={'w/l':'win_loss','ast/to':'ast_to','ast\nratio':'ast_ratio'},inplace=True)
         pandas_gbq.to_gbq(data,project_id= 'miscellaneous-projects-444203',destination_table= f'miscellaneous-projects-444203.capstone_data.{url}',if_exists='append',credentials=credentials)
         #pandas_gbq.to_gbq(combined_dataframes,project_id= 'miscellaneous-projects-444203',destination_table= f'miscellaneous-projects-444203.capstone_data.NBA_Season_2024-2025_uncleaned',if_exists = 'append',credentials=credentials)
-    if data:
+    if (len(game_data)/2) > 0:
         main.send_email(
-        subject = str(f"TEAM RATINGS SCRAPING: COMPLTETED # OF GAMES {len(game_data)}"),
-        body = str(f'{len(game_data)} games scraped as of {scrape_date.date()}')
+        subject = str(f"TEAM RATINGS SCRAPING: COMPLTETED # OF GAMES {len(game_data)/2}"),
+        body = str(f'{len(game_data)/2} games scraped as of {scrape_date.date()}')
         )
     else:
         main.send_email(
