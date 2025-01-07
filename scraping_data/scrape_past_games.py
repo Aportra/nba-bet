@@ -1,5 +1,5 @@
 import pandas as pd
-from .. import main
+from ... import main
 from datetime import datetime as date
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
