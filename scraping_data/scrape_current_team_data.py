@@ -12,7 +12,9 @@ from google.cloud import bigquery
 import regex as re
 import time
 import pandas_gbq
+import traceback
 from google.oauth2 import service_account
+
 
 scrape_date = date.today() - timedelta(1)
 
@@ -62,7 +64,6 @@ try:
             # Convert the extracted date text to a datetime.date object
             # First, try parsing with the expected format
             game_date = date.strptime(game_date_text, "%m/%d/%Y").date()
-            print(game_date)
             if game_date < scrape_date.date():
                 break
             #Get matchup data
@@ -90,7 +91,7 @@ try:
         data.rename(columns={'w/l':'win_loss','ast/to':'ast_to','ast\nratio':'ast_ratio'},inplace=True)
         pandas_gbq.to_gbq(data,project_id= 'miscellaneous-projects-444203',destination_table= f'miscellaneous-projects-444203.capstone_data.{url}',if_exists='append',credentials=credentials)
         #pandas_gbq.to_gbq(combined_dataframes,project_id= 'miscellaneous-projects-444203',destination_table= f'miscellaneous-projects-444203.capstone_data.NBA_Season_2024-2025_uncleaned',if_exists = 'append',credentials=credentials)
-    if data:
+    if (len(game_data)) > 0:
         main.send_email(
         subject = str(f"TEAM RATINGS SCRAPING: COMPLTETED # OF GAMES {len(game_data)}"),
         body = str(f'{len(game_data)} games scraped as of {scrape_date.date()}')
@@ -99,7 +100,29 @@ try:
         main.send_email(
         subject = "TEAM RATINGS SCRAPING: NO GAMES",
         body = str(f'No games as of {scrape_date.date()}'))
-except:
-        main.send_email(
-        subject = "TEAM RATINGS SCRAPING SCRIPT CRASHED",
-        body = str(f'No games as of {scrape_date.date()}'))
+except Exception as e:
+    error_traceback = traceback.format_exc()
+    
+    # Prepare a detailed error message
+    error_message = f"""
+    NBA SCRAPING: SCRIPT CRASHED
+
+    The script encountered an error:
+    Type: {type(e).__name__}
+    Message: {str(e)}
+
+    Full Traceback:
+    {error_traceback}
+    """
+    print(error_message)
+    #Send the email with detailed information
+    main.send_email(
+        subject="NBA SCRAPING: SCRIPT CRASHED",
+        body=error_message
+    )
+
+
+
+
+
+driver.quit()
