@@ -1,5 +1,5 @@
 import pandas as pd
-import main
+from .. import main
 from datetime import datetime as date
 from datetime import timedelta
 from selenium.webdriver.support.ui import WebDriverWait

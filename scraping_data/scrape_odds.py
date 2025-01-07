@@ -1,7 +1,7 @@
 import pandas as pd
 from google.cloud import bigquery
 import pandas_gbq
-import main
+from .. import main
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.by import By
