@@ -9,6 +9,7 @@ from bs4 import BeautifulSoup
 import regex as re
 import time
 from datetime import datetime as date
+from datetime import timedelta
 import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
@@ -18,15 +19,23 @@ from selenium.webdriver import Remote
 
 
 
-def establish_driver():
-    options = Options()
-    options.binary_location = '/usr/bin/firefox'
-    options.add_argument("--headless")
-    geckodriver_path = '/usr/local/bin/geckodriver'
-    service = Service(executable_path=geckodriver_path, log_path="geckodriver.log")
-    driver = webdriver.Firefox(service = service,options = options)
-    
-    return driver
+def establish_driver(local = False):
+    if not local: 
+        options = Options()
+        options.binary_location = '/usr/bin/firefox'
+        options.add_argument("--headless")
+        geckodriver_path = '/usr/local/bin/geckodriver'
+        service = Service(executable_path=geckodriver_path, log_path="geckodriver.log")
+        driver = webdriver.Firefox(service = service,options = options)
+        
+        return driver
+    else: 
+        options = Options()
+        options.add_argument("--headless")
+        driver = webdriver.Firefox(options=options)
+        driver.set_window_size(1920, 1080)
+
+        return driver
 
 #Select all option only works when at least half screen due to blockage of the all option when not in headerless option
 
@@ -47,6 +56,39 @@ def select_all_option(driver):
         print("Successfully selected the 'All' option.")
     except Exception as e:
         print(f"Error selecting the 'All' option: {e}")
+
+def gather_data(rows,current = True,scrape_date = date.today() - timedelta(1)):
+    game_data =[]
+    unique_game_id = set()
+    for idx,row in enumerate(rows):
+        if (idx+1) % 10 == 0:
+            print(f'{round((idx+1)/len(rows)*100,2)}% gathered')
+        date_element = row.find_element(By.XPATH, ".//td[3]/a")
+        game_date_text = date_element.text.strip()    
+        
+        # Convert the extracted date text to a datetime.date object
+        game_date = date.strptime(game_date_text, "%m/%d/%Y")
+        #Get matchup data
+        if current:
+            if game_date < scrape_date:
+                break
+        matchup_element = row.find_element(By.XPATH, ".//td[2]/a")
+        game_id = matchup_element.get_attribute('href')
+        if game_id in unique_game_id:
+            continue
+        unique_game_id.add(game_id)
+        matchup_text = matchup_element.text.strip()
+        matchup_element.get_attribute('')
+        if "@" in matchup_text:
+            matchup = matchup_text.split(" @ ")
+            away, home = matchup
+        elif "vs." in matchup_text:
+            matchup = matchup_text.split(" vs. ")
+            home, away = matchup
+
+        game_data.append((game_id,game_date,home,away))
+    return game_data
+
 
 
 def process_page(page,game_id,game_date,home,away,driver):
@@ -101,6 +143,30 @@ def process_page(page,game_id,game_date,home,away,driver):
         print(f'Could not process: {page}')
         return game_id,game_date,home,away
 
+def prepare_for_gbq(combined_dataframes):
+    valid_time_pattern = r"^\d{1,2}:\d{1,2}$"
+    combined_dataframes.rename(columns={'+/-':'plus_mins'},inplace=True)
+
+    invalid_rows = ~combined_dataframes['MIN'].str.match(valid_time_pattern)
+
+    columns_to_swap = ['FGM','FGA','FG%','3PM','3PA','3P%']
+    valid_columns = ['team','game_id','game_date','matchup','url','last_updated']
+
+    combined_dataframes.loc[invalid_rows, valid_columns] = combined_dataframes.loc[invalid_rows, columns_to_swap].values
+
+    combined_dataframes.loc[invalid_rows,columns_to_swap] = None
+
+    combined_dataframes['game_date'] = pd.to_datetime(combined_dataframes['game_date'],errors='coerce')
+    combined_dataframes['last_updated'] = pd.to_datetime(combined_dataframes['last_updated'],errors='coerce')
+    combined_dataframes['url'] = combined_dataframes['url'].astype(str).str.strip()
+    combined_dataframes['game_id'] = combined_dataframes['game_id'].str.lstrip('https://www.nba.com/game/')
+
+    num_columns = ['FGM', 'FGA', 'FG%', '3PM', '3PA', '3P%', 'FTM', 'FTA', 'FT%', 'OREB', 'DREB', 'REB', 'AST', 'STL', 'BLK', 'TO', 'PF', 'PTS', 'plus_mins']
+    combined_dataframes[num_columns] = combined_dataframes[num_columns].apply(pd.to_numeric, errors='coerce')
+
+    return combined_dataframes
+
+
 def send_email(subject,body):
     try:
         load_dotenv('/home/aportra99/Capstone/.env')
@@ -126,6 +192,9 @@ def send_email(subject,body):
         print(f"failed due to send email: {e}")
     finally:
         server.quit()
+
+
+
 
 #Makes it so we are not connecting to driver on import
 if __name__ == "__main__":
