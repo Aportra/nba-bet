@@ -17,7 +17,7 @@ import pandas_gbq
 import traceback
 from google.oauth2 import service_account
 
-def scrape_current_data():
+def scrape_current_games():
     credentials = service_account.Credentials.from_service_account_file('/home/aportra99/scraping_key.json') #For Google VM
 
     scoped_credentials = credentials.with_scopes(
