@@ -70,7 +70,7 @@ def gather_data(rows,current = True,scrape_date = date.today() - timedelta(1)):
         game_date = date.strptime(game_date_text, "%m/%d/%Y")
         #Get matchup data
         if current:
-            if game_date < scrape_date:
+            if game_date.date() < scrape_date.date():
                 break
         matchup_element = row.find_element(By.XPATH, ".//td[2]/a")
         game_id = matchup_element.get_attribute('href')
