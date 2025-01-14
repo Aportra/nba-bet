@@ -1,7 +1,7 @@
 import pandas as pd
 from google.cloud import bigquery
 import pandas_gbq
-import main
+import utils
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.by import By
@@ -13,7 +13,7 @@ from datetime import datetime as date
 import traceback
 from selenium.webdriver.firefox.options import Options
 
-driver = main.establish_driver()
+driver = utils.establish_driver()
 # options = Options()
 # options.add_argument('--headless')
 
@@ -77,7 +77,7 @@ for row in rows:
         """
         print(error_message)
         #Send the email with detailed information
-        main.send_email(
+        utils.send_email(
             subject="NBA SCRAPING: SCRIPT CRASHED",
             body=error_message
         )
@@ -88,7 +88,7 @@ combined_data = pd.DataFrame(data)
 
 pandas_gbq.to_gbq(combined_data,project_id= 'miscellaneous-projects-444203',destination_table= f'miscellaneous-projects-444203.capstone_data.player_odds',if_exists = 'append',credentials=credentials)
 
-main.send_email(
+utils.send_email(
 subject = str(f"ODDS SCRAPING: COMPLTETED # OF PLAYERS {len(data)}"),
 body = str(f'{len(data)} players odds scraped as of {scrape_date.date()}')
 )
