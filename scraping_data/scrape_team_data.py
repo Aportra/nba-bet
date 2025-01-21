@@ -89,6 +89,16 @@ def scrape_current_team_data():
             data = pd.DataFrame(game_data,columns = headers)
 
             data.rename(columns={'w/l':'win_loss','ast/to':'ast_to','ast\nratio':'ast_ratio'},inplace=True)
+
+
+            string_columns = ['home','away','game_id','win_loss','team','match up','game date','last_updated']
+            
+            data['game date'] = pd.to_datetime(data['game date'])
+            
+            for column in data.columns:
+                if column not in string_columns:
+                    data[column] = data[column].astype('float64')
+
             pandas_gbq.to_gbq(data,project_id= 'miscellaneous-projects-444203',destination_table= f'miscellaneous-projects-444203.capstone_data.{url}',if_exists='append',credentials=credentials)
             #pandas_gbq.to_gbq(combined_dataframes,project_id= 'miscellaneous-projects-444203',destination_table= f'miscellaneous-projects-444203.capstone_data.NBA_Season_2024-2025_uncleaned',if_exists = 'append',credentials=credentials)
         if (len(game_data)) > 0:
@@ -179,7 +189,7 @@ def scrape_past_team_data():
                 away_binary = 0
 
             row_data = [col.text.strip() for col in cols]
-            row_data.extend([game_id,home_binary,away_binary,scrape_date])
+            row_data.extend([game_id.lstrip('https://www.nba.com/game/'),home_binary,away_binary,scrape_date])
             
 
             game_data.append(row_data)
@@ -187,6 +197,16 @@ def scrape_past_team_data():
         data = pd.DataFrame(game_data,columns = headers)
 
         data.rename(columns={'w/l':'win_loss','ast/to':'ast_to','ast\nratio':'ast_ratio'},inplace=True)
+
+        string_columns = ['home','away','game_id','win_loss','team','match up','game date','last_updated']
+        
+        data['game date'] = pd.to_datetime(data['game date'])
+
+        for column in data.columns:
+            if column not in string_columns:
+                data[column] = data[column].astype('float64')
+
+        
         pandas_gbq.to_gbq(data,project_id= 'miscellaneous-projects-444203',destination_table= f'miscellaneous-projects-444203.capstone_data.{url}',if_exists='replace')
 
 
