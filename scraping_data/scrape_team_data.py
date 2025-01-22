@@ -15,7 +15,7 @@ import pandas_gbq
 import traceback
 from google.oauth2 import service_account
 
-def scrape_current_team_data():
+def scrape_current_team_data(length):
     scrape_date = date.today() - timedelta(1)
 
     credentials = service_account.Credentials.from_service_account_file('/home/aportra99/scraping_key.json') #For Google VM
@@ -86,6 +86,12 @@ def scrape_current_team_data():
 
                 game_data.append(row_data)
 
+            if len(game_data) < length * 2:
+                driver.quit()
+                utils.send_email(
+                subject = "NEEDED TO RESTART TEAM DATA SCRIPT",
+                body = str(f'RESTARTING SCRIPT AS {date.today()}'))
+                return scrape_current_team_data(length)
             data = pd.DataFrame(game_data,columns = headers)
 
             data.rename(columns={'w/l':'win_loss','ast/to':'ast_to','ast\nratio':'ast_ratio'},inplace=True)

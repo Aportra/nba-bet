@@ -106,6 +106,7 @@ def scrape_current_games():
             subject = str(f"Test NBA SCRAPING: COMPLTETED # OF GAMES {len(game_data)}"),
             body = str(f'{len(game_data)} games scraped as of {scrape_date.date()}')
         )
+            return len(game_data)
         else:
             utils.send_email(
             subject = "NBA SCRAPING: NO GAMES",
