@@ -99,14 +99,14 @@ def scrape_current_games():
             client = bigquery.Client('miscellaneous-projects-444203',credentials= credentials)
 
             
-            pandas_gbq.to_gbq(combined_dataframes,project_id= 'miscellaneous-projects-444203',destination_table= f'miscellaneous-projects-444203.capstone_data.NBA_Season_2024-2025_uncleaned',if_exists = 'append',credentials=credentials)
+            # pandas_gbq.to_gbq(combined_dataframes,project_id= 'miscellaneous-projects-444203',destination_table= f'miscellaneous-projects-444203.capstone_data.NBA_Season_2024-2025_uncleaned',if_exists = 'append',credentials=credentials)
             
             #pandas_gbq.to_gbq(combined_dataframes,project_id= 'miscellaneous-projects-444203',destination_table= f'miscellaneous-projects-444203.capstone_data.test',if_exists = 'append',credentials=credentials)
             utils.send_email(
             subject = str(f"Test NBA SCRAPING: COMPLTETED # OF GAMES {len(game_data)}"),
             body = str(f'{len(game_data)} games scraped as of {scrape_date.date()}')
         )
-            return len(game_data)
+            
         else:
             utils.send_email(
             subject = "NBA SCRAPING: NO GAMES",
@@ -134,19 +134,24 @@ def scrape_current_games():
             body=error_message
         )
 
-
+    return combined_dataframes,credentials,len(game_data)
     driver.quit()
 
 def scrape_past_games():
     
-    urls = {'NBA_Season_2021-2022_uncleaned':'https://www.nba.com/stats/teams/boxscores?Season=2021-22',
-            'NBA_Season_2022-2023_uncleaned':'https://www.nba.com/stats/teams/boxscores?Season=2022-23',
-            'NBA_Season_2023-2024_uncleaned':'https://www.nba.com/stats/teams/boxscores?Season=2023-24',
-            'NBA_Season_2024-2025_uncleaned':'https://www.nba.com/stats/teams/boxscores?Season=2024-25'
+    urls = {'NBA_Season_2021-2022_uncleaned':'https://www.nba.com/stats/teams/boxscores?Season=2021-22'
+            #'NBA_Season_2022-2023_uncleaned':'https://www.nba.com/stats/teams/boxscores?Season=2022-23',
+            #'NBA_Season_2023-2024_uncleaned':'https://www.nba.com/stats/teams/boxscores?Season=2023-24',
+            #'NBA_Season_2024-2025_uncleaned':'https://www.nba.com/stats/teams/boxscores?Season=2024-25'
     }
 
     driver = utils.establish_driver(local = True)
-
+    
+    try:
+        credentials = service_account.Credentials.from_service_account_file('/home/aportra99/scraping_key.json')
+        print("Credentials file loaded.")
+    except:
+        print("Running with default credentials")
     for url in urls:
 
         driver.get(urls[url])
@@ -208,5 +213,4 @@ def scrape_past_games():
         client = bigquery.Client('miscellaneous-projects-444203')
 
 
-        pandas_gbq.to_gbq(combined_dataframes,project_id= 'miscellaneous-projects-444203',destination_table= f'miscellaneous-projects-444203.capstone_data.{url}',if_exists='replace')
-
+        pandas_gbq.to_gbq(combined_dataframes,project_id= 'miscellaneous-projects-444203',destination_table= f'miscellaneous-projects-444203.capstone_data.{url}',if_exists='replace',credentials= credentials)
