@@ -96,7 +96,7 @@ def scrape_current_games():
             combined_dataframes = pd.concat(data,ignore_index= True)
 
             combined_dataframes = utils.prepare_for_gbq(combined_dataframes)
-            client = bigquery.Client('miscellaneous-projects-444203',credentials= credentials)
+            #client = bigquery.Client('miscellaneous-projects-444203',credentials= credentials)
 
             
             # pandas_gbq.to_gbq(combined_dataframes,project_id= 'miscellaneous-projects-444203',destination_table= f'miscellaneous-projects-444203.capstone_data.NBA_Season_2024-2025_uncleaned',if_exists = 'append',credentials=credentials)
@@ -133,16 +133,16 @@ def scrape_current_games():
             subject="NBA SCRAPING: SCRIPT CRASHED",
             body=error_message
         )
-
-    return combined_dataframes,credentials,len(game_data)
+    
+    return combined_dataframes,len(game_data)
     driver.quit()
 
 def scrape_past_games():
     
-    urls = {'NBA_Season_2021-2022_uncleaned':'https://www.nba.com/stats/teams/boxscores?Season=2021-22'
-            #'NBA_Season_2022-2023_uncleaned':'https://www.nba.com/stats/teams/boxscores?Season=2022-23',
-            #'NBA_Season_2023-2024_uncleaned':'https://www.nba.com/stats/teams/boxscores?Season=2023-24',
-            #'NBA_Season_2024-2025_uncleaned':'https://www.nba.com/stats/teams/boxscores?Season=2024-25'
+    urls = {'NBA_Season_2021-2022_uncleaned':'https://www.nba.com/stats/teams/boxscores?Season=2021-22',
+            'NBA_Season_2022-2023_uncleaned':'https://www.nba.com/stats/teams/boxscores?Season=2022-23',
+            'NBA_Season_2023-2024_uncleaned':'https://www.nba.com/stats/teams/boxscores?Season=2023-24',
+            'NBA_Season_2024-2025_uncleaned':'https://www.nba.com/stats/teams/boxscores?Season=2024-25'
     }
 
     driver = utils.establish_driver(local = True)
@@ -213,4 +213,4 @@ def scrape_past_games():
         client = bigquery.Client('miscellaneous-projects-444203')
 
 
-        pandas_gbq.to_gbq(combined_dataframes,project_id= 'miscellaneous-projects-444203',destination_table= f'miscellaneous-projects-444203.capstone_data.{url}',if_exists='replace',credentials= credentials)
+        pandas_gbq.to_gbq(combined_dataframes,project_id= 'miscellaneous-projects-444203',destination_table= f'miscellaneous-projects-444203.capstone_data.{url}',if_exists='replace',table_schema= [{'name':'game_date','type':'DATE'},])

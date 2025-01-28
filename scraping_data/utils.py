@@ -156,14 +156,16 @@ def prepare_for_gbq(combined_dataframes):
 
     combined_dataframes.loc[invalid_rows,columns_to_swap] = None
 
-    combined_dataframes['game_date'] = pd.to_datetime(combined_dataframes['game_date'],errors='coerce')
-    combined_dataframes['last_updated'] = pd.to_datetime(combined_dataframes['last_updated'],errors='coerce')
+    combined_dataframes['last_updated'] = pd.to_datetime(combined_dataframes['last_updated'],errors='coerce').date.tz_localize('PST')
     combined_dataframes['url'] = combined_dataframes['url'].astype(str).str.strip()
     combined_dataframes['game_id'] = combined_dataframes['game_id'].str.lstrip('https://www.nba.com/game/')
 
     num_columns = ['FGM', 'FGA', 'FG%', '3PM', '3PA', '3P%', 'FTM', 'FTA', 'FT%', 'OREB', 'DREB', 'REB', 'AST', 'STL', 'BLK', 'TO', 'PF', 'PTS', 'plus_mins']
     combined_dataframes[num_columns] = combined_dataframes[num_columns].apply(pd.to_numeric, errors='coerce')
 
+    for column in combined_dataframes.columns:
+        combined_dataframes.rename(columns = {column:column.lower()},inplace = True)
+    
     return combined_dataframes
 
 

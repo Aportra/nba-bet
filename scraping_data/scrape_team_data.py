@@ -85,8 +85,8 @@ def scrape_current_team_data(length):
                 
 
                 game_data.append(row_data)
-
-            if len(game_data) < length * 2 and len(game_data) != 0:
+            
+            if len(game_data) < length * 2 and len(game_data) != 0: #Fixes issue of not pulling each game. Ensures data is pulled for each team
                 driver.quit()
                 utils.send_email(
                 subject = "NEEDED TO RESTART TEAM DATA SCRIPT",
