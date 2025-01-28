@@ -11,6 +11,7 @@ def convert_minutes_to_decimal(min_played):
     return round(min + (sec/60),2)
 
 def clean_current_player_data(data):
+        
         data.dropna(inplace = True, ignore_index = True)
         name = '^([A-Z][a-z]*[a-zA-Z]*(?:-[A-Z][a-z]+)?(?:\s[A-Z][a-z]+(?:-[A-Z][a-z]+)*)?(?:\s(?:Jr\.|Sr\.|III|IV))?)'
 
@@ -41,14 +42,14 @@ def clean_current_player_data(data):
         player_dfs = []
 
         for player in players:
-            player_data = all_player_data[all_player_data['player'] == f'{player}'].sort_values(by='game_date')
+            player_data = all_player_data[all_player_data['player'] == f'{player}'].sort_values(by='game_date',ascending = True)
 
             for feature in features_for_rolling:
                 player_data[f'rolling_avg_{feature}'] = player_data[player_data['player'] == f'{player}'][f'{feature}'].rolling(window = 3).mean().reset_index(0,drop = True)
-
-                new_player_data = player_data[player_data['game_date'].isin(data['game_date'])]
-                print(len(new_player_data))
-                player_dfs.append(new_player_data)
+                
+            new_player_data = player_data[player_data['game_date'].isin(data['game_date'])]
+            print(len(new_player_data))
+            player_dfs.append(new_player_data)
             
         print('rolling features calculated')
         rolling_data = pd.concat(player_dfs,ignore_index = True)
