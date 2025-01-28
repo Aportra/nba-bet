@@ -157,7 +157,7 @@ def prepare_for_gbq(combined_dataframes):
 
     combined_dataframes.loc[invalid_rows,columns_to_swap] = None
 
-    combined_dataframes['last_updated'] = pd.to_datetime(combined_dataframes['last_updated'],errors='coerce').date.tz_localize('PST')
+    combined_dataframes['last_updated'] = pd.to_datetime(combined_dataframes['last_updated'],errors='coerce').dt.tz_localize('UTC').dt.tz_convert('PST')
     combined_dataframes['url'] = combined_dataframes['url'].astype(str).str.strip()
     combined_dataframes['game_id'] = combined_dataframes['game_id'].str.lstrip('https://www.nba.com/game/')
 

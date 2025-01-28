@@ -164,13 +164,10 @@ def scrape_past_games():
     
         data = []
         failed_pages = []
-        i = 0
+   
         with tqdm(total=len(game_data), desc="Processing Games", ncols=80) as pbar:
             for game_id,date,home,away in game_data:
                 page = f'{game_id}/box-score'
-                i += 1
-                if i %100 == 0:
-                    print(f'processing the {i} request {round(len(data)/len(game_data)*100,2)}% complete')
                 result = utils.process_page(page,game_id,date,home,away,driver)
                 if isinstance(result, pd.DataFrame):
                     data.append(result)
