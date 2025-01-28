@@ -14,6 +14,7 @@ import regex as re
 import pandas_gbq
 import traceback
 from google.oauth2 import service_account
+from tqdm import tqdm
 
 def scrape_current_games():
 
@@ -55,18 +56,16 @@ def scrape_current_games():
     i = 0
     try:
         if game_data:
-            for game_id,g_date,home,away in game_data:
-                page = game_id
-                i += 1
-                if i %100 == 0:
-                    print(f'processing the {i} request {round(len(data)/len(game_data)*100,2)}% complete')
-                result = utils.process_page(page,game_id,g_date,home,away,driver)
-                if isinstance(result, pd.DataFrame):
-                    data.append(result)
-                else:
-                    failed_pages.append(result)
-                    print(f'Failed Pages length: {len(failed_pages)}')
-
+            with tqdm(total=len(game_data), desc="Processing Games", ncols=80) as pbar:
+                for game_id,g_date,home,away in game_data:
+                    page = game_id
+                    result = utils.process_page(page,game_id,g_date,home,away,driver)
+                    if isinstance(result, pd.DataFrame):
+                        data.append(result)
+                    else:
+                        failed_pages.append(result)
+                        print(f'Failed Pages length: {len(failed_pages)}')
+                    pbar.update(1)
 
             retries = {}
             while failed_pages:
@@ -99,7 +98,7 @@ def scrape_current_games():
             #client = bigquery.Client('miscellaneous-projects-444203',credentials= credentials)
 
             
-            # pandas_gbq.to_gbq(combined_dataframes,project_id= 'miscellaneous-projects-444203',destination_table= f'miscellaneous-projects-444203.capstone_data.NBA_Season_2024-2025_uncleaned',if_exists = 'append',credentials=credentials)
+            pandas_gbq.to_gbq(combined_dataframes,project_id= 'miscellaneous-projects-444203',destination_table= f'miscellaneous-projects-444203.capstone_data.NBA_Season_2024-2025_uncleaned',if_exists = 'append',credentials=credentials)
             
             #pandas_gbq.to_gbq(combined_dataframes,project_id= 'miscellaneous-projects-444203',destination_table= f'miscellaneous-projects-444203.capstone_data.test',if_exists = 'append',credentials=credentials)
             utils.send_email(
@@ -166,17 +165,19 @@ def scrape_past_games():
         data = []
         failed_pages = []
         i = 0
-        for game_id,date,home,away in game_data:
-            page = f'{game_id}/box-score'
-            i += 1
-            if i %100 == 0:
-                print(f'processing the {i} request {round(len(data)/len(game_data)*100,2)}% complete')
-            result = utils.process_page(page,game_id,date,home,away,driver)
-            if isinstance(result, pd.DataFrame):
-                data.append(result)
-            else:
-                failed_pages.append(result)
-                print(f'Failed Pages length: {len(failed_pages)}')
+        with tqdm(total=len(game_data), desc="Processing Games", ncols=80) as pbar:
+            for game_id,date,home,away in game_data:
+                page = f'{game_id}/box-score'
+                i += 1
+                if i %100 == 0:
+                    print(f'processing the {i} request {round(len(data)/len(game_data)*100,2)}% complete')
+                result = utils.process_page(page,game_id,date,home,away,driver)
+                if isinstance(result, pd.DataFrame):
+                    data.append(result)
+                else:
+                    failed_pages.append(result)
+                    print(f'Failed Pages length: {len(failed_pages)}')
+                pbar.update(1)
 
         #Tracking number of retries per failed page
         retries = {}

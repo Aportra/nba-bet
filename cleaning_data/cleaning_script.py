@@ -78,8 +78,6 @@ def clean_past_player_data():
 
         data.dropna(inplace = True, ignore_index = True)
         
-        for column in data.columns:
-             data.rename(columns = {column:column.lower()},inplace= True)
 
         name = '^([A-Z][a-z]*[a-zA-Z]*(?:-[A-Z][a-z]+)?(?:\s[A-Z][a-z]+(?:-[A-Z][a-z]+)*)?(?:\s(?:Jr\.|Sr\.|III|IV))?)'
 

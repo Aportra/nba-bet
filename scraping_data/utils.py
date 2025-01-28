@@ -16,6 +16,7 @@ from email.mime.multipart import MIMEMultipart
 from dotenv import load_dotenv
 import os
 from selenium.webdriver import Remote
+from tqdm import tqdm
 
 
 
@@ -60,33 +61,33 @@ def select_all_option(driver):
 def gather_data(rows,current = True,scrape_date = date.today() - timedelta(1)):
     game_data =[]
     unique_game_id = set()
-    for idx,row in enumerate(rows):
-        if (idx+1) % 10 == 0:
-            print(f'{round((idx+1)/len(rows)*100,2)}% gathered')
-        date_element = row.find_element(By.XPATH, ".//td[3]/a")
-        game_date_text = date_element.text.strip()    
-        
-        # Convert the extracted date text to a datetime.date object
-        game_date = date.strptime(game_date_text, "%m/%d/%Y")
-        #Get matchup data
-        if current:
-            if game_date.date() < scrape_date.date():
-                break
-        matchup_element = row.find_element(By.XPATH, ".//td[2]/a")
-        game_id = matchup_element.get_attribute('href')
-        if game_id in unique_game_id:
-            continue
-        unique_game_id.add(game_id)
-        matchup_text = matchup_element.text.strip()
-        matchup_element.get_attribute('')
-        if "@" in matchup_text:
-            matchup = matchup_text.split(" @ ")
-            away, home = matchup
-        elif "vs." in matchup_text:
-            matchup = matchup_text.split(" vs. ")
-            home, away = matchup
+    with tqdm(total=(len(rows)/2), desc="Gathering Data", ncols=80) as pbar:
+        for idx,row in enumerate(rows):
+            date_element = row.find_element(By.XPATH, ".//td[3]/a")
+            game_date_text = date_element.text.strip()    
+            
+            # Convert the extracted date text to a datetime.date object
+            game_date = date.strptime(game_date_text, "%m/%d/%Y")
+            #Get matchup data
+            if current:
+                if game_date.date() < scrape_date.date():
+                    break
+            matchup_element = row.find_element(By.XPATH, ".//td[2]/a")
+            game_id = matchup_element.get_attribute('href')
+            if game_id in unique_game_id:
+                continue
+            unique_game_id.add(game_id)
+            matchup_text = matchup_element.text.strip()
+            matchup_element.get_attribute('')
+            if "@" in matchup_text:
+                matchup = matchup_text.split(" @ ")
+                away, home = matchup
+            elif "vs." in matchup_text:
+                matchup = matchup_text.split(" vs. ")
+                home, away = matchup
 
-        game_data.append((game_id,game_date,home,away))
+            game_data.append((game_id,game_date,home,away))
+            pbar.update(1)
     return game_data
 
 
