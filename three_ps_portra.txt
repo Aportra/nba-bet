@@ -1,0 +1,12 @@
+1-28-2025
+
+Progress:
+I have begun cleaning my scraped data and creating a script that will automatically clean new data coming in.
+
+Problems: 
+I have ran into an issue with inconsistent date formatting causing issues with calculating rolling averages. I am fixing this by explicitly stating the date format in my schema.
+
+Plans:
+I plan to finish my cleaning script and start fitting models.
+
+I spent 2 hours since last Tuesday on my capstone project.
