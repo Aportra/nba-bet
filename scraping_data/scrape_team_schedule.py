@@ -64,7 +64,6 @@ for team in nba_teams:
 
             opponent_element = row.find_element(By.XPATH,"./td[2]/div/span[3]/a")
             opponent_text = opponent_element.text
-            print(opponent_text)
             data.append({
                 'team':team,
                 'date':converted_date,
