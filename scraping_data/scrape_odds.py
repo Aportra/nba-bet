@@ -1,7 +1,4 @@
-import pandas as pd
 from google.cloud import bigquery
-import pandas_gbq
-import utils
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.by import By
@@ -10,8 +7,12 @@ from selenium import webdriver
 from bs4 import BeautifulSoup
 from google.oauth2 import service_account
 from datetime import datetime as date
-import traceback
 from selenium.webdriver.firefox.options import Options
+
+import traceback
+import pandas_gbq
+import utils
+import pandas as pd
 
 driver = utils.establish_driver()
 # options = Options()

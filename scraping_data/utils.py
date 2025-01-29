@@ -1,4 +1,3 @@
-import pandas as pd
 from selenium import webdriver
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
@@ -6,25 +5,25 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.firefox.service import Service
 from selenium.webdriver.firefox.options import Options
 from bs4 import BeautifulSoup
-import regex as re
-import time
 from datetime import datetime as date
 from datetime import timedelta
-import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from dotenv import load_dotenv
-import os
 from selenium.webdriver import Remote
 from tqdm import tqdm
 
-
+import os
+import smtplib
+import regex as re
+import time
+import pandas as pd
 
 def establish_driver(local = False):
     if not local: 
         options = Options()
         options.binary_location = '/usr/bin/firefox'
-        options.add_argument("--headless")
+        # options.add_argument("--headless")
         geckodriver_path = '/usr/local/bin/geckodriver'
         service = Service(executable_path=geckodriver_path, log_path="geckodriver.log")
         driver = webdriver.Firefox(service = service,options = options)
@@ -32,7 +31,7 @@ def establish_driver(local = False):
         return driver
     else: 
         options = Options()
-        options.add_argument("--headless")
+        # options.add_argument("--headless")
         driver = webdriver.Firefox(options=options)
         driver.set_window_size(1920, 1080)
 
@@ -145,23 +144,23 @@ def process_page(page,game_id,game_date,home,away,driver):
         return game_id,game_date,home,away
 
 def prepare_for_gbq(combined_dataframes):
-    valid_time_pattern = r"^\d{1,2}:\d{1,2}$"
+    valid_time_pattern = r"^\d{1,2}:\d{1,2}$" 
     combined_dataframes.rename(columns={'+/-':'plus_mins'},inplace=True)
 
     invalid_rows = ~combined_dataframes['MIN'].str.match(valid_time_pattern)
 
-    columns_to_swap = ['FGM','FGA','FG%','3PM','3PA','3P%']
+    columns_to_swap = ['FGM','FGA','FG%','3PM','3PA','3P%'] #Adding these columns with the presence of NA columns caused misplaced values
     valid_columns = ['team','game_id','game_date','matchup','url','last_updated']
 
     combined_dataframes.loc[invalid_rows, valid_columns] = combined_dataframes.loc[invalid_rows, columns_to_swap].values
 
-    combined_dataframes.loc[invalid_rows,columns_to_swap] = None
+    combined_dataframes.loc[invalid_rows,columns_to_swap] = None #Filling with NA's
 
-    combined_dataframes['last_updated'] = pd.to_datetime(combined_dataframes['last_updated'],errors='coerce').dt.tz_localize('UTC').dt.tz_convert('PST')
-    combined_dataframes['url'] = combined_dataframes['url'].astype(str).str.strip()
-    combined_dataframes['game_id'] = combined_dataframes['game_id'].str.lstrip('https://www.nba.com/game/')
+    combined_dataframes['last_updated'] = pd.to_datetime(combined_dataframes['last_updated'],errors='coerce').dt.tz_localize('UTC').dt.tz_convert('America/Los_Angeles') #Forcing to PST
+    combined_dataframes['url'] = combined_dataframes['url'].astype(str).str.strip() #Collecting Game URLS
+    combined_dataframes['game_id'] = combined_dataframes['game_id'].str.lstrip('https://www.nba.com/game/') #Gettting game_ids
 
-    num_columns = ['FGM', 'FGA', 'FG%', '3PM', '3PA', '3P%', 'FTM', 'FTA', 'FT%', 'OREB', 'DREB', 'REB', 'AST', 'STL', 'BLK', 'TO', 'PF', 'PTS', 'plus_mins']
+    num_columns = ['FGM', 'FGA', 'FG%', '3PM', '3PA', '3P%', 'FTM', 'FTA', 'FT%', 'OREB', 'DREB', 'REB', 'AST', 'STL', 'BLK', 'TO', 'PF', 'PTS', 'plus_mins'] #Selecting numeric columnc to force to numeric
     combined_dataframes[num_columns] = combined_dataframes[num_columns].apply(pd.to_numeric, errors='coerce')
 
     for column in combined_dataframes.columns:
@@ -196,7 +195,22 @@ def send_email(subject,body):
     finally:
         server.quit()
 
+def convert_date(date_str):
+    try:
+        # Parse the given date string (without a year)
+        date_obj = date.strptime(date_str, "%a, %b %d")
 
+        # Determine the correct year
+        assumed_year = 2024 if date_obj.month >= 10 else 2025  # Everything before Jan 1, 2025, is 2024
+
+        # Assign the determined year
+        date_obj = date_obj.replace(year=assumed_year)
+
+        #Return as date type
+        return date_obj.date()
+    except ValueError as e:
+        print(f"Skipping invalid date: {date_str} - {e}")
+        return None
 
 
 #Makes it so we are not connecting to driver on import

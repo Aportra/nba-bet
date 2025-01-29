@@ -98,14 +98,15 @@ def scrape_current_team_data(length):
 
 
             string_columns = ['home','away','game_id','win_loss','team','match up','game date','last_updated']
+
+            data['game date'] = pd.to_datetime(data['game date']).dt.date
             
-            data['game date'] = pd.to_datetime(data['game date'])
             
             for column in data.columns:
                 if column not in string_columns:
                     data[column] = data[column].astype('float64')
 
-            pandas_gbq.to_gbq(data,project_id= 'miscellaneous-projects-444203',destination_table= f'miscellaneous-projects-444203.capstone_data.{url}',if_exists='append',credentials=credentials)
+            pandas_gbq.to_gbq(data,project_id= 'miscellaneous-projects-444203',destination_table= f'miscellaneous-projects-444203.capstone_data.{url}',if_exists='append',credentials=credentials,table_schema=[{"name":"game date","type":"DATE"},])
             #pandas_gbq.to_gbq(combined_dataframes,project_id= 'miscellaneous-projects-444203',destination_table= f'miscellaneous-projects-444203.capstone_data.NBA_Season_2024-2025_uncleaned',if_exists = 'append',credentials=credentials)
         if (len(game_data)) > 0:
             utils.send_email(
@@ -145,6 +146,7 @@ def scrape_current_team_data(length):
 
 def scrape_past_team_data():
     
+    credentials = service_account.Credentials.from_service_account_file('/home/aportra99/scraping_key.json') #For Google VM
 
     urls = {'2021-2022_team_ratings':'https://www.nba.com/stats/teams/boxscores-advanced?Season=2021-22',
             '2022-2023_team_ratings':'https://www.nba.com/stats/teams/boxscores-advanced?Season=2022-23',
@@ -206,15 +208,16 @@ def scrape_past_team_data():
 
         string_columns = ['home','away','game_id','win_loss','team','match up','game date','last_updated']
         
-        data['game date'] = pd.to_datetime(data['game date'])
+        data['game date'] = pd.to_datetime(data['game date']).dt.date 
 
         for column in data.columns:
             if column not in string_columns:
                 data[column] = data[column].astype('float64')
 
         
-        pandas_gbq.to_gbq(data,project_id= 'miscellaneous-projects-444203',destination_table= f'miscellaneous-projects-444203.capstone_data.{url}',if_exists='replace')
+        pandas_gbq.to_gbq(data,project_id= 'miscellaneous-projects-444203',destination_table= f'miscellaneous-projects-444203.capstone_data.{url}',if_exists='replace',table_schema=[{"name":"game date","type":"DATE"},],credentials=credentials)
 
 
     driver.quit()
 
+scrape_past_team_data()

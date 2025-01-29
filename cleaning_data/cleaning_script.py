@@ -1,16 +1,17 @@
 #!/home/aportra99/venv/bin/activate
+from google.cloud import bigquery
+from datetime import datetime as date
+
+import regex as re
 import pandas as pd
 import pandas_gbq
-from google.cloud import bigquery
-import regex as re
-from datetime import datetime as date
 
 def convert_minutes_to_decimal(min_played):
     min,sec = map(int,min_played.split(':'))
 
     return round(min + (sec/60),2)
 
-def clean_current_player_data(data):
+def clean_current_player_data(data,credentials):
         
         data.dropna(inplace = True, ignore_index = True)
         name = '^([A-Z][a-z]*[a-zA-Z]*(?:-[A-Z][a-z]+)?(?:\s[A-Z][a-z]+(?:-[A-Z][a-z]+)*)?(?:\s(?:Jr\.|Sr\.|III|IV))?)'
@@ -58,8 +59,8 @@ def clean_current_player_data(data):
 
 
         rolling_data.dropna(inplace = True, ignore_index = True)
-#,credentials=credentials        
-        pandas_gbq.to_gbq(rolling_data,destination_table = f'capstone_data.test',project_id='miscellaneous-projects-444203',if_exists= 'replace')
+    
+        pandas_gbq.to_gbq(rolling_data,destination_table = f'capstone_data.test',project_id='miscellaneous-projects-444203',if_exists= 'replace',credentials=credentials)
 
 
 
@@ -96,7 +97,7 @@ def clean_past_player_data():
         
         print(data)
 
-        pandas_gbq.to_gbq(data,destination_table = f'capstone_data.{table.rstrip('uncleaned')}cleaned',project_id='miscellaneous-projects-444203',if_exists='replace')
+        pandas_gbq.to_gbq(data,destination_table = f'capstone_data.{table.rstrip("uncleaned")}cleaned',project_id='miscellaneous-projects-444203',if_exists='replace')
 
 # clean_past_player_data()
 

@@ -1,6 +1,4 @@
 #!/home/aportra99/venv/bin/activate
-import pandas as pd
-import scraping_data.utils as utils
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.by import By
@@ -10,11 +8,14 @@ from bs4 import BeautifulSoup
 from datetime import timedelta
 from datetime import datetime as date
 from google.cloud import bigquery
+from google.oauth2 import service_account
+from tqdm import tqdm
+
 import regex as re
 import pandas_gbq
 import traceback
-from google.oauth2 import service_account
-from tqdm import tqdm
+import pandas as pd
+import scraping_data.utils as utils
 
 def scrape_current_games():
 
@@ -98,7 +99,7 @@ def scrape_current_games():
             #client = bigquery.Client('miscellaneous-projects-444203',credentials= credentials)
 
             
-            pandas_gbq.to_gbq(combined_dataframes,project_id= 'miscellaneous-projects-444203',destination_table= f'miscellaneous-projects-444203.capstone_data.NBA_Season_2024-2025_uncleaned',if_exists = 'append',credentials=credentials)
+            pandas_gbq.to_gbq(combined_dataframes,project_id= 'miscellaneous-projects-444203',destination_table= f'miscellaneous-projects-444203.capstone_data.NBA_Season_2024-2025_uncleaned',if_exists = 'append',credentials=credentials,table_schema= [{'name':'game_date','type':'DATE'},])
             
             #pandas_gbq.to_gbq(combined_dataframes,project_id= 'miscellaneous-projects-444203',destination_table= f'miscellaneous-projects-444203.capstone_data.test',if_exists = 'append',credentials=credentials)
             utils.send_email(
@@ -133,7 +134,7 @@ def scrape_current_games():
             body=error_message
         )
     
-    return combined_dataframes,len(game_data)
+    return combined_dataframes,credentials,len(game_data)
     driver.quit()
 
 def scrape_past_games():
@@ -211,4 +212,4 @@ def scrape_past_games():
         client = bigquery.Client('miscellaneous-projects-444203')
 
 
-        pandas_gbq.to_gbq(combined_dataframes,project_id= 'miscellaneous-projects-444203',destination_table= f'miscellaneous-projects-444203.capstone_data.{url}',if_exists='replace',table_schema= [{'name':'game_date','type':'DATE'},])
+        pandas_gbq.to_gbq(combined_dataframes,project_id= 'miscellaneous-projects-444203',destination_table= f'miscellaneous-projects-444203.capstone_data.{url}',if_exists='replace',table_schema= [{'name':'game_date','type':'DATE'},],credentials=credentials)
