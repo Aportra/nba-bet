@@ -18,8 +18,13 @@ from google.oauth2 import service_account
 def scrape_current_team_data(length):
     scrape_date = date.today() - timedelta(1)
 
-    credentials = service_account.Credentials.from_service_account_file('/home/aportra99/scraping_key.json') #For Google VM
-
+    try:
+        credentials = service_account.Credentials.from_service_account_file('/home/aportra99/scraping_key.json')
+        local = False
+        print("Credentials file loaded.")
+    except:
+        local = True
+        print("Running with default credentials")
     urls = {
             '2024-2025_team_ratings':'https://www.nba.com/stats/teams/boxscores-advanced?Season=2024-25'
     }
@@ -108,6 +113,7 @@ def scrape_current_team_data(length):
 
             pandas_gbq.to_gbq(data,project_id= 'miscellaneous-projects-444203',destination_table= f'miscellaneous-projects-444203.capstone_data.{url}',if_exists='append',credentials=credentials,table_schema=[{"name":"game date","type":"DATE"},])
             #pandas_gbq.to_gbq(combined_dataframes,project_id= 'miscellaneous-projects-444203',destination_table= f'miscellaneous-projects-444203.capstone_data.NBA_Season_2024-2025_uncleaned',if_exists = 'append',credentials=credentials)
+        
         if (len(game_data)) > 0:
             utils.send_email(
             subject = str(f"TEAM RATINGS SCRAPING: COMPLTETED # OF GAMES {len(game_data)}"),
@@ -117,6 +123,7 @@ def scrape_current_team_data(length):
             utils.send_email(
             subject = "TEAM RATINGS SCRAPING: NO GAMES",
             body = str(f'No games as of {scrape_date.date()}'))
+    
     except Exception as e:
         error_traceback = traceback.format_exc()
         
@@ -146,7 +153,13 @@ def scrape_current_team_data(length):
 
 def scrape_past_team_data():
     
-    credentials = service_account.Credentials.from_service_account_file('/home/aportra99/scraping_key.json') #For Google VM
+    try:
+        credentials = service_account.Credentials.from_service_account_file('/home/aportra99/scraping_key.json')
+        local = False
+        print("Credentials file loaded.")
+    except:
+        local = True
+        print("Running with default credentials")
 
     urls = {'2021-2022_team_ratings':'https://www.nba.com/stats/teams/boxscores-advanced?Season=2021-22',
             '2022-2023_team_ratings':'https://www.nba.com/stats/teams/boxscores-advanced?Season=2022-23',
@@ -219,5 +232,3 @@ def scrape_past_team_data():
 
 
     driver.quit()
-
-scrape_past_team_data()

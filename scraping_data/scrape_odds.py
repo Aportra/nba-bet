@@ -2,13 +2,12 @@ from google.cloud import bigquery
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.by import By
-from selenium.common.exceptions import TimeoutException 
 from selenium import webdriver
-from bs4 import BeautifulSoup
 from google.oauth2 import service_account
 from datetime import datetime as date
 from selenium.webdriver.firefox.options import Options
 
+import time
 import traceback
 import pandas_gbq
 import utils
@@ -24,12 +23,18 @@ url = 'https://sportsbook.draftkings.com/nba-player-props?category=player-points
 
 scrape_date = date.today()
 
-credentials = service_account.Credentials.from_service_account_file('/home/aportra99/scraping_key.json')
+try:
+    credentials = service_account.Credentials.from_service_account_file('/home/aportra99/scraping_key.json')
+    default_creds = False
+    print("Credentials Loaded")
+except FileNotFoundError:
+    default_creds = True
+    print("No File to Load Using Default Credentials")
 
 driver.get(url)
 
 
-
+time.sleep(10)
 WebDriverWait(driver, 300).until(
     EC.presence_of_all_elements_located((By.XPATH, "//tbody[@class='sportsbook-table__body']/tr"))
 )
@@ -86,8 +91,10 @@ for row in rows:
 
 
 combined_data = pd.DataFrame(data)
-
-pandas_gbq.to_gbq(combined_data,project_id= 'miscellaneous-projects-444203',destination_table= f'miscellaneous-projects-444203.capstone_data.player_odds',if_exists = 'append',credentials=credentials)
+if not default_creds:
+    pandas_gbq.to_gbq(combined_data,project_id= 'miscellaneous-projects-444203',destination_table= f'miscellaneous-projects-444203.capstone_data.player_odds',if_exists = 'append',credentials=credentials)
+else:
+    pandas_gbq.to_gbq(combined_data,project_id= 'miscellaneous-projects-444203',destination_table= f'miscellaneous-projects-444203.capstone_data.player_odds',if_exists = 'append')
 
 utils.send_email(
 subject = str(f"ODDS SCRAPING: COMPLTETED # OF PLAYERS {len(data)}"),

@@ -25,7 +25,8 @@ def scrape_current_games():
     except FileNotFoundError:
         print("File not found continuing as if on local")
         local = True
-
+        credentials = False
+        
     driver = utils.establish_driver(local)
 
 
@@ -99,7 +100,7 @@ def scrape_current_games():
             #client = bigquery.Client('miscellaneous-projects-444203',credentials= credentials)
 
             
-            pandas_gbq.to_gbq(combined_dataframes,project_id= 'miscellaneous-projects-444203',destination_table= f'miscellaneous-projects-444203.capstone_data.NBA_Season_2024-2025_uncleaned',if_exists = 'append',credentials=credentials,table_schema= [{'name':'game_date','type':'DATE'},])
+            pandas_gbq.to_gbq(combined_dataframes,project_id= 'miscellaneous-projects-444203',destination_table= f'miscellaneous-projects-444203.capstone_data.test',if_exists = 'replace',credentials=credentials,table_schema= [{'name':'game_date','type':'DATE'},])
             
             #pandas_gbq.to_gbq(combined_dataframes,project_id= 'miscellaneous-projects-444203',destination_table= f'miscellaneous-projects-444203.capstone_data.test',if_exists = 'append',credentials=credentials)
             utils.send_email(
@@ -133,7 +134,7 @@ def scrape_current_games():
             subject="NBA SCRAPING: SCRIPT CRASHED",
             body=error_message
         )
-    
+
     return combined_dataframes,credentials,len(game_data)
     driver.quit()
 
@@ -145,13 +146,17 @@ def scrape_past_games():
             'NBA_Season_2024-2025_uncleaned':'https://www.nba.com/stats/teams/boxscores?Season=2024-25'
     }
 
-    driver = utils.establish_driver(local = True)
+
     
     try:
         credentials = service_account.Credentials.from_service_account_file('/home/aportra99/scraping_key.json')
+        local = False
         print("Credentials file loaded.")
     except:
+        local = True
         print("Running with default credentials")
+
+    driver = utils.establish_driver(local)
     for url in urls:
 
         driver.get(urls[url])
@@ -211,5 +216,7 @@ def scrape_past_games():
         combined_dataframes = utils.prepare_for_gbq(combined_dataframes)
         client = bigquery.Client('miscellaneous-projects-444203')
 
-
-        pandas_gbq.to_gbq(combined_dataframes,project_id= 'miscellaneous-projects-444203',destination_table= f'miscellaneous-projects-444203.capstone_data.{url}',if_exists='replace',table_schema= [{'name':'game_date','type':'DATE'},],credentials=credentials)
+        if local:
+            pandas_gbq.to_gbq(combined_dataframes,project_id= 'miscellaneous-projects-444203',destination_table= f'miscellaneous-projects-444203.capstone_data.{url}',if_exists='replace',table_schema= [{'name':'game_date','type':'DATE'},])
+        else:
+            pandas_gbq.to_gbq(combined_dataframes,project_id= 'miscellaneous-projects-444203',destination_table= f'miscellaneous-projects-444203.capstone_data.{url}',if_exists='replace',table_schema= [{'name':'game_date','type':'DATE'},],credentials=credentials)
