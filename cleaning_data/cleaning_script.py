@@ -116,7 +116,7 @@ def clean_past_player_data():
 
         data.dropna(inplace = True, ignore_index = True)
         
-        data['player'] = data['player'].replace('.','')
+        data['player'] = data['player'].str.replace('.', '', regex=False) 
 
         name = "^(?:(?:Fred VanFleet)|(?:DeMar DeRozan)|(TJ McConnell)|(?:[A-Z][a-zA-Z']*(?:-[A-Z][a-z]+)?(?:\s[A-Z][a-z]+(?:-[A-Z][a-z]+)*)?(?:-[A-Z][a-z]+)*))(?:\s(?:Jr\.|Sr\.|III|IV))?"
 
