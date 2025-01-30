@@ -117,7 +117,8 @@ def clean_past_player_data():
         data.dropna(inplace = True, ignore_index = True)
         
         data['player'] = data['player'].replace('.','')
-        name = "^(?:(?:DeMar DeRozan)|(?:[A-Z][a-zA-Z']*(?:-[A-Z][a-z]+)?(?:\s[A-Z][a-z]+(?:-[A-Z][a-z]+)*)?(?:-[A-Z][a-z]+)*))(?:\s(?:Jr\.|Sr\.|III|IV))?"
+        
+        name = "^(?:(?:Fred VanFleet)|(?:DeMar DeRozan)|(TJ McConnell)|(?:[A-Z][a-zA-Z']*(?:-[A-Z][a-z]+)?(?:\s[A-Z][a-z]+(?:-[A-Z][a-z]+)*)?(?:-[A-Z][a-z]+)*))(?:\s(?:Jr\.|Sr\.|III|IV))?"
 
         data['player'] = data['player'].apply(lambda x: re.search(name,x).group(0) if re.search(name,x) else None)
         data['min'] = data['min'].apply(convert_minutes_to_decimal)
