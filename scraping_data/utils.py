@@ -23,7 +23,7 @@ def establish_driver(local = False):
     if not local: 
         options = Options()
         options.binary_location = '/usr/bin/firefox'
-        options.add_argument("--headless")
+        # options.add_argument("--headless")
         geckodriver_path = '/usr/local/bin/geckodriver'
         service = Service(executable_path=geckodriver_path, log_path="geckodriver.log")
         driver = webdriver.Firefox(service = service,options = options)
@@ -31,7 +31,7 @@ def establish_driver(local = False):
         return driver
     else: 
         options = Options()
-        options.add_argument("--headless")
+        # options.add_argument("--headless")
         driver = webdriver.Firefox(options=options)
         driver.set_window_size(1920, 1080)
 
@@ -120,15 +120,21 @@ def process_page(page,game_id,game_date,home,away,driver):
             
             # Get the data rows
             data = []
-            
+
             for row in rows[1:-1]:  # Skip the header row
                 cols = row.find_all('td')
-                row_data = [col.get_text(strip=True) for col in cols]
+                name_element = row.find('td')
+                if name_element and name_element.find('span'):
+                    player_name = name_element.find('span').get_text(strip=True)
+                else:
+                    player_name = "Unknown"
+                row_data = [player_name] + [col.get_text(strip=True) for col in cols[1:]]
                 row_data.extend([t1,game_id,game_date,t2,page,last_updated])
                 data.append(row_data)
-            
+  
             # Create a DataFrame for this table
             if headers and data:
+                headers = ['player'] + headers[1:]
                 headers.extend(['team','game_id','game_date','matchup','url','last_updated'])
                 df = pd.DataFrame(data, columns=headers)
             else:

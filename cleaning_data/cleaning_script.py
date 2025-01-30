@@ -7,11 +7,20 @@ from scraping_data.utils import send_email
 import regex as re
 import pandas as pd
 import pandas_gbq
+import unicodedata
 
 def convert_minutes_to_decimal(min_played):
     min,sec = map(int,min_played.split(':'))
 
     return round(min + (sec/60),2)
+
+def normalize_text(text):
+    """Normalize text to remove accents (e.g., Pacôme → Pacome)."""
+    return ''.join(
+        c for c in unicodedata.normalize('NFD', text) if unicodedata.category(c) != 'Mn'
+    )
+
+
 
 def clean_current_player_data(data):
     try:
@@ -29,7 +38,7 @@ def clean_current_player_data(data):
 
         for column in data.columns:
             data.rename(columns = {column:column.lower()},inplace= True)
-
+        data['player'] = data['player'].apply(lambda name: normalize_text(name))
         data['player'] = data['player'].apply(lambda x: re.search(name,x).group(0) if re.search(name,x) else None)
         data['min'] = data['min'].apply(convert_minutes_to_decimal)
         
@@ -118,9 +127,9 @@ def clean_past_player_data():
         
         data['player'] = data['player'].str.replace('.', '', regex=False) 
 
-        name = "^(?:(?:Fred VanFleet)|(?:DeMar DeRozan)|(TJ McConnell)|(?:[A-Z][a-zA-Z']*(?:-[A-Z][a-z]+)?(?:\s[A-Z][a-z]+(?:-[A-Z][a-z]+)*)?(?:-[A-Z][a-z]+)*))(?:\s(?:Jr\.|Sr\.|III|IV))?"
-
-        data['player'] = data['player'].apply(lambda x: re.search(name,x).group(0) if re.search(name,x) else None)
+        # name = "^(?:(?:Fred VanFleet)|(?:DeMar DeRozan)|(TJ McConnell)|(?:[A-Z][a-zA-Z']*(?:-[A-Z][a-z]+)?(?:\s[A-Z][a-z]+(?:-[A-Z][a-z]+)*)?(?:-[A-Z][a-z]+)*))(?:\s(?:Jr\.|Sr\.|III|IV))?"
+        data['player'] = data['player'].apply(lambda name: normalize_text(name))
+        # data['player'] = data['player'].apply(lambda x: re.search(name,x).group(0) if re.search(name,x) else None)
         data['min'] = data['min'].apply(convert_minutes_to_decimal)
 
         features_for_rolling = [feature for feature in data.columns[1:21]]
