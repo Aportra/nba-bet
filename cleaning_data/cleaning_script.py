@@ -1,6 +1,7 @@
 #!/home/aportra99/venv/bin/activate
 from google.cloud import bigquery
 from datetime import datetime as date
+from google.oauth2 import service_account
 
 import regex as re
 import pandas as pd
@@ -11,12 +12,14 @@ def convert_minutes_to_decimal(min_played):
 
     return round(min + (sec/60),2)
 
-def clean_current_player_data(data,credentials, local = False):
-        if not local:
-             print('Credentials loaded')
-        else:
-             credentials = False
-             print('Using default credentials')
+def clean_current_player_data(data):
+    try:
+        credentials = service_account.Credentials.from_service_account_file('/home/aportra99/scraping_key.json')
+        local = False
+        print("Credentials file loaded.")
+    except:
+        local = True
+        print("Running with default credentials")
 
         data.dropna(inplace = True, ignore_index = True)
         
@@ -47,7 +50,10 @@ def clean_current_player_data(data,credentials, local = False):
         """
 
         print('pulling past data')
-        all_player_data = pd.DataFrame(pandas_gbq.read_gbq(query,project_id='miscellaneous-projects-444203'))
+        if local:
+            all_player_data = pd.DataFrame(pandas_gbq.read_gbq(query,project_id='miscellaneous-projects-444203'))
+        else:
+            all_player_data = pd.DataFrame(pandas_gbq.read_gbq(query,project_id='miscellaneous-projects-444203',credentials=credentials))
 
         print(all_player_data)
         data['game_date'] = pd.to_datetime(data['game_date']).dt.date
@@ -71,7 +77,7 @@ def clean_current_player_data(data,credentials, local = False):
         print('rolling features calculated')
         all_data = pd.concat(player_dfs,ignore_index = True)
 
-        if credentials:
+        if local:
             pandas_gbq.to_gbq(all_data,destination_table = f'capstone_data.NBA_Cleaned',project_id='miscellaneous-projects-444203',if_exists= 'append',credentials=credentials,table_schema=[{'name':'game_date','type':'DATE'},])
         else:
              pandas_gbq.to_gbq(all_data,destination_table = f'capstone_data.NBA_Cleaned',project_id='miscellaneous-projects-444203',if_exists= 'append',table_schema=[{'name':'game_date','type':'DATE'},])
@@ -93,7 +99,7 @@ def clean_past_player_data():
         ORDER BY game_date ASC
         """
 
-        data = pd.DataFrame(pandas_gbq.read_gbq(query, project_id = 'miscellaneous-projects-444203'))
+        data = pd.DataFrame(pandas_gbq.read_gbq(query, project_id = 'miscellaneous-projects-444203',credentials=credentials))
 
         data.dropna(inplace = True, ignore_index = True)
         
