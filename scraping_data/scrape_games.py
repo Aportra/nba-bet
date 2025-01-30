@@ -136,7 +136,7 @@ def scrape_current_games():
         )
 
     driver.quit()
-    return combined_dataframes,credentials,len(game_data)
+    return combined_dataframes,len(game_data)
 
 def scrape_past_games():
     
