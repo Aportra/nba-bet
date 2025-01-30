@@ -60,7 +60,7 @@ def scrape_team_schedule(nba_teams):
 
 
                 opponent_element = row.find_element(By.XPATH,"./td[2]/div/span[3]/a")
-                opponent_text = opponent_element.text[0]
+                opponent_text = opponent_element.text
 
                 data.append({
                     'team':team,
@@ -69,11 +69,11 @@ def scrape_team_schedule(nba_teams):
                     'scrape_date':scrape_date,
                     'game_played':game_played
                 })
-        pbar.update(1)
-        all_data.extend(data)
+            pbar.update(1)
+            all_data.extend(data)
     combined_data = pd.DataFrame(all_data)
     combined_data['date'] = combined_data['date'].astype(str)
-
+    
     all_nba_teams = {
     "Atlanta": "ATL",
     "Boston": "BOS",
@@ -106,12 +106,13 @@ def scrape_team_schedule(nba_teams):
     "Utah": "UTA",
     "Washington": "WAS"
     }
-    print(combined_data['opponent'].dtype)
-    combined_data['opponent'] = combined_data['opponent'].astype(str)
-    current = [team for team in all_nba_teams.keys()]
-    update = [team for team in all_nba_teams.values()]
-    combined_data['opponent'] = combined_data['opponent'].replace(current,update)
-    combined_data['team'] = combined_data['team'].replace({'NO':'NOP','UTAH':'UTA'})
+
+    # combined_data['opponent'] = combined_data['opponent'].astype(str).str.strip().str.title()
+    # all_nba_teams_fixed = {team: abbr[0] for team, abbr in all_nba_teams.items()}
+
+    combined_data['opponent'] = combined_data['opponent'].replace(all_nba_teams)
+
+    combined_data['team'] = combined_data['team'].replace({'NO':'NOP','UTAH':'UTA','WSH':'WAS'})
 
     pandas_gbq.to_gbq(combined_data,project_id= 'miscellaneous-projects-444203',destination_table= f'miscellaneous-projects-444203.capstone_data.schedule',if_exists = 'replace',table_schema= [{'name':'date','type':'DATE'},])
 

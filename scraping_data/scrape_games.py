@@ -11,11 +11,13 @@ from google.cloud import bigquery
 from google.oauth2 import service_account
 from tqdm import tqdm
 
+
 import regex as re
 import pandas_gbq
 import traceback
 import pandas as pd
 import scraping_data.utils as utils
+import time
 
 def scrape_current_games():
 
@@ -162,7 +164,7 @@ def scrape_past_games():
         driver.get(urls[url])
         utils.select_all_option(driver)
         source = driver.page_source
-
+        time.sleep(5)
         #For each row collect game_date,game_id, and matchup
         rows = driver.find_elements(By.XPATH, "//tbody[@class='Crom_body__UYOcU']/tr")
 
@@ -170,45 +172,47 @@ def scrape_past_games():
     
         data = []
         failed_pages = []
-   
-        with tqdm(total=len(game_data), desc="Processing Games", ncols=80) as pbar:
-            for game_id,date,home,away in game_data:
-                page = f'{game_id}/box-score'
-                result = utils.process_page(page,game_id,date,home,away,driver)
-                if isinstance(result, pd.DataFrame):
-                    data.append(result)
-                else:
-                    failed_pages.append(result)
-                    print(f'Failed Pages length: {len(failed_pages)}')
-                pbar.update(1)
 
-        #Tracking number of retries per failed page
-        retries = {}
+        pages_info = [(f"{game_id}/box-score", game_id, date, home, away) for game_id, date, home, away in game_data]
+        combined_data = utils.process_all_pages(pages_info,driver)
+        # with tqdm(total=len(game_data), desc="Processing Games", ncols=80) as pbar:
+        #     for game_id,date,home,away in game_data:
+        #         page = f'{game_id}/box-score'
+        #         result = utils.process_page(page,game_id,date,home,away,driver)
+        #         if isinstance(result, pd.DataFrame):
+        #             data.append(result)
+        #         else:
+        #             failed_pages.append(result)
+        #             print(f'Failed Pages length: {len(failed_pages)}')
+        #         pbar.update(1)
 
-        #Rerunning failed pages
-        while failed_pages:
-            game_id,date,home,away = failed_pages.pop(0)
+        # #Tracking number of retries per failed page
+        # retries = {}
 
-            key = (game_id,date,home,away)
+        # #Rerunning failed pages
+        # while failed_pages:
+        #     game_id,date,home,away = failed_pages.pop(0)
 
-            if key in retries:
-                retries[key] += 1
-                print(f'Retry Count:{retries[key]}')
-            else:
-                retries[key] = 1
-                print(f'Retry Count:{retries[key]}')
+        #     key = (game_id,date,home,away)
 
-            print(f'processing # {game_id} from failed pages')
-            page = f'{game_id}/box-score'
-            result = utils.process_page(page,game_id,date,home,away,driver)
+        #     if key in retries:
+        #         retries[key] += 1
+        #         print(f'Retry Count:{retries[key]}')
+        #     else:
+        #         retries[key] = 1
+        #         print(f'Retry Count:{retries[key]}')
 
-            if isinstance(result,pd.DataFrame):
-                data.append(result)
-                print(f'processed # {game_id} from failed pages')
-            #Catch for if they fail again
-            else:
-                failed_pages.append((game_id,date,home,away))
-                print(f'failed # {game_id} from failed pages, readded to be processed')
+        #     print(f'processing # {game_id} from failed pages')
+        #     page = f'{game_id}/box-score'
+        #     result = utils.process_page(page,game_id,date,home,away,driver)
+
+        #     if isinstance(result,pd.DataFrame):
+        #         data.append(result)
+        #         print(f'processed # {game_id} from failed pages')
+        #     #Catch for if they fail again
+        #     else:
+        #         failed_pages.append((game_id,date,home,away))
+        #         print(f'failed # {game_id} from failed pages, readded to be processed')
 
         #Combine dataframes to upload to GBQ
         combined_dataframes = pd.concat(data,ignore_index= True)

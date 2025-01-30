@@ -12,6 +12,7 @@ from email.mime.multipart import MIMEMultipart
 from dotenv import load_dotenv
 from selenium.webdriver import Remote
 from tqdm import tqdm
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 import os
 import smtplib
@@ -23,7 +24,7 @@ def establish_driver(local = False):
     if not local: 
         options = Options()
         options.binary_location = '/usr/bin/firefox'
-        # options.add_argument("--headless")
+        options.add_argument("--headless")
         geckodriver_path = '/usr/local/bin/geckodriver'
         service = Service(executable_path=geckodriver_path, log_path="geckodriver.log")
         driver = webdriver.Firefox(service = service,options = options)
@@ -31,7 +32,7 @@ def establish_driver(local = False):
         return driver
     else: 
         options = Options()
-        # options.add_argument("--headless")
+        options.add_argument("--headless") 
         driver = webdriver.Firefox(options=options)
         driver.set_window_size(1920, 1080)
 
@@ -96,7 +97,11 @@ def process_page(page,game_id,game_date,home,away,driver):
     driver.get(page)
     
     driver.set_page_load_timeout(120)
-    driver.implicitly_wait(10)
+    driver.implicitly_wait(5)
+
+    WebDriverWait(driver, 10).until(
+    EC.presence_of_element_located((By.CLASS_NAME, 'StatsTable_st__g2iuW'))
+    )
 
     ps = driver.page_source
     soup = BeautifulSoup(ps, 'html5lib')
@@ -124,8 +129,10 @@ def process_page(page,game_id,game_date,home,away,driver):
             for row in rows[1:-1]:  # Skip the header row
                 cols = row.find_all('td')
                 name_element = row.find('td')
-                if name_element and name_element.find('span'):
-                    player_name = name_element.find('span').get_text(strip=True)
+                if name_element and name_element.find('span', class_="GameBoxscoreTablePlayer_gbpNameFull__cf_sn"):
+                    name_span = name_element.find('span', class_="GameBoxscoreTablePlayer_gbpNameFull__cf_sn")
+                    player_name = name_span.get_text(strip=True)
+                    player_name = player_name.replace('.','')
                 else:
                     player_name = "Unknown"
                 row_data = [player_name] + [col.get_text(strip=True) for col in cols[1:]]
@@ -217,6 +224,31 @@ def convert_date(date_str):
     except ValueError as e:
         print(f"Skipping invalid date: {date_str} - {e}")
         return None
+
+def process_all_pages(pages_info, driver):
+    """
+    Processes multiple pages concurrently using ThreadPoolExecutor with tqdm progress tracking.
+    :param pages_info: List of tuples (page_url, game_id, game_date, home, away)
+    :param driver: Selenium WebDriver instance
+    """
+    all_dataframes = []
+    total_pages = len(pages_info)
+
+    max_threads = min(5,os.cpu_count())
+
+    with ThreadPoolExecutor(max_workers=max_threads) as executor:
+        future_to_page = {executor.submit(process_page, *args, driver): args for args in pages_info}
+
+        with tqdm(total=total_pages, desc="Processing Pages", ncols=80) as pbar:
+            for future in as_completed(future_to_page):
+                result = future.result()
+                if isinstance(result, pd.DataFrame):
+                    all_dataframes.append(result)
+                pbar.update(1)  # Progress bar update per completed page
+
+    return pd.concat(all_dataframes, ignore_index=True) if all_dataframes else None
+
+
 
 
 #Makes it so we are not connecting to driver on import
