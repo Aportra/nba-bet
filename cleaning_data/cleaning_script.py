@@ -117,7 +117,7 @@ def clean_past_player_data():
         data.dropna(inplace = True, ignore_index = True)
         
         data['player'] = data['player'].replace('.','')
-        
+
         name = "^(?:(?:Fred VanFleet)|(?:DeMar DeRozan)|(TJ McConnell)|(?:[A-Z][a-zA-Z']*(?:-[A-Z][a-z]+)?(?:\s[A-Z][a-z]+(?:-[A-Z][a-z]+)*)?(?:-[A-Z][a-z]+)*))(?:\s(?:Jr\.|Sr\.|III|IV))?"
 
         data['player'] = data['player'].apply(lambda x: re.search(name,x).group(0) if re.search(name,x) else None)
@@ -139,5 +139,4 @@ def clean_past_player_data():
     else:
         pandas_gbq.to_gbq(nba_data_cleaned,destination_table = f'capstone_data.NBA_Cleaned',project_id='miscellaneous-projects-444203',if_exists='replace',credentials=credentials)
 
-clean_past_player_data()
-# clean_team_data
+
