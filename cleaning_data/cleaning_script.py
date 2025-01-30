@@ -19,8 +19,9 @@ def clean_current_player_data(data,credentials, local = False):
              print('Using default credentials')
 
         data.dropna(inplace = True, ignore_index = True)
-
-        name = '^([A-Z][a-z]*[a-zA-Z]*(?:-[A-Z][a-z]+)?(?:\s[A-Z][a-z]+(?:-[A-Z][a-z]+)*)?(?:\s(?:Jr\.|Sr\.|III|IV))?)'
+        
+        data['player'] = data['player'].str.replace('.', '', regex=False) 
+        name = "^(?:(?:Fred VanFleet)|(?:DeMar DeRozan)|(TJ McConnell)|(?:[A-Z][a-zA-Z']*(?:-[A-Z][a-z]+)?(?:\s[A-Z][a-z]+(?:-[A-Z][a-z]+)*)?(?:-[A-Z][a-z]+)*))(?:\s(?:Jr\.|Sr\.|III|IV))?"
 
         for column in data.columns:
             data.rename(columns = {column:column.lower()},inplace= True)
@@ -28,48 +29,52 @@ def clean_current_player_data(data,credentials, local = False):
         data['player'] = data['player'].apply(lambda x: re.search(name,x).group(0) if re.search(name,x) else None)
         data['min'] = data['min'].apply(convert_minutes_to_decimal)
         
-
+        features_for_rolling = [feature for feature in data.columns[1:21]] 
 
         players = data['player'].unique()
-
-
+        print(players)
         query = f"""
-        select *
-        from `capstone_data.NBA_Cleaned`
-        where player in ({','.join([f"'{player}'" for player in players])})
-        limit {3 * len(players)}
+        WITH RankedGames AS (
+            SELECT *,
+                ROW_NUMBER() OVER (PARTITION BY player ORDER BY game_date DESC) AS game_rank
+            FROM `capstone_data.NBA_Cleaned`
+            WHERE player IN ({','.join([f'"{player}"' for player in players])})
+        )
+        SELECT *
+        FROM RankedGames
+        WHERE game_rank <= 3
+        ORDER BY player, game_date DESC;
         """
+
         print('pulling past data')
         all_player_data = pd.DataFrame(pandas_gbq.read_gbq(query,project_id='miscellaneous-projects-444203'))
 
-        all_player_data = pd.concat([all_player_data,data], ignore_index = True)
-
-        features_for_rolling = [feature for feature in data.columns[1:21]] 
+        print(all_player_data)
+        data['game_date'] = pd.to_datetime(data['game_date']).dt.date
+        all_player_data['game_date'] = pd.to_datetime(all_player_data['game_date']).dt.date
 
         player_dfs = []
 
         for player in players:
-            player_data = all_player_data[all_player_data['player'] == f'{player}'].sort_values(by='game_date',ascending = True)
+            player_data = data[data['player'] == f'{player}'].copy()
+            data_for_rolling = all_player_data[all_player_data['player'] == player].sort_values(by='game_date')
 
             for feature in features_for_rolling:
-                player_data[f'rolling_avg_{feature}'] = player_data[player_data['player'] == f'{player}'][f'{feature}'].rolling(window = 3).mean().shift(1).reset_index(0,drop = True)
                 
-            new_player_data = player_data[player_data['game_date'].isin(data['game_date'])]
-            print(len(new_player_data))
-            player_dfs.append(new_player_data)
+                rolling_avg = data_for_rolling[data_for_rolling['player'] == player][f'{feature}'].rolling(window = 3).mean().reset_index(0,drop = True)
+                player_data[f'{feature}_3gm_avg']  = round(rolling_avg.iloc[-1],2)
+    
+            
+            
+            player_dfs.append(player_data)
             
         print('rolling features calculated')
         all_data = pd.concat(player_dfs,ignore_index = True)
 
-        print(all_data)
-
-
-        all_data.dropna(inplace = True, ignore_index = True)
-    
         if credentials:
-            pandas_gbq.to_gbq(all_data,destination_table = f'capstone_data.test',project_id='miscellaneous-projects-444203',if_exists= 'replace',credentials=credentials)
+            pandas_gbq.to_gbq(all_data,destination_table = f'capstone_data.NBA_Cleaned',project_id='miscellaneous-projects-444203',if_exists= 'append',credentials=credentials,table_schema=[{'name':'game_date','type':'DATE'},])
         else:
-             pandas_gbq.to_gbq(all_data,destination_table = f'capstone_data.test',project_id='miscellaneous-projects-444203',if_exists= 'replace')
+             pandas_gbq.to_gbq(all_data,destination_table = f'capstone_data.NBA_Cleaned',project_id='miscellaneous-projects-444203',if_exists= 'append',table_schema=[{'name':'game_date','type':'DATE'},])
 
 
 
@@ -83,10 +88,11 @@ def clean_past_player_data():
 
     for table in tables:
         query = f"""
-            select * 
-            from `capstone_data.{table}`
-            order by game_date asc
+        SELECT *
+        FROM `capstone_data.{table}`
+        ORDER BY game_date ASC
         """
+
         data = pd.DataFrame(pandas_gbq.read_gbq(query, project_id = 'miscellaneous-projects-444203'))
 
         data.dropna(inplace = True, ignore_index = True)
@@ -94,14 +100,14 @@ def clean_past_player_data():
         data['player'] = data['player'].replace('.','')
         name = "^(?:(?:DeMar DeRozan)|(?:[A-Z][a-zA-Z']*(?:-[A-Z][a-z]+)?(?:\s[A-Z][a-z]+(?:-[A-Z][a-z]+)*)?(?:-[A-Z][a-z]+)*))(?:\s(?:Jr\.|Sr\.|III|IV))?"
 
-        data['cleaned_player'] = data['player'].apply(lambda x: re.search(name,x).group(0) if re.search(name,x) else None)
+        data['player'] = data['player'].apply(lambda x: re.search(name,x).group(0) if re.search(name,x) else None)
         data['min'] = data['min'].apply(convert_minutes_to_decimal)
 
         features_for_rolling = [feature for feature in data.columns[1:21]]
         
         for feature in features_for_rolling:
-            data[f'rolling_avg_{feature}'] = data.groupby(['player'])[f'{feature}'].rolling(window = 3).mean().shift(1).reset_index(0,drop = True,)
-            data[f'rolling_avg_{feature}'] = round(data[f'rolling_avg_{feature}'],2)
+            data[f'{feature}_3gm_avg'] = data.groupby(['player'])[f'{feature}'].rolling(window = 3).mean().shift(1).reset_index(0,drop = True,)
+            data[f'{feature}_3gm_avg'] = round(data[f'{feature}_3gm_avg'],2)
         data.dropna(inplace=True, ignore_index=True)
 
         all_data.append(data)
@@ -110,7 +116,6 @@ def clean_past_player_data():
     
     pandas_gbq.to_gbq(nba_data_cleaned,destination_table = f'capstone_data.NBA_Cleaned',project_id='miscellaneous-projects-444203',if_exists='replace')
 
-clean_past_player_data()
 
 
 # clean_team_data

@@ -100,9 +100,9 @@ def scrape_current_games():
             #client = bigquery.Client('miscellaneous-projects-444203',credentials= credentials)
 
             
-            pandas_gbq.to_gbq(combined_dataframes,project_id= 'miscellaneous-projects-444203',destination_table= f'miscellaneous-projects-444203.capstone_data.NBA_Season_2024-2025_uncleaned',if_exists = 'replace',credentials=credentials,table_schema= [{'name':'game_date','type':'DATE'},])
+            # pandas_gbq.to_gbq(combined_dataframes,project_id= 'miscellaneous-projects-444203',destination_table= f'miscellaneous-projects-444203.capstone_data.NBA_Season_2024-2025_uncleaned',if_exists = 'append',credentials=credentials,table_schema= [{'name':'game_date','type':'DATE'},])
             
-            #pandas_gbq.to_gbq(combined_dataframes,project_id= 'miscellaneous-projects-444203',destination_table= f'miscellaneous-projects-444203.capstone_data.test',if_exists = 'append',credentials=credentials)
+            pandas_gbq.to_gbq(combined_dataframes,project_id= 'miscellaneous-projects-444203',destination_table= f'miscellaneous-projects-444203.capstone_data.test',if_exists = 'replace',credentials=credentials,table_schema= [{'name':'game_date','type':'DATE'},])
             utils.send_email(
             subject = str(f"Test NBA SCRAPING: COMPLTETED # OF GAMES {len(game_data)}"),
             body = str(f'{len(game_data)} games scraped as of {scrape_date.date()}')
@@ -135,8 +135,8 @@ def scrape_current_games():
             body=error_message
         )
 
-    return combined_dataframes,credentials,len(game_data)
     driver.quit()
+    return combined_dataframes,credentials,len(game_data)
 
 def scrape_past_games():
     

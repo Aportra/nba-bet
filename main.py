@@ -10,6 +10,6 @@ print("Cleaning Data")
 
 clean_current_player_data(data,credentials,local = True)
 
-# print("Starting scraping of team data")
+print("Starting scraping of team data")
 
-# scrape_current_team_data(length) 
+scrape_current_team_data(length) 
