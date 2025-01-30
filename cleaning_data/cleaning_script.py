@@ -87,7 +87,13 @@ def clean_current_player_data(data):
 
 
 def clean_past_player_data():
-
+    try:
+        credentials = service_account.Credentials.from_service_account_file('/home/aportra99/scraping_key.json')
+        local = False
+        print("Credentials file loaded.")
+    except:
+        local = True
+        print("Running with default credentials")
     tables = ['NBA_Season_2021-2022_uncleaned','NBA_Season_2022-2023_uncleaned','NBA_Season_2023-2024_uncleaned','NBA_Season_2024-2025_uncleaned']
 
     all_data = []
@@ -98,8 +104,10 @@ def clean_past_player_data():
         FROM `capstone_data.{table}`
         ORDER BY game_date ASC
         """
-
-        data = pd.DataFrame(pandas_gbq.read_gbq(query, project_id = 'miscellaneous-projects-444203',credentials=credentials))
+        if local:
+            data = pd.DataFrame(pandas_gbq.read_gbq(query, project_id = 'miscellaneous-projects-444203'))
+        if not local:
+            data = pd.DataFrame(pandas_gbq.read_gbq(query, project_id = 'miscellaneous-projects-444203',credentials=credentials))
 
         data.dropna(inplace = True, ignore_index = True)
         
@@ -120,8 +128,9 @@ def clean_past_player_data():
 
     nba_data_cleaned = pd.concat(all_data,ignore_index = True)
     
-    pandas_gbq.to_gbq(nba_data_cleaned,destination_table = f'capstone_data.NBA_Cleaned',project_id='miscellaneous-projects-444203',if_exists='replace')
-
-
+    if local:
+        pandas_gbq.to_gbq(nba_data_cleaned,destination_table = f'capstone_data.NBA_Cleaned',project_id='miscellaneous-projects-444203',if_exists='replace')
+    else:
+        pandas_gbq.to_gbq(nba_data_cleaned,destination_table = f'capstone_data.NBA_Cleaned',project_id='miscellaneous-projects-444203',if_exists='replace',credentials=credentials)
 
 # clean_team_data
