@@ -2,6 +2,7 @@
 from google.cloud import bigquery
 from datetime import datetime as date
 from google.oauth2 import service_account
+from scraping_data.utils import send_email
 
 import regex as re
 import pandas as pd
@@ -81,6 +82,10 @@ def clean_current_player_data(data):
             pandas_gbq.to_gbq(all_data,destination_table = f'capstone_data.NBA_Cleaned',project_id='miscellaneous-projects-444203',if_exists= 'append',credentials=credentials,table_schema=[{'name':'game_date','type':'DATE'},])
         else:
              pandas_gbq.to_gbq(all_data,destination_table = f'capstone_data.NBA_Cleaned',project_id='miscellaneous-projects-444203',if_exists= 'append',table_schema=[{'name':'game_date','type':'DATE'},])
+    send_email(
+        subject="NBA DATA CLEANED",
+        body="Data uploaded to NBA_Cleaned"
+        )
 
 
 
@@ -133,4 +138,5 @@ def clean_past_player_data():
     else:
         pandas_gbq.to_gbq(nba_data_cleaned,destination_table = f'capstone_data.NBA_Cleaned',project_id='miscellaneous-projects-444203',if_exists='replace',credentials=credentials)
 
+clean_past_player_data()
 # clean_team_data
