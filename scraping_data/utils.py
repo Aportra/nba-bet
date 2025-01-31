@@ -32,7 +32,7 @@ def establish_driver(local = False):
         return driver
     else: 
         options = Options()
-        options.add_argument("--headless") 
+        options.add_argument("--headless")
         driver = webdriver.Firefox(options=options)
         driver.set_window_size(1920, 1080)
 
@@ -41,9 +41,10 @@ def establish_driver(local = False):
 #Select all option only works when at least half screen due to blockage of the all option when not in headerless option
 
 def select_all_option(driver):
+    time.sleep(5)
     try:
         # Click the dropdown
-
+        
         dropdown = WebDriverWait(driver,10).until(
             EC.element_to_be_clickable((By.XPATH, "/html/body/div[1]/div[2]/div[2]/div[3]/section[2]/div/div[2]/div[2]/div[1]/div[3]/div/label"))
         )
@@ -92,12 +93,13 @@ def gather_data(rows,current = True,scrape_date = date.today() - timedelta(1)):
 
 
 
-def process_page(page,game_id,game_date,home,away,driver):
+def process_page(page,game_id,game_date,home,away):
     
+    driver = establish_driver(local = True)
+
     driver.get(page)
     
     driver.set_page_load_timeout(120)
-    driver.implicitly_wait(5)
 
     WebDriverWait(driver, 10).until(
     EC.presence_of_element_located((By.CLASS_NAME, 'StatsTable_st__g2iuW'))
@@ -145,16 +147,22 @@ def process_page(page,game_id,game_date,home,away,driver):
                 headers.extend(['team','game_id','game_date','matchup','url','last_updated'])
                 df = pd.DataFrame(data, columns=headers)
             else:
-                df = pd.DataFrame(data)  # Use generic column names if no headers
+                print(f'Could not process: {page}')
+                driver.quit()
+                return page,game_id,game_date,home,away
             
             df_data.append(df)
         
         df = pd.concat(df_data,ignore_index=True)
             # Append the DataFrame to the appropriate team entries in the dictionary
+        driver.quit()
         return df
     else:
         print(f'Could not process: {page}')
-        return game_id,game_date,home,away
+        driver.quit()
+        return page,game_id,game_date,home,away
+
+
 
 def prepare_for_gbq(combined_dataframes):
     valid_time_pattern = r"^\d{1,2}:\d{1,2}$" 
@@ -214,7 +222,7 @@ def convert_date(date_str):
         date_obj = date.strptime(date_str, "%a, %b %d")
 
         # Determine the correct year
-        assumed_year = 2024 if date_obj.month >= 10 else 2025  # Everything before Jan 1, 2025, is 2024
+        assumed_year = 2024 if date_obj.month >= 10 else 2025  # ESeason starts in october meaning everything greater than 10 is 2024
 
         # Assign the determined year
         date_obj = date_obj.replace(year=assumed_year)
@@ -225,26 +233,46 @@ def convert_date(date_str):
         print(f"Skipping invalid date: {date_str} - {e}")
         return None
 
-def process_all_pages(pages_info, driver):
+def process_all_pages(pages_info,max_threads):
     """
     Processes multiple pages concurrently using ThreadPoolExecutor with tqdm progress tracking.
     :param pages_info: List of tuples (page_url, game_id, game_date, home, away)
-    :param driver: Selenium WebDriver instance
     """
     all_dataframes = []
-    total_pages = len(pages_info)
+    retries = {}  # Dictionary to track retries per page
+    remaining_pages = list(pages_info)  # Start with the full list of pages
 
-    max_threads = min(5,os.cpu_count())
+    while remaining_pages:
+        total_pages = len(remaining_pages)
+        failed_pages = []  # Reset failed pages for this iteration
 
-    with ThreadPoolExecutor(max_workers=max_threads) as executor:
-        future_to_page = {executor.submit(process_page, *args, driver): args for args in pages_info}
+        with ThreadPoolExecutor(max_workers=max_threads) as executor:
+            future_to_page = {executor.submit(process_page, *args): args for args in remaining_pages}
 
-        with tqdm(total=total_pages, desc="Processing Pages", ncols=80) as pbar:
-            for future in as_completed(future_to_page):
-                result = future.result()
-                if isinstance(result, pd.DataFrame):
-                    all_dataframes.append(result)
-                pbar.update(1)  # Progress bar update per completed page
+            with tqdm(total=total_pages, desc="Processing Pages", ncols=80) as pbar:
+                for future in as_completed(future_to_page):
+                    args = future_to_page[future]  # Get page details
+
+                    try:
+                        result = future.result()  # Attempt processing
+                        if isinstance(result, pd.DataFrame):
+                            all_dataframes.append(result)  # Successful page
+                        else:
+                            raise Exception("Processing failed")  # Handle failure
+                    except Exception:
+                        game_id, game_date, home, away = args[1:5]  # Extract identifiers
+                        key = (game_id, game_date, home, away)
+
+                        # Track retries
+                        if key in retries:
+                            retries[key] += 1
+                        else:
+                            retries[key] = 1
+                        failed_pages.append(args)
+
+                    pbar.update(1)  # Update progress bar
+
+        remaining_pages = failed_pages  # Reattempt only failed pages
 
     return pd.concat(all_dataframes, ignore_index=True) if all_dataframes else None
 

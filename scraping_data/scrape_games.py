@@ -140,7 +140,7 @@ def scrape_current_games():
     driver.quit()
     return combined_dataframes,len(game_data)
 
-def scrape_past_games():
+def scrape_past_games(multi_threading = True):
     
     urls = {'NBA_Season_2021-2022_uncleaned':'https://www.nba.com/stats/teams/boxscores?Season=2021-22',
             'NBA_Season_2022-2023_uncleaned':'https://www.nba.com/stats/teams/boxscores?Season=2022-23',
@@ -158,7 +158,7 @@ def scrape_past_games():
         local = True
         print("Running with default credentials")
 
-    driver = utils.establish_driver(local)
+    driver = utils.establish_driver(local = True)
     for url in urls:
 
         driver.get(urls[url])
@@ -169,58 +169,64 @@ def scrape_past_games():
         rows = driver.find_elements(By.XPATH, "//tbody[@class='Crom_body__UYOcU']/tr")
 
         game_data = utils.gather_data(rows,current= False)
-    
-        data = []
-        failed_pages = []
+        driver.quit()
 
-        pages_info = [(f"{game_id}/box-score", game_id, date, home, away) for game_id, date, home, away in game_data]
-        combined_data = utils.process_all_pages(pages_info,driver)
-        # with tqdm(total=len(game_data), desc="Processing Games", ncols=80) as pbar:
-        #     for game_id,date,home,away in game_data:
-        #         page = f'{game_id}/box-score'
-        #         result = utils.process_page(page,game_id,date,home,away,driver)
-        #         if isinstance(result, pd.DataFrame):
-        #             data.append(result)
-        #         else:
-        #             failed_pages.append(result)
-        #             print(f'Failed Pages length: {len(failed_pages)}')
-        #         pbar.update(1)
 
-        # #Tracking number of retries per failed page
-        # retries = {}
+        #scraping using multi_threading
+        if multi_threading:
+            pages_info = [(f"{game_id}/box-score", game_id, date, home, away) for game_id, date, home, away in game_data]
+            combined_data = utils.process_all_pages(pages_info,max_threads = 32)
+        
+        #If not using multi_threading
+        else:
+            data = []
+            failed_pages = []
+            with tqdm(total=len(game_data), desc="Processing Games", ncols=80) as pbar:
+                for game_id,date,home,away in game_data:
+                    page = f'{game_id}/box-score'
+                    result = utils.process_page(page,game_id,date,home,away,driver)
+                    if isinstance(result, pd.DataFrame):
+                        data.append(result)
+                    else:
+                        failed_pages.append(result)
+                        print(f'Failed Pages length: {len(failed_pages)}')
+                    pbar.update(1)
 
-        # #Rerunning failed pages
-        # while failed_pages:
-        #     game_id,date,home,away = failed_pages.pop(0)
+            #Tracking number of retries per failed page
+            retries = {}
 
-        #     key = (game_id,date,home,away)
+            #Rerunning failed pages
+            while failed_pages:
+                game_id,date,home,away = failed_pages.pop(0)
 
-        #     if key in retries:
-        #         retries[key] += 1
-        #         print(f'Retry Count:{retries[key]}')
-        #     else:
-        #         retries[key] = 1
-        #         print(f'Retry Count:{retries[key]}')
+                key = (game_id,date,home,away)
 
-        #     print(f'processing # {game_id} from failed pages')
-        #     page = f'{game_id}/box-score'
-        #     result = utils.process_page(page,game_id,date,home,away,driver)
+                if key in retries:
+                    retries[key] += 1
+                    print(f'Retry Count:{retries[key]}')
+                else:
+                    retries[key] = 1
+                    print(f'Retry Count:{retries[key]}')
 
-        #     if isinstance(result,pd.DataFrame):
-        #         data.append(result)
-        #         print(f'processed # {game_id} from failed pages')
-        #     #Catch for if they fail again
-        #     else:
-        #         failed_pages.append((game_id,date,home,away))
-        #         print(f'failed # {game_id} from failed pages, readded to be processed')
+                print(f'processing # {game_id} from failed pages')
+                page = f'{game_id}/box-score'
+                result = utils.process_page(page,game_id,date,home,away,driver)
 
-        #Combine dataframes to upload to GBQ
-        combined_dataframes = pd.concat(data,ignore_index= True)
+                if isinstance(result,pd.DataFrame):
+                    data.append(result)
+                    print(f'processed # {game_id} from failed pages')
+                #Catch for if they fail again
+                else:
+                    failed_pages.append((page,game_id,date,home,away))
+                    print(f'failed # {game_id} from failed pages, readded to be processed')
 
-        combined_dataframes = utils.prepare_for_gbq(combined_dataframes)
-        client = bigquery.Client('miscellaneous-projects-444203')
+            # Combine dataframes to upload to GBQ
+            combined_data = pd.concat(data,ignore_index= True)
+
+        combined_data = utils.prepare_for_gbq(combined_data)
+        # client = bigquery.Client('miscellaneous-projects-444203')
 
         if local:
-            pandas_gbq.to_gbq(combined_dataframes,project_id= 'miscellaneous-projects-444203',destination_table= f'miscellaneous-projects-444203.capstone_data.{url}',if_exists='replace',table_schema= [{'name':'game_date','type':'DATE'},])
+            pandas_gbq.to_gbq(combined_data,project_id= 'miscellaneous-projects-444203',destination_table= f'miscellaneous-projects-444203.capstone_data.{url}',if_exists='replace',table_schema= [{'name':'game_date','type':'DATE'},])
         else:
-            pandas_gbq.to_gbq(combined_dataframes,project_id= 'miscellaneous-projects-444203',destination_table= f'miscellaneous-projects-444203.capstone_data.{url}',if_exists='replace',table_schema= [{'name':'game_date','type':'DATE'},],credentials=credentials)
+            pandas_gbq.to_gbq(combined_data,project_id= 'miscellaneous-projects-444203',destination_table= f'miscellaneous-projects-444203.capstone_data.{url}',if_exists='replace',table_schema= [{'name':'game_date','type':'DATE'},],credentials=credentials)
