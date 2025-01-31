@@ -158,9 +158,9 @@ def scrape_past_games(multi_threading = True):
         local = True
         print("Running with default credentials")
 
-    driver = utils.establish_driver(local = True)
-    for url in urls:
 
+    for url in urls:
+        driver = utils.establish_driver(local = True)
         driver.get(urls[url])
         utils.select_all_option(driver)
         source = driver.page_source
