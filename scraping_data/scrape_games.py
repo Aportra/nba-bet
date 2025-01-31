@@ -140,9 +140,9 @@ def scrape_current_games():
     driver.quit()
     return combined_dataframes,len(game_data)
 
-def scrape_past_games(multi_threading = True):
+def scrape_past_games(multi_threading = True, max_workers = 0):
     
-    urls = {'NBA_Season_2021-2022_uncleaned':'https://www.nba.com/stats/teams/boxscores?Season=2021-22',
+    urls = {#'NBA_Season_2021-2022_uncleaned':'https://www.nba.com/stats/teams/boxscores?Season=2021-22',
             'NBA_Season_2022-2023_uncleaned':'https://www.nba.com/stats/teams/boxscores?Season=2022-23',
             'NBA_Season_2023-2024_uncleaned':'https://www.nba.com/stats/teams/boxscores?Season=2023-24',
             'NBA_Season_2024-2025_uncleaned':'https://www.nba.com/stats/teams/boxscores?Season=2024-25'
@@ -151,12 +151,12 @@ def scrape_past_games(multi_threading = True):
 
     
     try:
-        credentials = service_account.Credentials.from_service_account_file('/home/aportra99/scraping_key.json')
+        credentials = service_account.Credentials.from_service_account_file('/home/aportra99/scraping_key.json') #Credentials to load into GBQ
         local = False
         print("Credentials file loaded.")
     except:
         local = True
-        print("Running with default credentials")
+        print("Running with default credentials") #Using machines default credentials
 
 
     for url in urls:
@@ -174,8 +174,9 @@ def scrape_past_games(multi_threading = True):
 
         #scraping using multi_threading
         if multi_threading:
+            print(f'Using {max_workers}')
             pages_info = [(f"{game_id}/box-score", game_id, date, home, away) for game_id, date, home, away in game_data]
-            combined_data = utils.process_all_pages(pages_info,max_threads = 32)
+            combined_data = utils.process_all_pages(pages_info,max_threads = max_workers)
         
         #If not using multi_threading
         else:
