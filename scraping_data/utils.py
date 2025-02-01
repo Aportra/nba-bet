@@ -19,6 +19,8 @@ import smtplib
 import regex as re
 import time
 import pandas as pd
+import signal
+import psutil
 
 def establish_driver(local = False):
     if not local: 
@@ -37,6 +39,17 @@ def establish_driver(local = False):
         driver.set_window_size(1920, 1080)
 
         return driver
+
+def terminate_firefox_processes(): #Used for memory efficieny
+    """
+    Forcefully terminates all lingering Firefox & Geckodriver processes.
+    """
+    for process in psutil.process_iter(attrs=['pid', 'name']): #gathers all the current active signals
+        try:
+            if process.info['name'].lower() in ('firefox-bin', 'geckodriver','firefox.exe'): 
+                os.kill(process.info['pid'], signal.SIGTERM)  #sends termination signal
+        except (psutil.NoSuchProcess, psutil.AccessDenied, psutil.ZombieProcess):
+            pass
 
 #Select all option only works when at least half screen due to blockage of the all option when not in headerless option
 
@@ -94,73 +107,74 @@ def gather_data(rows,current = True,scrape_date = date.today() - timedelta(1)):
 
 
 def process_page(page,game_id,game_date,home,away):
-    
     driver = establish_driver(local = True)
-
-    driver.get(page)
-    
-    driver.set_page_load_timeout(120)
-
-    WebDriverWait(driver, 10).until(
-    EC.presence_of_element_located((By.CLASS_NAME, 'StatsTable_st__g2iuW'))
-    )
-
-    ps = driver.page_source
-    soup = BeautifulSoup(ps, 'html5lib')
-    # Find all divs containing the data tables
-    tables = soup.find_all('div', class_='StatsTable_st__g2iuW')
-    last_updated = date.today()
-    df_data = []
-    # Check if tables exist
-    if tables:
-        for table_index, table in enumerate(tables):
-            # Extract the table rows
-            rows = table.find_all('tr')
-            if table_index == 1:
-                t1 = home
-                t2 = away
-            else:
-                t1 = away
-                t2 = home
-            # Get the header row (if it exists)
-            headers = [th.get_text(strip=True) for th in rows[0].find_all('th')] if rows else []
-            
-            # Get the data rows
-            data = []
-
-            for row in rows[1:-1]:  # Skip the header row
-                cols = row.find_all('td')
-                name_element = row.find('td')
-                if name_element and name_element.find('span', class_="GameBoxscoreTablePlayer_gbpNameFull__cf_sn"):
-                    name_span = name_element.find('span', class_="GameBoxscoreTablePlayer_gbpNameFull__cf_sn")
-                    player_name = name_span.get_text(strip=True)
-                    player_name = player_name.replace('.','')
-                else:
-                    player_name = "Unknown"
-                row_data = [player_name] + [col.get_text(strip=True) for col in cols[1:]]
-                row_data.extend([t1,game_id,game_date,t2,page,last_updated])
-                data.append(row_data)
-  
-            # Create a DataFrame for this table
-            if headers and data:
-                headers = ['player'] + headers[1:]
-                headers.extend(['team','game_id','game_date','matchup','url','last_updated'])
-                df = pd.DataFrame(data, columns=headers)
-            else:
-                print(f'Could not process: {page}')
-                driver.quit()
-                return page,game_id,game_date,home,away
-            
-            df_data.append(df)
+    try:
+        driver.get(page)
         
-        df = pd.concat(df_data,ignore_index=True)
-            # Append the DataFrame to the appropriate team entries in the dictionary
+        driver.set_page_load_timeout(120)
+
+        WebDriverWait(driver, 10).until(
+        EC.presence_of_element_located((By.CLASS_NAME, 'StatsTable_st__g2iuW'))
+        )
+
+        ps = driver.page_source
+        soup = BeautifulSoup(ps, 'html5lib')
+        # Find all divs containing the data tables
+        tables = soup.find_all('div', class_='StatsTable_st__g2iuW')
+        last_updated = date.today()
+        df_data = []
+        # Check if tables exist
+        if tables:
+            for table_index, table in enumerate(tables):
+                # Extract the table rows
+                rows = table.find_all('tr')
+                if table_index == 1:
+                    t1 = home
+                    t2 = away
+                else:
+                    t1 = away
+                    t2 = home
+                # Get the header row (if it exists)
+                headers = [th.get_text(strip=True) for th in rows[0].find_all('th')] if rows else []
+                
+                # Get the data rows
+                data = []
+
+                for row in rows[1:-1]:  # Skip the header row
+                    cols = row.find_all('td')
+                    name_element = row.find('td')
+                    if name_element and name_element.find('span', class_="GameBoxscoreTablePlayer_gbpNameFull__cf_sn"):
+                        name_span = name_element.find('span', class_="GameBoxscoreTablePlayer_gbpNameFull__cf_sn")
+                        player_name = name_span.get_text(strip=True)
+                        player_name = player_name.replace('.','')
+                    else:
+                        player_name = "Unknown"
+                    row_data = [player_name] + [col.get_text(strip=True) for col in cols[1:]]
+                    row_data.extend([t1,game_id,game_date,t2,page,last_updated])
+                    data.append(row_data)
+    
+                # Create a DataFrame for this table
+                if headers and data:
+                    headers = ['player'] + headers[1:]
+                    headers.extend(['team','game_id','game_date','matchup','url','last_updated'])
+                    df = pd.DataFrame(data, columns=headers)
+                else:
+                    print(f'Could not process: {page}')
+                    driver.quit()
+                    return page,game_id,game_date,home,away
+                
+                df_data.append(df)
+            
+            df = pd.concat(df_data,ignore_index=True)
+                # Append the DataFrame to the appropriate team entries in the dictionary
+            return df
+        else:
+            print(f'Could not process: {page}')
+            return page,game_id,game_date,home,away
+    finally:
         driver.quit()
-        return df
-    else:
-        print(f'Could not process: {page}')
-        driver.quit()
-        return page,game_id,game_date,home,away
+        terminate_firefox_processes()
+
 
 
 
@@ -273,7 +287,7 @@ def process_all_pages(pages_info,max_threads):
                     pbar.update(1)  # Update progress bar
 
         remaining_pages = failed_pages  # Reattempt only failed pages
-
+        executor.shutdown(wait=True)
     return pd.concat(all_dataframes, ignore_index=True) if all_dataframes else None
 
 

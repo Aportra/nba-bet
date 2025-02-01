@@ -30,13 +30,6 @@ def scrape_current_team_data(length):
     }
 
 
-    # options = Options()
-
-    # options.add_argument("--headless")
-
-    # driver = webdriver.Firefox(options=options)
-    # driver.set_window_size(1920, 1080)
-    # ps = driver.page_source
 
     driver = utils.establish_driver()
 
@@ -145,12 +138,9 @@ def scrape_current_team_data(length):
             body=error_message
         )
 
-
-
-
-
     driver.quit()
 
+    
 def scrape_past_team_data():
     
     try:
@@ -161,19 +151,14 @@ def scrape_past_team_data():
         local = True
         print("Running with default credentials")
 
-    urls = {'2021-2022_team_ratings':'https://www.nba.com/stats/teams/boxscores-advanced?Season=2021-22',
-            '2022-2023_team_ratings':'https://www.nba.com/stats/teams/boxscores-advanced?Season=2022-23',
-            '2023-2024_team_ratings':'https://www.nba.com/stats/teams/boxscores-advanced?Season=2023-24',
+    urls = {#'2021-2022_team_ratings':'https://www.nba.com/stats/teams/boxscores-advanced?Season=2021-22',
+            #'2022-2023_team_ratings':'https://www.nba.com/stats/teams/boxscores-advanced?Season=2022-23',
+            #'2023-2024_team_ratings':'https://www.nba.com/stats/teams/boxscores-advanced?Season=2023-24',
             '2024-2025_team_ratings':'https://www.nba.com/stats/teams/boxscores-advanced?Season=2024-25'
     }
-    scrape_date = date.today() - timedelta(1)
-
-    options = Options()
-
-    options.add_argument("--headless")
-
-    driver = webdriver.Firefox(options=options)
-    driver.set_window_size(1920, 1080)
+    
+    driver = utils.establish_driver(local = True)
+    scrape_date = date.today()
     ps = driver.page_source
 
     for url in urls:
