@@ -151,9 +151,9 @@ def scrape_past_team_data():
         local = True
         print("Running with default credentials")
 
-    urls = {#'2021-2022_team_ratings':'https://www.nba.com/stats/teams/boxscores-advanced?Season=2021-22',
-            #'2022-2023_team_ratings':'https://www.nba.com/stats/teams/boxscores-advanced?Season=2022-23',
-            #'2023-2024_team_ratings':'https://www.nba.com/stats/teams/boxscores-advanced?Season=2023-24',
+    urls = {'2021-2022_team_ratings':'https://www.nba.com/stats/teams/boxscores-advanced?Season=2021-22',
+            '2022-2023_team_ratings':'https://www.nba.com/stats/teams/boxscores-advanced?Season=2022-23',
+            '2023-2024_team_ratings':'https://www.nba.com/stats/teams/boxscores-advanced?Season=2023-24',
             '2024-2025_team_ratings':'https://www.nba.com/stats/teams/boxscores-advanced?Season=2024-25'
     }
     
