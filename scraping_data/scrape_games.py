@@ -18,6 +18,7 @@ import traceback
 import pandas as pd
 import scraping_data.utils as utils
 import time
+import gc
 
 def scrape_current_games():
 
@@ -143,7 +144,7 @@ def scrape_current_games():
 def scrape_past_games(multi_threading = True, max_workers = 0):
     
     urls = {#'NBA_Season_2021-2022_uncleaned':'https://www.nba.com/stats/teams/boxscores?Season=2021-22',
-            'NBA_Season_2022-2023_uncleaned':'https://www.nba.com/stats/teams/boxscores?Season=2022-23',
+            #'NBA_Season_2022-2023_uncleaned':'https://www.nba.com/stats/teams/boxscores?Season=2022-23',
             'NBA_Season_2023-2024_uncleaned':'https://www.nba.com/stats/teams/boxscores?Season=2023-24',
             'NBA_Season_2024-2025_uncleaned':'https://www.nba.com/stats/teams/boxscores?Season=2024-25'
     }
@@ -231,3 +232,5 @@ def scrape_past_games(multi_threading = True, max_workers = 0):
             pandas_gbq.to_gbq(combined_data,project_id= 'miscellaneous-projects-444203',destination_table= f'miscellaneous-projects-444203.capstone_data.{url}',if_exists='replace',table_schema= [{'name':'game_date','type':'DATE'},])
         else:
             pandas_gbq.to_gbq(combined_data,project_id= 'miscellaneous-projects-444203',destination_table= f'miscellaneous-projects-444203.capstone_data.{url}',if_exists='replace',table_schema= [{'name':'game_date','type':'DATE'},],credentials=credentials)
+        del combined_data
+        gc.collect()
