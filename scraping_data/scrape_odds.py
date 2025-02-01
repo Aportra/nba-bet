@@ -34,75 +34,86 @@ try:
 except FileNotFoundError:
     default_creds = True
     print("No File to Load Using Default Credentials")
+
+def process_categories(category):
+    try:
+        driver.get(urls[category])
+        time.sleep(10)
+        WebDriverWait(driver, 300).until(
+            EC.presence_of_all_elements_located((By.XPATH, "//tbody[@class='sportsbook-table__body']/tr"))
+        )
+
+
+        rows = driver.find_elements(By.XPATH, "//tbody[@class='sportsbook-table__body']/tr")
+        data = []
+        for row in rows:
+            print
+            try:
+                name_element = row.find_element(By.XPATH,"./th/div/div[1]/a/span")
+                name = name_element.text
+
+                over_element = row.find_element(By.XPATH,"./td[1]")
+                over = over_element.text
+                under_element = row.find_element(By.XPATH,"./td[2]")
+                under = under_element.text
+
+                over = over.split()
+                under = under.split()
+
+                over_value = over[2]
+                under_value = under[2]
+                points_value = over[1]
+
+                data.append({
+                    'Player': name,
+                    f'{category}': points_value,
+                    'Over': over_value,
+                    'Under': under_value,
+                    'Date_Updated':scrape_date
+                })
+            except Exception as e:
+                error_traceback = traceback.format_exc()
+            
+                # Prepare a detailed error message
+                error_message = f"""
+                NBA SCRAPING: SCRIPT CRASHED
+
+                The script encountered an error:
+                Type: {type(e).__name__}
+                Message: {str(e)}
+
+                Full Traceback:
+                {error_traceback}
+                """
+                print(error_message)
+                #Send the email with detailed information
+                utils.send_email(
+                    subject="NBA SCRAPING: SCRIPT CRASHED",
+                    body=error_message
+                )
+
+
+
+        combined_data = pd.DataFrame(data)
+        if not default_creds:
+            pandas_gbq.to_gbq(combined_data,project_id= 'miscellaneous-projects-444203',destination_table= f'miscellaneous-projects-444203.capstone_data.player_{category}_odds',if_exists = 'append',credentials=credentials)
+        else:
+            pandas_gbq.to_gbq(combined_data,project_id= 'miscellaneous-projects-444203',destination_table= f'miscellaneous-projects-444203.capstone_data.player_{category}_odds',if_exists = 'append')
+
+        utils.send_email(
+        subject = str(f"ODDS SCRAPING: COMPLTETED # OF PLAYERS {len(data)}"),
+        body = str(f'{len(data)} players odds scraped as of {scrape_date.date()}')
+        )
+
+    except:
+        utils.send_email(
+        subject = str(f"{category} failed processing retrying"),
+        body = str(f'Retrying scraping script for {category}')
+        )
+        process_categories(category)
+
+
 for category in urls:
-    driver.get(urls[category])
-
-
-    time.sleep(10)
-    WebDriverWait(driver, 300).until(
-        EC.presence_of_all_elements_located((By.XPATH, "//tbody[@class='sportsbook-table__body']/tr"))
-    )
-
-
-    rows = driver.find_elements(By.XPATH, "//tbody[@class='sportsbook-table__body']/tr")
-    data = []
-    for row in rows:
-        print
-        try:
-            name_element = row.find_element(By.XPATH,"./th/div/div[1]/a/span")
-            name = name_element.text
-
-            over_element = row.find_element(By.XPATH,"./td[1]")
-            over = over_element.text
-            under_element = row.find_element(By.XPATH,"./td[2]")
-            under = under_element.text
-
-            over = over.split()
-            under = under.split()
-
-            over_value = over[2]
-            under_value = under[2]
-            points_value = over[1]
-
-            data.append({
-                'Player': name,
-                f'{category}': points_value,
-                'Over': over_value,
-                'Under': under_value,
-                'Date_Updated':scrape_date
-            })
-        except Exception as e:
-            error_traceback = traceback.format_exc()
-        
-            # Prepare a detailed error message
-            error_message = f"""
-            NBA SCRAPING: SCRIPT CRASHED
-
-            The script encountered an error:
-            Type: {type(e).__name__}
-            Message: {str(e)}
-
-            Full Traceback:
-            {error_traceback}
-            """
-            print(error_message)
-            #Send the email with detailed information
-            utils.send_email(
-                subject="NBA SCRAPING: SCRIPT CRASHED",
-                body=error_message
-            )
-
-
-
-    combined_data = pd.DataFrame(data)
-    if not default_creds:
-        pandas_gbq.to_gbq(combined_data,project_id= 'miscellaneous-projects-444203',destination_table= f'miscellaneous-projects-444203.capstone_data.player_{category}_odds',if_exists = 'append',credentials=credentials)
-    else:
-        pandas_gbq.to_gbq(combined_data,project_id= 'miscellaneous-projects-444203',destination_table= f'miscellaneous-projects-444203.capstone_data.player_{category}_odds',if_exists = 'append')
-
-    utils.send_email(
-    subject = str(f"ODDS SCRAPING: COMPLTETED # OF PLAYERS {len(data)}"),
-    body = str(f'{len(data)} players odds scraped as of {scrape_date.date()}')
-    )
+    process_categories(category)
 
 driver.quit()
