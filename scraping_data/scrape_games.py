@@ -30,7 +30,7 @@ def scrape_current_games():
         local = True
         credentials = False
         
-    driver = utils.establish_driver(local)
+    driver = utils.establish_driver()
 
 
     scrape_date = date.today() - timedelta(1)
@@ -55,22 +55,23 @@ def scrape_current_games():
 
     rows = driver.find_elements(By.XPATH, "//tbody[@class='Crom_body__UYOcU']/tr")
     game_data = utils.gather_data(rows)
+    driver.quit()
 
     data = []
     failed_pages = []
     i = 0
     try:
         if game_data:
-            with tqdm(total=len(game_data), desc="Processing Games", ncols=80) as pbar:
-                for game_id,g_date,home,away in game_data:
-                    page = game_id
-                    result = utils.process_page(page,game_id,g_date,home,away,driver)
-                    if isinstance(result, pd.DataFrame):
-                        data.append(result)
-                    else:
-                        failed_pages.append(result)
-                        print(f'Failed Pages length: {len(failed_pages)}')
-                    pbar.update(1)
+
+            for game_id,g_date,home,away in game_data:
+                page = f'{game_id}/box-score'
+                result = utils.process_page(page,game_id,g_date,home,away)
+                if isinstance(result, pd.DataFrame):
+                    data.append(result)
+                else:
+                    failed_pages.append(result)
+                    print(f'Failed Pages length: {len(failed_pages)}')
+
 
             retries = {}
             while failed_pages:
