@@ -176,7 +176,7 @@ def clean_past_team_ratings():
             pandas_gbq.to_gbq(data,destination_table='capstone_data.Cleaned_team_ratings',project_id='miscellaneous-projects-444203',table_schema=[{'name':'game date','type':'DATE'}],if_exists='replace')
         else:
             pandas_gbq.to_gbq(data,destination_table='capstone_data.Cleaned_team_ratings',project_id='miscellaneous-projects-444203',table_schema=[{'name':'game date','type':'DATE'}],credentials=credentials,if_exists='replace')
-clean_past_team_ratings()
+
 
 
 
