@@ -111,11 +111,15 @@ def scrape_current_games():
             body = str(f'{len(game_data)} games scraped as of {scrape_date.date()}')
         )
             
+
+            return combined_dataframes,len(game_data)
+            
         else:
             utils.send_email(
             subject = "NBA SCRAPING: NO GAMES",
             body = str(f'No games as of {scrape_date.date()}')
         )
+
 
     except Exception as e:
         error_traceback = traceback.format_exc()
@@ -137,9 +141,9 @@ def scrape_current_games():
             subject="NBA SCRAPING: SCRIPT CRASHED",
             body=error_message
         )
+    finally:
+        driver.quit()
 
-    driver.quit()
-    return combined_dataframes,len(game_data)
 
 def scrape_past_games(multi_threading = True, max_workers = 0):
     
