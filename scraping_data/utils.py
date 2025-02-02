@@ -26,7 +26,7 @@ def establish_driver(local = False):
     if not local: 
         options = Options()
         options.binary_location = '/usr/bin/firefox'
-        # options.add_argument("--headless")
+        options.add_argument("--headless")
         geckodriver_path = '/usr/local/bin/geckodriver'
         service = Service(executable_path=geckodriver_path, log_path="geckodriver.log")
         driver = webdriver.Firefox(service = service,options = options)
@@ -107,7 +107,7 @@ def gather_data(rows,current = True,scrape_date = date.today() - timedelta(1)):
 
 
 def process_page(page,game_id,game_date,home,away):
-    driver = establish_driver(local = True)
+    driver = establish_driver()
     try:
         driver.get(page)
         
