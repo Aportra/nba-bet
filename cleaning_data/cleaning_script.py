@@ -151,6 +151,7 @@ def clean_past_player_data():
 
         prediction_data = modeling_data.copy()
 
+        #using shifted windows for rolling data to prevent data leakage
         for feature in features_for_rolling:
             modeling_data[f'{feature}_3gm_avg'] = modeling_data.groupby(by = 'player')[f'{feature}'].rolling(window = 3).mean().shift(1).reset_index(level = 0,drop=True).round(2)
             prediction_data[f'{feature}_3gm_avg'] = prediction_data.groupby(by = 'player')[f'{feature}'].rolling(window = 3).mean().reset_index(level = 0,drop=True).round(2)
@@ -167,7 +168,7 @@ def clean_past_player_data():
 
     model_data.dropna(inplace= True, ignore_index= True)
     predict_data.dropna(inplace= True, ignore_index= True)
-    
+
     if local:
         pandas_gbq.to_gbq(model_data,destination_table = f'capstone_data.player_modeling_data',project_id='miscellaneous-projects-444203',if_exists='replace')
         pandas_gbq.to_gbq(predict_data,destination_table = f'capstone_data.player_prediction_data',project_id='miscellaneous-projects-444203',if_exists='replace')
@@ -210,7 +211,9 @@ def clean_past_team_ratings():
         prediction_data = modeling_data.copy()
 
         num_columns = modeling_data.columns[5:19]
-        print(num_columns)
+
+
+        #using shifted windows for rolling data to prevent data leakage
         for column in num_columns:
             modeling_data[f'{column}_3gm_avg'] = modeling_data.groupby(by = 'team')[column].rolling(window = 3).mean().shift(1).reset_index(level = 0,drop = True).round(2)
             prediction_data[f'{column}_3gm_avg'] = prediction_data.groupby(by = 'team')[column].rolling(window = 3).mean().reset_index(level = 0,drop = True).round(2)
@@ -290,6 +293,7 @@ def clean_current_team_ratings(game_data):
 
         for feature in features_for_rolling:
             
+            #using shifted windows for rolling data to prevent data leakage
             rolling_avg = data_for_rolling[data_for_rolling['team'] == team][f'{feature}'].rolling(window = 3).mean().shift(1).reset_index(level = 0,drop = True)
             predict_avg = predict_data_for_rolling[predict_data_for_rolling['team'] == team][f'{feature}'].rolling(window = 3).mean().reset_index(level = 0,drop = True)
 
