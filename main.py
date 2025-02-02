@@ -1,6 +1,6 @@
 from scraping_data.scrape_games import scrape_current_games
 from scraping_data.scrape_team_data import scrape_current_team_data
-from cleaning_data.cleaning_script import clean_current_player_data
+from cleaning_data.cleaning_script import clean_current_player_data,clean_current_team_ratings
 
 print("Starting scraping of game data")
 
@@ -14,4 +14,4 @@ print("Starting scraping of team data")
 
 team_data = scrape_current_team_data(length) 
 
-clean_current_player_data(team_data)
+clean_current_team_ratings(team_data)
