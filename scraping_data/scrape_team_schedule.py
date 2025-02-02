@@ -62,12 +62,22 @@ def scrape_team_schedule(nba_teams):
                 opponent_element = row.find_element(By.XPATH,"./td[2]/div/span[3]/a")
                 opponent_text = opponent_element.text
 
+                if '@' in opponent_text:
+                    away = 1
+                    home = 0
+                else:
+                    away = 0
+                    home = 1
+
+                opponent_text = opponent_text.split(r'@|vs')[0].strip()
+
                 data.append({
                     'team':team,
                     'date':converted_date,
                     'opponent':opponent_text,
                     'scrape_date':scrape_date,
-                    'game_played':game_played
+                    'home':home,
+                    'away': away
                 })
             pbar.update(1)
             all_data.extend(data)

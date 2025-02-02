@@ -26,7 +26,7 @@ def establish_driver(local = False):
     if not local: 
         options = Options()
         options.binary_location = '/usr/bin/firefox'
-        options.add_argument("--headless")
+        # options.add_argument("--headless")
         geckodriver_path = '/usr/local/bin/geckodriver'
         service = Service(executable_path=geckodriver_path, log_path="geckodriver.log")
         driver = webdriver.Firefox(service = service,options = options)
@@ -34,7 +34,7 @@ def establish_driver(local = False):
         return driver
     else: 
         options = Options()
-        options.add_argument("--headless")
+        # options.add_argument("--headless")
         driver = webdriver.Firefox(options=options)
         driver.set_window_size(1920, 1080)
 
