@@ -12,4 +12,6 @@ clean_current_player_data(data)
 
 print("Starting scraping of team data")
 
-scrape_current_team_data(length) 
+team_data = scrape_current_team_data(length) 
+
+clean_current_player_data(team_data)

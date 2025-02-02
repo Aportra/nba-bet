@@ -139,7 +139,7 @@ def scrape_current_team_data(length):
         )
 
     driver.quit()
-
+    return data
     
 def scrape_past_team_data():
     

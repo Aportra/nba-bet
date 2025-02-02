@@ -7,7 +7,7 @@ from scraping_data.utils import send_email
 import regex as re
 import pandas as pd
 import pandas_gbq
-import unicodedata
+
 
 def convert_minutes_to_decimal(min_played):
     min,sec = map(int,min_played.split(':'))
@@ -84,7 +84,7 @@ def clean_current_player_data(data):
         else:
              pandas_gbq.to_gbq(all_data,destination_table = f'capstone_data.NBA_Cleaned',project_id='miscellaneous-projects-444203',if_exists= 'append',table_schema=[{'name':'game_date','type':'DATE'},])
     send_email(
-        subject="NBA DATA CLEANED",
+        subject="NBA PLAYER DATA CLEANED",
         body="Data uploaded to NBA_Cleaned"
         )
 
@@ -137,4 +137,99 @@ def clean_past_player_data():
     else:
         pandas_gbq.to_gbq(nba_data_cleaned,destination_table = f'capstone_data.NBA_Cleaned',project_id='miscellaneous-projects-444203',if_exists='replace',credentials=credentials)
 
+
+def clean_past_team_ratings():
+    try:
+        credentials = service_account.Credentials.from_service_account_file('/home/aportra99/scraping_key.json')
+        local = False
+        print("Credentials file loaded.")
+    except:
+        local = True
+        print("Running with default credentials")
+    tables = ['2021-2022_team_ratings',
+              '2022-2023_team_ratings',
+              '2023-2024_team_ratings',
+              '2024-2025_team_ratings']
+
+
+    for season in tables:
+        query = f"""
+        select *
+        from `capstone_data.{season}`
+        order by `game date` asc
+        """
+
+        if local:
+            data = pd.DataFrame(pandas_gbq.read_gbq(query,project_id='miscellaneous-projects-444203'))
+        else:
+            data = pd.DataFrame(pandas_gbq.read_gbq(query,project_id='miscellaneous-projects-444203',credentials=credentials))
+        
+
+        num_columns = data.columns[5:19]
+        for column in num_columns:
+            data[f'3gm_avg_{column}'] = round(data[column].rolling(window = 3).mean().shift(1).reset_index(0,drop = True),2)
+        
+        data.dropna(inplace=True,ignore_index= True)
+
+        
+        if local:
+            pandas_gbq.to_gbq(data,destination_table='capstone_data.Cleaned_team_ratings',project_id='miscellaneous-projects-444203',table_schema=[{'name':'game date','type':'DATE'}],if_exists='replace')
+        else:
+            pandas_gbq.to_gbq(data,destination_table='capstone_data.Cleaned_team_ratings',project_id='miscellaneous-projects-444203',table_schema=[{'name':'game date','type':'DATE'}],credentials=credentials,if_exists='replace')
+clean_past_team_ratings()
+
+
+
+def clean_current_team_ratings(game_data):
+    try:
+        credentials = service_account.Credentials.from_service_account_file('/home/aportra99/scraping_key.json')
+        local = False
+        print("Credentials file loaded.")
+    except:
+        local = True
+        print("Running with default credentials")
+
+    teams = data['team'].unique()
+    query = f"""
+    WITH RankedGames AS (
+        SELECT *,
+            ROW_NUMBER() OVER (PARTITION BY team ORDER BY game_date DESC) AS game_rank
+        FROM `capstone_data.Cleaned_team_ratings`
+        WHERE player IN ({','.join([f'"{team}"' for team in teams])})
+    )
+    SELECT *
+    FROM RankedGames
+    WHERE game_rank <= 3
+    ORDER BY team, game_date DESC;
+    """
+    team_dfs = []
+    num_columns = game_data.columns[5:19]
+    if local:
+        data = pd.DataFrame(pandas_gbq.read_gbq(query,project_id='miscellaneous-projects-444203'))
+    else:
+        data = pd.DataFrame(pandas_gbq.read_gbq(query,project_id='miscellaneous-projects-444203',credentials=credentials))
+
+    for team in teams:
+        team_data = data[data['team'] == f'{team}'].copy()
+        data_for_rolling = data[data['team'] == team].sort_values(by='game_date')
+
+        for feature in num_columns:
+            
+            rolling_avg = data_for_rolling[data_for_rolling['team'] == team][f'{feature}'].rolling(window = 3).mean().reset_index(0,drop = True)
+            team_data[f'{feature}_3gm_avg']  = round(rolling_avg.iloc[-1],2)
+
+        team_dfs.append(team_data)
+
+    all_data = pd.concat(team_dfs,ignore_index=True)
+
+
+    if local:
+        pandas_gbq.to_gbq(team_data,destination_table='capstone_data.Cleaned_team_ratings',project_id='miscellaneous-projects-444203',table_schema=[{'name':'game date','type':'DATE'}],if_exists='replace')
+    else:
+        pandas_gbq.to_gbq(data,destination_table='capstone_data.Cleaned_team_ratings',project_id='miscellaneous-projects-444203',table_schema=[{'name':'game date','type':'DATE'}],credentials=credentials,if_exists='replace')
+
+    send_email(
+    subject="NBA TEAM DATA CLEANED",
+    body="Data uploaded to Cleaned_team_ratings"
+    )
 
