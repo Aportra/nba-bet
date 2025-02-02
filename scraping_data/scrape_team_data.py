@@ -105,7 +105,7 @@ def scrape_current_team_data(length):
                     data[column] = data[column].astype('float64')
 
             pandas_gbq.to_gbq(data,project_id= 'miscellaneous-projects-444203',destination_table= f'miscellaneous-projects-444203.capstone_data.{url}',if_exists='append',credentials=credentials,table_schema=[{"name":"game date","type":"DATE"},])
-            #pandas_gbq.to_gbq(combined_dataframes,project_id= 'miscellaneous-projects-444203',destination_table= f'miscellaneous-projects-444203.capstone_data.NBA_Season_2024-2025_uncleaned',if_exists = 'append',credentials=credentials)
+            
         
         if (len(game_data)) > 0:
             utils.send_email(
