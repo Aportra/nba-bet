@@ -189,7 +189,7 @@ def clean_current_team_ratings(game_data):
         local = True
         print("Running with default credentials")
 
-    teams = data['team'].unique()
+    teams = game_data['team'].unique()
     query = f"""
     WITH RankedGames AS (
         SELECT *,
@@ -200,7 +200,7 @@ def clean_current_team_ratings(game_data):
     SELECT *
     FROM RankedGames
     WHERE game_rank <= 3
-    ORDER BY team, game_date DESC;
+    ORDER BY team, `game date` DESC;
     """
     team_dfs = []
     num_columns = game_data.columns[5:19]
