@@ -87,7 +87,7 @@ def scrape_current_games():
 
                 print(f'processing # {game_id} from failed pages')
                 page = f'{game_id}/box-score'
-                result = utils.process_page(page,game_id,g_date,home,away,driver)
+                result = utils.process_page(page,game_id,g_date,home,away)
 
                 if isinstance(result,pd.DataFrame):
                     data.append(result)
