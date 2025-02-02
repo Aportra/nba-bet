@@ -101,7 +101,7 @@ def process_categories(category):
             pandas_gbq.to_gbq(combined_data,project_id= 'miscellaneous-projects-444203',destination_table= f'miscellaneous-projects-444203.capstone_data.player_{category}_odds',if_exists = 'append')
 
         utils.send_email(
-        subject = str(f"ODDS SCRAPING: COMPLTETED # OF PLAYERS {len(data)}"),
+        subject = str(f"{category} ODDS SCRAPING: COMPLTETED # OF PLAYERS {len(data)}"),
         body = str(f'{len(data)} players odds scraped as of {scrape_date.date()}')
         )
 
