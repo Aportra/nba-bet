@@ -15,7 +15,7 @@ def convert_minutes_to_decimal(min_played):
     return round(min + (sec/60),2)
 
 
-def clean_current_player_data(modeling_data):
+def clean_current_player_data(data):
     try:
         credentials = service_account.Credentials.from_service_account_file('/home/aportra99/scraping_key.json')
         local = False
@@ -24,20 +24,20 @@ def clean_current_player_data(modeling_data):
         local = True
         print("Running with default credentials")
 
-    modeling_data.dropna(inplace = True, ignore_index = True)
+    data.dropna(inplace = True, ignore_index = True)
     
-    modeling_data['player'] = modeling_data['player'].str.replace('.', '', regex=False) 
+    data['player'] = data['player'].str.replace('.', '', regex=False) 
 
-    for column in modeling_data.columns:
-        modeling_data.rename(columns = {column:column.lower()},inplace= True)
+    for column in data.columns:
+        data.rename(columns = {column:column.lower()},inplace= True)
 
-    modeling_data['min'] = modeling_data['min'].apply(convert_minutes_to_decimal)
+    data['min'] = data['min'].apply(convert_minutes_to_decimal)
     
-    features_for_rolling = [feature for feature in modeling_data.columns[1:21]] 
+    features_for_rolling = [feature for feature in data.columns[1:21]] 
 
-    players = modeling_data['player'].unique()
-    print(players)
+    players = data['player'].unique()
 
+    print(len(players))
     modeling_query = f"""
     WITH RankedGames AS (
         SELECT *,
@@ -47,7 +47,7 @@ def clean_current_player_data(modeling_data):
     )
     SELECT *
     FROM RankedGames
-    WHERE game_rank <= 3
+    WHERE game_rank <= 6
     ORDER BY player, game_date DESC;
     """
     
@@ -60,7 +60,7 @@ def clean_current_player_data(modeling_data):
     )
     SELECT *
     FROM RankedGames
-    WHERE game_rank <= 3
+    WHERE game_rank <= 4
     ORDER BY player, game_date DESC;
     """
     print('pulling past modeling_data')
@@ -72,34 +72,49 @@ def clean_current_player_data(modeling_data):
         predict_data = pd.DataFrame(pandas_gbq.read_gbq(prediction_query,project_id='miscellaneous-projects-444203',credentials=credentials))
 
 
-    player_dfs = []
+    print(modeling_data['player'].unique())
+    model_dfs = []
     prediction_dfs = []
 
-    for player in players:
-        player_data = modeling_data[modeling_data['player'] == f'{player}'].copy()
-        prediction_data = predict_data[predict_data['player'] == f'{player}'].copy()
+    for idx,player in enumerate(players):
+            model_df = data[data['player'] == f'{player}'].copy()
+            prediction_data = data[data['player'] == f'{player}'].copy()
 
-        data_for_rolling = modeling_data[modeling_data['player'] == player].sort_values(by='game_date')
-        prediction_data_rolling = predict_data[predict_data['player'] == player].sort_values(by='game_date')
-        for feature in features_for_rolling:
-            
-            rolling_avg = data_for_rolling[data_for_rolling['player'] == player][f'{feature}'].rolling(window = 3).mean().shift(1).reset_index(level = 0,drop=True)
-            prediction_rolling_avg = prediction_data_rolling[prediction_data_rolling['player'] == player][f'{feature}'].rolling(window = 3).mean().reset_index(level = 0,drop = True)
+            data_for_rolling = modeling_data[modeling_data['player'] == player].sort_values(by='game_date')
+            predict_data_for_rolling = predict_data[predict_data['player'] == player].sort_values(by='game_date')
 
-            player_data[f'{feature}_3gm_avg']  = round(rolling_avg.iloc[-1],2)
-            prediction_data[f'{feature}_3gm_avg']  = round(rolling_avg.iloc[-1],2)
+            for feature in features_for_rolling:
+                
+                #using shifted windows for rolling data to prevent data leakage
+                rolling_avg = data_for_rolling[data_for_rolling['player'] == player][f'{feature}'].rolling(window = 3).mean().shift(1).reset_index(level = 0,drop = True)
+                
+                predict_avg = predict_data_for_rolling[predict_data_for_rolling['player'] == player][f'{feature}'].rolling(window = 3).mean().reset_index(level = 0,drop = True)
 
-        player_data.dropna(inplace = True, ignore_index = True)
-        prediction_data.dropna(inplace = True, ignore_index = True)
+                model_df[f'{feature}_3gm_avg'] = round(rolling_avg.iloc[-1], 2) if not rolling_avg.empty else 0
+                prediction_data[f'{feature}_3gm_avg'] = round(predict_avg.iloc[-1], 2) if not predict_avg.empty else 0
+
+            model_df.dropna(inplace = True, ignore_index = True)
+            prediction_data.dropna(inplace = True, ignore_index = True)
         
-        prediction_dfs.append(prediction_data)
-        player_dfs.append(player_data)
+            prediction_dfs.append(prediction_data)
+            model_dfs.append(model_df)
         
     print('rolling features calculated')
-    model_data = pd.concat(player_dfs,ignore_index = True)
+    model_data = pd.concat(model_dfs,ignore_index = True)
     predict_data = pd.concat(prediction_dfs,ignore_index = True)
+    
+    model_data.loc[:, model_data.columns != 'game_date'] = model_data.drop(columns=['game_date']).fillna(0)
+    predict_data.loc[:, predict_data.columns != 'game_date'] = predict_data.drop(columns=['game_date']).fillna(0)
 
-    if local:
+    model_data['season'] = model_data['game_date'].apply(
+        lambda x: f"{x.year}-{x.year + 1}" if x.month >= 10 else f"{x.year - 1}-{x.year}"
+    )
+    predict_data['season'] = predict_data['game_date'].apply(
+        lambda x: f"{x.year}-{x.year + 1}" if x.month >= 10 else f"{x.year - 1}-{x.year}"
+    )
+
+
+    if not local:
         pandas_gbq.to_gbq(model_data,destination_table = f'capstone_data.player_modeling_data',project_id='miscellaneous-projects-444203',if_exists= 'append',credentials=credentials,table_schema=[{'name':'game_date','type':'DATE'},])
         pandas_gbq.to_gbq(predict_data,destination_table = f'capstone_data.player_prediction_data',project_id='miscellaneous-projects-444203',if_exists= 'append',credentials=credentials,table_schema=[{'name':'game_date','type':'DATE'},])
     else:
@@ -123,7 +138,10 @@ def clean_past_player_data():
         local = True
         print("Running with default credentials")
 
-    tables = ['NBA_Season_2021-2022_uncleaned','NBA_Season_2022-2023_uncleaned','NBA_Season_2023-2024_uncleaned','NBA_Season_2024-2025_uncleaned']
+    tables = ['NBA_Season_2021-2022_uncleaned',
+              'NBA_Season_2022-2023_uncleaned',
+              'NBA_Season_2023-2024_uncleaned',
+              'NBA_Season_2024-2025_uncleaned']
 
     model_data = []
     predict_data = []
@@ -157,8 +175,6 @@ def clean_past_player_data():
             prediction_data[f'{feature}_3gm_avg'] = prediction_data.groupby(by = 'player')[f'{feature}'].rolling(window = 3).mean().reset_index(level = 0,drop=True).round(2)
         
 
-        modeling_data.dropna(inplace=True, ignore_index=True)
-        prediction_data.dropna(inplace=True, ignore_index=True)
 
         model_data.append(modeling_data)
         predict_data.append(prediction_data)
@@ -166,15 +182,23 @@ def clean_past_player_data():
     model_data = pd.concat(model_data,ignore_index = True)
     predict_data = pd.concat(predict_data,ignore_index = True)
 
-    model_data.dropna(inplace= True, ignore_index= True)
-    predict_data.dropna(inplace= True, ignore_index= True)
+    model_data.loc[:, model_data.columns != 'game_date'] = model_data.drop(columns=['game_date']).fillna(0)
+    predict_data.loc[:, predict_data.columns != 'game_date'] = predict_data.drop(columns=['game_date']).fillna(0)
+
+    model_data['season'] = model_data['game_date'].apply(
+        lambda x: f"{x.year}-{x.year + 1}" if x.month >= 10 else f"{x.year - 1}-{x.year}"
+    )
+    predict_data['season'] = predict_data['game_date'].apply(
+        lambda x: f"{x.year}-{x.year + 1}" if x.month >= 10 else f"{x.year - 1}-{x.year}"
+    )
+
 
     if local:
-        pandas_gbq.to_gbq(model_data,destination_table = f'capstone_data.player_modeling_data',project_id='miscellaneous-projects-444203',if_exists='replace')
-        pandas_gbq.to_gbq(predict_data,destination_table = f'capstone_data.player_prediction_data',project_id='miscellaneous-projects-444203',if_exists='replace')
+        pandas_gbq.to_gbq(model_data,destination_table = f'capstone_data.player_modeling_data',project_id='miscellaneous-projects-444203',if_exists='replace',table_schema=[{'name':'game_date','type':'DATE'},])
+        pandas_gbq.to_gbq(predict_data,destination_table = f'capstone_data.player_prediction_data',project_id='miscellaneous-projects-444203',if_exists='replace',table_schema=[{'name':'game_date','type':'DATE'},])
     else:
-        pandas_gbq.to_gbq(model_data,destination_table = f'capstone_data.player_modeling_data',project_id='miscellaneous-projects-444203',if_exists='replace',credentials=credentials)
-        pandas_gbq.to_gbq(predict_data,destination_table = f'capstone_data.player_prediction_data',project_id='miscellaneous-projects-444203',if_exists='replace',credentials=credentials)
+        pandas_gbq.to_gbq(model_data,destination_table = f'capstone_data.player_modeling_data',project_id='miscellaneous-projects-444203',if_exists='replace',credentials=credentials,table_schema=[{'name':'game_date','type':'DATE'},])
+        pandas_gbq.to_gbq(predict_data,destination_table = f'capstone_data.player_prediction_data',project_id='miscellaneous-projects-444203',if_exists='replace',credentials=credentials,table_schema=[{'name':'game_date','type':'DATE'},])
 
 
 def clean_past_team_ratings():
@@ -219,19 +243,28 @@ def clean_past_team_ratings():
             prediction_data[f'{column}_3gm_avg'] = prediction_data.groupby(by = 'team')[column].rolling(window = 3).mean().reset_index(level = 0,drop = True).round(2)
 
 
-        modeling_data.dropna(inplace = True, ignore_index= True)
-        prediction_data.dropna(inplace = True, ignore_index= True)
-
         model_data.append(modeling_data)
         predict_data.append(prediction_data)
 
     model_data = pd.concat(model_data,ignore_index = True)
     predict_data = pd.concat(predict_data,ignore_index = True)
+
+    model_data['season'] = model_data['game_date'].apply(
+        lambda x: f"{x.year}-{x.year + 1}" if x.month >= 10 else f"{x.year - 1}-{x.year}"
+    )
+    predict_data['season'] = predict_data['game_date'].apply(
+        lambda x: f"{x.year}-{x.year + 1}" if x.month >= 10 else f"{x.year - 1}-{x.year}"
+    )
+
+
+    model_data.loc[:, model_data.columns != 'game_date'] = model_data.drop(columns=['game_date']).fillna(0)
+    predict_data.loc[:, predict_data.columns != 'game_date'] = predict_data.drop(columns=['game_date']).fillna(0)
+
     if local:
-        pandas_gbq.to_gbq(model_data,destination_table='capstone_data.team_modeling_data',project_id='miscellaneous-projects-444203',table_schema=[{'name':'game date','type':'DATE'}],if_exists='replace')
+        pandas_gbq.to_gbq(model_data,destination_table='capstone_data.team_modeling_data',project_id='miscellaneous-projects-444203',table_schema=[{'name':'game_date','type':'DATE'}],if_exists='replace')
         pandas_gbq.to_gbq(predict_data,destination_table='capstone_data.team_prediction_data',project_id='miscellaneous-projects-444203',table_schema=[{'name':'game date','type':'DATE'}],if_exists='replace')
     else:
-        pandas_gbq.to_gbq(model_data,destination_table='capstone_data.team_modeling_data',project_id='miscellaneous-projects-444203',table_schema=[{'name':'game date','type':'DATE'}],credentials=credentials,if_exists='replace')
+        pandas_gbq.to_gbq(model_data,destination_table='capstone_data.team_modeling_data',project_id='miscellaneous-projects-444203',table_schema=[{'name':'game_date','type':'DATE'}],credentials=credentials,if_exists='replace')
         pandas_gbq.to_gbq(predict_data,destination_table='capstone_data.team_prediction_data',project_id='miscellaneous-projects-444203',table_schema=[{'name':'game date','type':'DATE'}],if_exists='replace')
 
 
@@ -290,7 +323,7 @@ def clean_current_team_ratings(game_data):
 
         data_for_rolling = modeling_data[modeling_data['team'] == team].sort_values(by='game_date')
         predict_data_for_rolling = prediction_data[prediction_data['team'] == team].sort_values(by='game_date')
-
+        
         for feature in features_for_rolling:
             
             #using shifted windows for rolling data to prevent data leakage
@@ -299,22 +332,37 @@ def clean_current_team_ratings(game_data):
 
             team_data[f'{feature}_3gm_avg'] = round(rolling_avg.iloc[-1], 2) if not rolling_avg.empty else 0
             predict_data[f'{feature}_3gm_avg'] = round(predict_avg.iloc[-1], 2) if not predict_avg.empty else 0
-
-        team_data.dropna(inplace = True, ignore_index = True)
-        predict_data.dropna(inplace = True, ignore_index = True)
+        team_data['season'] = '2024-2025'
+        predict_data['season'] = '2024-2025'
 
         team_dfs.append(team_data)
         predict_dfs.append(predict_data)
 
-    model_data = pd.concat(team_dfs,ignore_index=True)
+    team_data = pd.concat(team_dfs,ignore_index=True)
     predict_data = pd.concat(predict_dfs,ignore_index= True)
-    print('cleaning has been completed')
+    
+    team_data.loc[:, team_data.columns != 'game_date'] = team_data.drop(columns=['game_date']).fillna(0)
+    predict_data.loc[:, predict_data.columns != 'game_date'] = predict_data.drop(columns=['game_date']).fillna(0)
+
+    team_data['season'] = team_data['game_date'].apply(
+        lambda x: f"{x.year}-{x.year + 1}" if x.month >= 10 else f"{x.year - 1}-{x.year}"
+    )
+    predict_data['season'] = predict_data['game_date'].apply(
+        lambda x: f"{x.year}-{x.year + 1}" if x.month >= 10 else f"{x.year - 1}-{x.year}"
+    )
+
+
+    if isinstance(team_data,pd.DataFrame) and isinstance(predict_data,pd.DataFrame):
+        print('cleaning has been completed')
+    else:
+        print('script failed')
+    
 
     if local:
         pandas_gbq.to_gbq(team_data,destination_table='capstone_data.team_modeling_data',project_id='miscellaneous-projects-444203',table_schema=[{'name':'game date','type':'DATE'}],if_exists='replace')
         pandas_gbq.to_gbq(predict_data,destination_table='capstone_data.team_prediction_data',project_id='miscellaneous-projects-444203',table_schema=[{'name':'game date','type':'DATE'}],if_exists='replace')
     else:
-        pandas_gbq.to_gbq(modeling_data,destination_table='capstone_data.team_modeling_data',project_id='miscellaneous-projects-444203',table_schema=[{'name':'game date','type':'DATE'}],credentials=credentials,if_exists='replace')
+        pandas_gbq.to_gbq(team_data,destination_table='capstone_data.team_modeling_data',project_id='miscellaneous-projects-444203',table_schema=[{'name':'game date','type':'DATE'}],credentials=credentials,if_exists='replace')
         pandas_gbq.to_gbq(predict_data,destination_table='capstone_data.team_prediction_data',project_id='miscellaneous-projects-444203',table_schema=[{'name':'game date','type':'DATE'}],credentials=credentials,if_exists='replace')
     send_email(
     subject="NBA TEAM DATA CLEANED",
