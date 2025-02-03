@@ -9,4 +9,21 @@ I have ran into an issue with inconsistent date formatting causing issues with c
 Plans:
 I plan to finish my cleaning script and start fitting models.
 
+Time:
 I spent 2 hours since last Tuesday on my capstone project.
+
+************************************************************************************************************************************************************************************
+2/3/2025
+
+Progress:
+My automatic collection of data and cleaning of data has been completed. I have also implemented a separate dataset for modeling vs predicting. 
+This was because the way the rolling averages are calculated in my prediction vs modeling datasets to avoid data leakage.
+
+Problems:
+I have fixed the inconsistent date formatting. The current issue I am dealing with is trades. I plan to implement a script that scrapes who is playing every night when using my models to create predictions.
+
+Plans:
+This week I want to fit and evaluate models to my data and start and implement a script to automatically update these models with new data every week.
+
+Time:
+I spent around 10 hours since last tuesday on this.
