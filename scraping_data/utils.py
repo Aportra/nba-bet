@@ -30,7 +30,8 @@ def establish_driver(local = False):
         geckodriver_path = '/usr/local/bin/geckodriver'
         service = Service(executable_path=geckodriver_path, log_path="geckodriver.log")
         driver = webdriver.Firefox(service = service,options = options)
-        
+        driver.set_window_size(1920, 1080)
+
         return driver
     else: 
         options = Options()
