@@ -86,9 +86,9 @@ def clean_current_player_data(data):
             for feature in features_for_rolling:
                 
                 #using shifted windows for rolling data to prevent data leakage
-                rolling_avg = data_for_rolling[data_for_rolling['player'] == player][f'{feature}'].rolling(window = 3).mean().shift(1).reset_index(level = 0,drop = True)
+                rolling_avg = data_for_rolling[data_for_rolling['player'] == player][f'{feature}'].apply(lambda x: x.shift(1)).rolling(window = 3,min_periods=3).mean().reset_index(level = 0,drop = True)
                 
-                predict_avg = predict_data_for_rolling[predict_data_for_rolling['player'] == player][f'{feature}'].rolling(window = 3).mean().reset_index(level = 0,drop = True)
+                predict_avg = predict_data_for_rolling[predict_data_for_rolling['player'] == player][f'{feature}'].rolling(window = 3,min_periods=3).mean().reset_index(level = 0,drop = True)
 
                 model_df[f'{feature}_3gm_avg'] = round(rolling_avg.iloc[-1], 2) if not rolling_avg.empty else 0
                 prediction_data[f'{feature}_3gm_avg'] = round(predict_avg.iloc[-1], 2) if not predict_avg.empty else 0
@@ -171,8 +171,8 @@ def clean_past_player_data():
 
         #using shifted windows for rolling data to prevent data leakage
         for feature in features_for_rolling:
-            modeling_data[f'{feature}_3gm_avg'] = modeling_data.groupby(by = 'player')[f'{feature}'].rolling(window = 3).mean().shift(1).reset_index(level = 0,drop=True).round(2)
-            prediction_data[f'{feature}_3gm_avg'] = prediction_data.groupby(by = 'player')[f'{feature}'].rolling(window = 3).mean().reset_index(level = 0,drop=True).round(2)
+            modeling_data[f'{feature}_3gm_avg'] = modeling_data.groupby(by = 'player')[f'{feature}'].apply(lambda x: x.shift(1).rolling(window = 3,min_periods=3).mean()).reset_index(level = 0,drop=True).round(2)
+            prediction_data[f'{feature}_3gm_avg'] = prediction_data.groupby(by = 'player')[f'{feature}'].rolling(window = 3,min_periods=3).mean().reset_index(level = 0,drop=True).round(2)
         
 
 
@@ -239,8 +239,8 @@ def clean_past_team_ratings():
 
         #using shifted windows for rolling data to prevent data leakage
         for column in num_columns:
-            modeling_data[f'{column}_3gm_avg'] = modeling_data.groupby(by = 'team')[column].rolling(window = 3).mean().shift(1).reset_index(level = 0,drop = True).round(2)
-            prediction_data[f'{column}_3gm_avg'] = prediction_data.groupby(by = 'team')[column].rolling(window = 3).mean().reset_index(level = 0,drop = True).round(2)
+            modeling_data[f'{column}_3gm_avg'] = modeling_data.groupby(by = 'team')[column].apply(lambda x: x.shift(1).rolling(window = 3,min_periods=3).mean()).reset_index(level = 0,drop = True).round(2)
+            prediction_data[f'{column}_3gm_avg'] = prediction_data.groupby(by = 'team')[column].rolling(window = 3,min_periods=3).mean().reset_index(level = 0,drop = True).round(2)
 
 
         model_data.append(modeling_data)
@@ -327,20 +327,20 @@ def clean_current_team_ratings(game_data):
         for feature in features_for_rolling:
             
             #using shifted windows for rolling data to prevent data leakage
-            rolling_avg = data_for_rolling[data_for_rolling['team'] == team][f'{feature}'].rolling(window = 3).mean().shift(1).reset_index(level = 0,drop = True)
-            predict_avg = predict_data_for_rolling[predict_data_for_rolling['team'] == team][f'{feature}'].rolling(window = 3).mean().reset_index(level = 0,drop = True)
+            rolling_avg = data_for_rolling[data_for_rolling['team'] == team][f'{feature}'].apply(lambda x: x.shift(1).rolling(window = 3,min_periods=3).mean()).reset_index(level = 0,drop = True)
+            predict_avg = predict_data_for_rolling[predict_data_for_rolling['team'] == team][f'{feature}'].rolling(window = 3,min_periods =4).mean().reset_index(level = 0,drop = True)
 
             team_data[f'{feature}_3gm_avg'] = round(rolling_avg.iloc[-1], 2) if not rolling_avg.empty else 0
             predict_data[f'{feature}_3gm_avg'] = round(predict_avg.iloc[-1], 2) if not predict_avg.empty else 0
-        team_data['season'] = '2024-2025'
-        predict_data['season'] = '2024-2025'
+
 
         team_dfs.append(team_data)
         predict_dfs.append(predict_data)
 
     team_data = pd.concat(team_dfs,ignore_index=True)
     predict_data = pd.concat(predict_dfs,ignore_index= True)
-    
+
+
     team_data.loc[:, team_data.columns != 'game_date'] = team_data.drop(columns=['game_date']).fillna(0)
     predict_data.loc[:, predict_data.columns != 'game_date'] = predict_data.drop(columns=['game_date']).fillna(0)
 
