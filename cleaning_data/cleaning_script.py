@@ -284,7 +284,6 @@ def clean_past_team_ratings():
         pandas_gbq.to_gbq(predict_data,destination_table='capstone_data.team_prediction_data',project_id='miscellaneous-projects-444203',table_schema=[{'name':'game_date','type':'DATE'}],if_exists='replace')
 
 
-clean_past_player_data()
 
 def clean_current_team_ratings(game_data):
     try:
