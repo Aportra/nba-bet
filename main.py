@@ -9,9 +9,3 @@ data,length = scrape_current_games()
 print("Cleaning Data")
 
 clean_current_player_data(data)
-
-print("Starting scraping of team data")
-
-team_data = scrape_current_team_data(length) 
-
-clean_current_team_ratings(team_data)

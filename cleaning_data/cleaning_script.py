@@ -87,13 +87,13 @@ def clean_current_player_data(data):
                     
                     #using shifted windows for rolling data to prevent data leakage
                     if len(data_for_rolling) > 3:
-                        rolling_avg = data_for_rolling[data_for_rolling['player'] == player][f'{feature}'].apply(lambda x: x.shift(1)).rolling(window = 3,min_periods=3).mean().reset_index(level = 0,drop = True)
+                        rolling_avg = data_for_rolling.groupby('player')[f'{feature}'].apply(lambda x: x.shift(1)).rolling(window = 3,min_periods=3).mean().reset_index(level = 0,drop = True)
                     else:
-                        rolling_avg = pd.Series(dtype=float)
-                    if len(data_for_rolling) >= 3:
-                        predict_avg = predict_data_for_rolling[predict_data_for_rolling['player'] == player][f'{feature}'].rolling(window = 3,min_periods=3).mean().reset_index(level = 0,drop = True)
+                        print('not working')
+                    if len(predict_data_for_rolling) >= 3:
+                        predict_avg = predict_data_for_rolling.groupby('player')[f'{feature}'].rolling(window = 3,min_periods=3).mean().reset_index(level = 0,drop = True)
                     else:
-                        rolling_avg = pd.Series(dtype=float)
+                        print('not working')
 
                     model_df[f'{feature}_3gm_avg'] = round(rolling_avg.iloc[-1], 2) if not rolling_avg.empty else 0
                     prediction_data[f'{feature}_3gm_avg'] = round(predict_avg.iloc[-1], 2) if not predict_avg.empty else 0
@@ -108,32 +108,34 @@ def clean_current_player_data(data):
         model_data = pd.concat(model_dfs,ignore_index = True)
         predict_data = pd.concat(prediction_dfs,ignore_index = True)
         
-        model_data.loc[:, model_data.columns != 'game_date'] = model_data.drop(columns=['game_date']).fillna(0)
-        predict_data.loc[:, predict_data.columns != 'game_date'] = predict_data.drop(columns=['game_date']).fillna(0)
+        print(model_data)
+        # model_data.loc[:, model_data.columns != 'game_date'] = model_data.drop(columns=['game_date']).fillna(0)
+        # predict_data.loc[:, predict_data.columns != 'game_date'] = predict_data.drop(columns=['game_date']).fillna(0)
 
-        model_data['season'] = model_data['game_date'].apply(
-            lambda x: f"{x.year}-{x.year + 1}" if x.month >= 10 else f"{x.year - 1}-{x.year}"
-        )
-        predict_data['season'] = predict_data['game_date'].apply(
-            lambda x: f"{x.year}-{x.year + 1}" if x.month >= 10 else f"{x.year - 1}-{x.year}"
-        )
+        # model_data['season'] = model_data['game_date'].apply(
+        #     lambda x: f"{x.year}-{x.year + 1}" if x.month >= 10 else f"{x.year - 1}-{x.year}"
+        # )
+        # predict_data['season'] = predict_data['game_date'].apply(
+        #     lambda x: f"{x.year}-{x.year + 1}" if x.month >= 10 else f"{x.year - 1}-{x.year}"
+        # )
 
 
-        if not local:
-            pandas_gbq.to_gbq(model_data,destination_table = f'capstone_data.player_modeling_data',project_id='miscellaneous-projects-444203',if_exists= 'append',credentials=credentials,table_schema=[{'name':'game_date','type':'DATE'},])
-            pandas_gbq.to_gbq(predict_data,destination_table = f'capstone_data.player_prediction_data',project_id='miscellaneous-projects-444203',if_exists= 'append',credentials=credentials,table_schema=[{'name':'game_date','type':'DATE'},])
-        else:
-            pandas_gbq.to_gbq(model_data,destination_table = f'capstone_data.player_modeling_data',project_id='miscellaneous-projects-444203',if_exists= 'append',table_schema=[{'name':'game_date','type':'DATE'},])
-            pandas_gbq.to_gbq(predict_data,destination_table = f'capstone_data.player_prediction_data',project_id='miscellaneous-projects-444203',if_exists= 'append',table_schema=[{'name':'game_date','type':'DATE'},])
-        send_email(
-            subject="NBA PLAYER DATA CLEANED",
-            body="Data uploaded to NBA_Cleaned"
-            )
+        # if not local:
+        #     pandas_gbq.to_gbq(model_data,destination_table = f'capstone_data.player_modeling_data',project_id='miscellaneous-projects-444203',if_exists= 'append',credentials=credentials,table_schema=[{'name':'game_date','type':'DATE'},])
+        #     pandas_gbq.to_gbq(predict_data,destination_table = f'capstone_data.player_prediction_data',project_id='miscellaneous-projects-444203',if_exists= 'append',credentials=credentials,table_schema=[{'name':'game_date','type':'DATE'},])
+        # else:
+        #     pandas_gbq.to_gbq(model_data,destination_table = f'capstone_data.player_modeling_data',project_id='miscellaneous-projects-444203',if_exists= 'append',table_schema=[{'name':'game_date','type':'DATE'},])
+        #     pandas_gbq.to_gbq(predict_data,destination_table = f'capstone_data.player_prediction_data',project_id='miscellaneous-projects-444203',if_exists= 'append',table_schema=[{'name':'game_date','type':'DATE'},])
+        # send_email(
+        #     subject="NBA PLAYER DATA CLEANED",
+        #     body="Data uploaded to NBA_Cleaned"
+        #     )
     except Exception as e:
-            send_email(
-            subject="NBA PLAYER Cleaning Failed",
-            body=f"{e}"
-            )
+            # send_email(
+            # subject="NBA PLAYER Cleaning Failed",
+            # body=f"{e}"
+            # )
+        print(e)
 
 
 
