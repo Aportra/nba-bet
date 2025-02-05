@@ -81,6 +81,17 @@ def clean_current_player_data(data):
                 prediction_data = data[data['player'] == f'{player}'].copy()
 
                 data_for_rolling = modeling_data[modeling_data['player'] == player].sort_values(by='game_date')
+                # Ensure we have enough data for rolling calculations
+                if len(data_for_rolling) > 3:
+                    rolling_avg = data_for_rolling[f'{feature}'].shift(1).rolling(window=3, min_periods=3).mean()
+                else:
+                    rolling_avg = pd.Series(dtype=float)  # Empty Series if not enough data
+
+                if len(predict_data_for_rolling) > 3:
+                    predict_avg = predict_data_for_rolling[f'{feature}'].rolling(window=3, min_periods=3).mean()
+                else:
+                    predict_avg = pd.Series(dtype=float)
+
                 predict_data_for_rolling = predict_data[predict_data['player'] == player].sort_values(by='game_date')
 
                 for feature in features_for_rolling:
@@ -273,7 +284,7 @@ def clean_past_team_ratings():
         pandas_gbq.to_gbq(predict_data,destination_table='capstone_data.team_prediction_data',project_id='miscellaneous-projects-444203',table_schema=[{'name':'game_date','type':'DATE'}],if_exists='replace')
 
 
-
+clean_past_player_data()
 
 def clean_current_team_ratings(game_data):
     try:
