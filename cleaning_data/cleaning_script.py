@@ -95,8 +95,8 @@ def clean_current_player_data(data):
                     else:
                         print('not working')
 
-                    model_df[f'{feature}_3gm_avg'] = round(rolling_avg.iloc[-1], 2) if not rolling_avg.empty else 0
-                    prediction_data[f'{feature}_3gm_avg'] = round(predict_avg.iloc[-1], 2) if not predict_avg.empty else 0
+                    model_df[f'{feature}_3gm_avg'] = round(rolling_avg.tail(1).values[0],2) if not rolling_avg else 0
+                    prediction_data[f'{feature}_3gm_avg'] = round(predict_avg.tail(1).values[0],2) if not predict_avg.empty else 0
 
                 model_df.dropna(inplace = True, ignore_index = True)
                 prediction_data.dropna(inplace = True, ignore_index = True)
