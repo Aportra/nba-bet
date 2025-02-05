@@ -1,18 +1,4 @@
-1-28-2025
-
-Progress:
-I have begun cleaning my scraped data and creating a script that will automatically clean new data coming in.
-
-Problems: 
-I have ran into an issue with inconsistent date formatting causing issues with calculating rolling averages. I am fixing this by explicitly stating the date format in my schema.
-
-Plans:
-I plan to finish my cleaning script and start fitting models.
-
-Time:
-I spent 2 hours since last Tuesday on my capstone project.
-
-************************************************************************************************************************************************************************************
+******************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************
 2/3/2025
 
 Progress:
@@ -27,3 +13,19 @@ This week I want to fit and evaluate models to my data and start and implement a
 
 Time:
 I spent around 10 hours since last tuesday on this.
+
+******************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************
+1-28-2025
+
+Progress:
+I have begun cleaning my scraped data and creating a script that will automatically clean new data coming in.
+
+Problems: 
+I have ran into an issue with inconsistent date formatting causing issues with calculating rolling averages. I am fixing this by explicitly stating the date format in my schema.
+
+Plans:
+I plan to finish my cleaning script and start fitting models.
+
+Time:
+I spent 2 hours since last Tuesday on my capstone project.
+******************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************
