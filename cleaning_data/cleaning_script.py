@@ -7,6 +7,13 @@ from scraping_data.utils import send_email
 import regex as re
 import pandas as pd
 import pandas_gbq
+import unicodedata
+
+
+def remove_accents(input_str):
+    return ''.join(
+        c for c in unicodedata.normalize('NFKD', input_str) if not unicodedata.combining(c)
+    )
 
 
 def convert_minutes_to_decimal(min_played):
@@ -32,6 +39,8 @@ def clean_current_player_data(data):
             data.rename(columns = {column:column.lower()},inplace= True)
 
         data['min'] = data['min'].apply(convert_minutes_to_decimal)
+
+        data['player'] = data['player'].apply(lambda x: remove_accents(x))
         
         features_for_rolling = [feature for feature in data.columns[1:21]] 
 
@@ -72,7 +81,6 @@ def clean_current_player_data(data):
             predict_data = pd.DataFrame(pandas_gbq.read_gbq(prediction_query,project_id='miscellaneous-projects-444203',credentials=credentials))
 
 
-        print(modeling_data['player'].unique())
         model_dfs = []
         prediction_dfs = []
 
@@ -89,14 +97,15 @@ def clean_current_player_data(data):
                     if len(data_for_rolling) > 3:
                         rolling_avg = data_for_rolling.groupby('player')[f'{feature}'].apply(lambda x: x.shift(1)).rolling(window = 3,min_periods=3).mean().reset_index(level = 0,drop = True)
                     else:
-                        print('not working')
+                        data_for_rolling = pd.Series(0, index=predict_data_for_rolling.index)
                     if len(predict_data_for_rolling) >= 3:
                         predict_avg = predict_data_for_rolling.groupby('player')[f'{feature}'].rolling(window = 3,min_periods=3).mean().reset_index(level = 0,drop = True)
                     else:
-                        print('not working')
+                        predict_avg = pd.Series(0, index=predict_data_for_rolling.index)
 
-                    model_df[f'{feature}_3gm_avg'] = round(rolling_avg.tail(1).values[0],2) if rolling_avg.empty else 0
-                    prediction_data[f'{feature}_3gm_avg'] = round(predict_avg.tail(1).values[0],2) if predict_avg.empty else 0
+                    model_df[f'{feature}_3gm_avg'] = round(rolling_avg.iloc[-1], 2) if not rolling_avg.empty else 0
+                    prediction_data[f'{feature}_3gm_avg'] = round(predict_avg.iloc[-1], 2) if not predict_avg.empty else 0
+
 
                 model_df.dropna(inplace = True, ignore_index = True)
                 prediction_data.dropna(inplace = True, ignore_index = True)
@@ -120,21 +129,22 @@ def clean_current_player_data(data):
         )
 
 
-        if not local:
-            pandas_gbq.to_gbq(model_data,destination_table = f'capstone_data.player_modeling_data',project_id='miscellaneous-projects-444203',if_exists= 'append',credentials=credentials,table_schema=[{'name':'game_date','type':'DATE'},])
-            pandas_gbq.to_gbq(predict_data,destination_table = f'capstone_data.player_prediction_data',project_id='miscellaneous-projects-444203',if_exists= 'append',credentials=credentials,table_schema=[{'name':'game_date','type':'DATE'},])
-        else:
-            pandas_gbq.to_gbq(model_data,destination_table = f'capstone_data.player_modeling_data',project_id='miscellaneous-projects-444203',if_exists= 'append',table_schema=[{'name':'game_date','type':'DATE'},])
-            pandas_gbq.to_gbq(predict_data,destination_table = f'capstone_data.player_prediction_data',project_id='miscellaneous-projects-444203',if_exists= 'append',table_schema=[{'name':'game_date','type':'DATE'},])
-        send_email(
-            subject="NBA PLAYER DATA CLEANED",
-            body="Data uploaded to NBA_Cleaned"
-            )
+        # if not local:
+        #     pandas_gbq.to_gbq(model_data,destination_table = f'capstone_data.player_modeling_data',project_id='miscellaneous-projects-444203',if_exists= 'append',credentials=credentials,table_schema=[{'name':'game_date','type':'DATE'},])
+        #     pandas_gbq.to_gbq(predict_data,destination_table = f'capstone_data.player_prediction_data',project_id='miscellaneous-projects-444203',if_exists= 'append',credentials=credentials,table_schema=[{'name':'game_date','type':'DATE'},])
+        # else:
+        #     pandas_gbq.to_gbq(model_data,destination_table = f'capstone_data.player_modeling_data',project_id='miscellaneous-projects-444203',if_exists= 'append',table_schema=[{'name':'game_date','type':'DATE'},])
+        #     pandas_gbq.to_gbq(predict_data,destination_table = f'capstone_data.player_prediction_data',project_id='miscellaneous-projects-444203',if_exists= 'append',table_schema=[{'name':'game_date','type':'DATE'},])
+        # send_email(
+        #     subject="NBA PLAYER DATA CLEANED",
+        #     body="Data uploaded to NBA_Cleaned"
+        #     )
     except Exception as e:
-            send_email(
-            subject="NBA PLAYER Cleaning Failed",
-            body=f"{e}"
-            )
+            # send_email(
+            # subject="NBA PLAYER Cleaning Failed",
+            # body=f"{e}"
+            # )
+        print(e)
 
 
 
@@ -171,6 +181,7 @@ def clean_past_player_data():
 
         modeling_data.dropna(inplace = True, ignore_index = True)
         
+        modeling_data['player'] = modeling_data['player'].apply(lambda x: remove_accents(x))
         modeling_data['player'] = modeling_data['player'].str.replace('.', '', regex=False) 
 
         modeling_data['min'] = modeling_data['min'].apply(convert_minutes_to_decimal)
@@ -211,6 +222,7 @@ def clean_past_player_data():
     else:
         pandas_gbq.to_gbq(model_data,destination_table = f'capstone_data.player_modeling_data',project_id='miscellaneous-projects-444203',if_exists='replace',credentials=credentials,table_schema=[{'name':'game_date','type':'DATE'},])
         pandas_gbq.to_gbq(predict_data,destination_table = f'capstone_data.player_prediction_data',project_id='miscellaneous-projects-444203',if_exists='replace',credentials=credentials,table_schema=[{'name':'game_date','type':'DATE'},])
+
 
 
 def clean_past_team_ratings():
