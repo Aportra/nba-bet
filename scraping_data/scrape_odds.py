@@ -105,15 +105,21 @@ def process_categories(category):
         body = str(f'{len(data)} players odds scraped as of {scrape_date.date()}')
         )
 
-    except:
+    except Exception as e:
         utils.send_email(
         subject = str(f"{category} failed processing retrying"),
-        body = str(f'Retrying scraping script for {category}')
+        body = str(f'Retrying scraping script for {category}, \n {e}')
         )
         process_categories(category)
 
-
+retries = 0
 for category in urls:
-    process_categories(category)
+    if retries < 3:
+        process_categories(category)
+    else:
+        utils.send_email(
+        subject = str(f"{category} failed processing max retries occurred"),
+        body = str(f'Retrying scraping script for {category}')
+        )
 
 driver.quit()
