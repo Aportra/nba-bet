@@ -81,25 +81,19 @@ def clean_current_player_data(data):
                 prediction_data = data[data['player'] == f'{player}'].copy()
 
                 data_for_rolling = modeling_data[modeling_data['player'] == player].sort_values(by='game_date')
-                # Ensure we have enough data for rolling calculations
-                if len(data_for_rolling) > 3:
-                    rolling_avg = data_for_rolling[f'{feature}'].shift(1).rolling(window=3, min_periods=3).mean()
-                else:
-                    rolling_avg = pd.Series(dtype=float)  # Empty Series if not enough data
-
-                if len(predict_data_for_rolling) >= 3:
-                    predict_avg = predict_data_for_rolling[f'{feature}'].rolling(window=3, min_periods=3).mean()
-                else:
-                    predict_avg = pd.Series(dtype=float)
-
                 predict_data_for_rolling = predict_data[predict_data['player'] == player].sort_values(by='game_date')
 
                 for feature in features_for_rolling:
                     
                     #using shifted windows for rolling data to prevent data leakage
-                    rolling_avg = data_for_rolling[data_for_rolling['player'] == player][f'{feature}'].apply(lambda x: x.shift(1)).rolling(window = 3,min_periods=3).mean().reset_index(level = 0,drop = True)
-                    
-                    predict_avg = predict_data_for_rolling[predict_data_for_rolling['player'] == player][f'{feature}'].rolling(window = 3,min_periods=3).mean().reset_index(level = 0,drop = True)
+                    if len(data_for_rolling) > 3:
+                        rolling_avg = data_for_rolling[data_for_rolling['player'] == player][f'{feature}'].apply(lambda x: x.shift(1)).rolling(window = 3,min_periods=3).mean().reset_index(level = 0,drop = True)
+                    else:
+                        rolling_avg = pd.Series(dtype=float)
+                    if len(data_for_rolling) >= 3:
+                        predict_avg = predict_data_for_rolling[predict_data_for_rolling['player'] == player][f'{feature}'].rolling(window = 3,min_periods=3).mean().reset_index(level = 0,drop = True)
+                    else:
+                        rolling_avg = pd.Series(dtype=float)
 
                     model_df[f'{feature}_3gm_avg'] = round(rolling_avg.iloc[-1], 2) if not rolling_avg.empty else 0
                     prediction_data[f'{feature}_3gm_avg'] = round(predict_avg.iloc[-1], 2) if not predict_avg.empty else 0
