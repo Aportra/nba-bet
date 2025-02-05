@@ -47,6 +47,15 @@ def clean_current_player_data(data):
         players = data['player'].unique()
 
         print(len(players))
+
+        today = date.today().date()
+
+        if today.month >= 10:
+            season = f"{today.year}-{today.year + 1}" 
+
+        else: 
+            season = f"{today.year - 1}-{today.year}"
+
         modeling_query = f"""
         WITH RankedGames AS (
             SELECT *,
@@ -56,7 +65,7 @@ def clean_current_player_data(data):
         )
         SELECT *
         FROM RankedGames
-        WHERE game_rank <= 6
+        WHERE game_rank <= 6 and season = '{season}'
         ORDER BY player, game_date DESC;
         """
         
@@ -69,7 +78,7 @@ def clean_current_player_data(data):
         )
         SELECT *
         FROM RankedGames
-        WHERE game_rank <= 4
+        WHERE game_rank <= 4 and season = '{season}'
         ORDER BY player, game_date DESC;
         """
         print('pulling past modeling_data')
@@ -95,13 +104,13 @@ def clean_current_player_data(data):
                     
                     #using shifted windows for rolling data to prevent data leakage
                     if len(data_for_rolling) > 3:
-                        rolling_avg = data_for_rolling.groupby('player')[f'{feature}'].apply(lambda x: x.shift(1)).rolling(window = 3,min_periods=3).mean().reset_index(level = 0,drop = True)
+                        rolling_avg = data_for_rolling.groupby('player')[f'{feature}'].apply(lambda x: x.shift(1).rolling(window = 3,min_periods=3).mean()).reset_index(level = 0,drop = True)
                     else:
-                        rolling_avg = pd.Series(0, index=predict_data_for_rolling.index)
+                        rolling_avg = pd.Series(0,index=rolling_avg.index)
                     if len(predict_data_for_rolling) >= 3:
                         predict_avg = predict_data_for_rolling.groupby('player')[f'{feature}'].rolling(window = 3,min_periods=3).mean().reset_index(level = 0,drop = True)
                     else:
-                        predict_avg = pd.Series(0, index=predict_data_for_rolling.index)
+                        predict_avg = pd.Series(0,index=predict_data_for_rolling.index)
 
                     model_df[f'{feature}_3gm_avg'] = round(rolling_avg.iloc[-1], 2) if not rolling_avg.empty else 0
                     prediction_data[f'{feature}_3gm_avg'] = round(predict_avg.iloc[-1], 2) if not predict_avg.empty else 0
