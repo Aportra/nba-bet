@@ -87,7 +87,7 @@ def clean_current_player_data(data):
                 else:
                     rolling_avg = pd.Series(dtype=float)  # Empty Series if not enough data
 
-                if len(predict_data_for_rolling) > 3:
+                if len(predict_data_for_rolling) >= 3:
                     predict_avg = predict_data_for_rolling[f'{feature}'].rolling(window=3, min_periods=3).mean()
                 else:
                     predict_avg = pd.Series(dtype=float)
