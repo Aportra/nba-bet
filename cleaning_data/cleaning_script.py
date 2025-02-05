@@ -97,7 +97,7 @@ def clean_current_player_data(data):
                     if len(data_for_rolling) > 3:
                         rolling_avg = data_for_rolling.groupby('player')[f'{feature}'].apply(lambda x: x.shift(1)).rolling(window = 3,min_periods=3).mean().reset_index(level = 0,drop = True)
                     else:
-                        data_for_rolling = pd.Series(0, index=predict_data_for_rolling.index)
+                        rolling_avg = pd.Series(0, index=predict_data_for_rolling.index)
                     if len(predict_data_for_rolling) >= 3:
                         predict_avg = predict_data_for_rolling.groupby('player')[f'{feature}'].rolling(window = 3,min_periods=3).mean().reset_index(level = 0,drop = True)
                     else:
