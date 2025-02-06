@@ -358,8 +358,8 @@ def clean_current_team_ratings(game_data):
             for feature in features_for_rolling:
                 
                 #using shifted windows for rolling data to prevent data leakage
-                rolling_avg = data_for_rolling[data_for_rolling['team'] == team][f'{feature}'].apply(lambda x: x.shift(1).rolling(window = 3,min_periods=3).mean()).reset_index(level = 0,drop = True)
-                predict_avg = predict_data_for_rolling[predict_data_for_rolling['team'] == team][f'{feature}'].rolling(window = 3,min_periods =4).mean().reset_index(level = 0,drop = True)
+                rolling_avg = data_for_rolling.groupby('team')[f'{feature}'].apply(lambda x: x.shift(1).rolling(window = 3,min_periods=3).mean()).reset_index(level = 0,drop = True)
+                predict_avg = predict_data_for_rolling.groupby('team')[f'{feature}'].rolling(window = 3,min_periods =3).mean().reset_index(level = 0,drop = True)
 
                 team_data[f'{feature}_3gm_avg'] = round(rolling_avg.iloc[-1], 2) if not rolling_avg.empty else 0
                 predict_data[f'{feature}_3gm_avg'] = round(predict_avg.iloc[-1], 2) if not predict_avg.empty else 0
