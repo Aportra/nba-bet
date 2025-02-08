@@ -13,7 +13,7 @@ import pandas_gbq
 import utils
 import pandas as pd
 
-driver = utils.establish_driver()
+driver = utils.establish_driver(local = True)
 # options = Options()
 # options.add_argument('--headless')
 
@@ -100,26 +100,28 @@ def process_categories(category):
         else:
             pandas_gbq.to_gbq(combined_data,project_id= 'miscellaneous-projects-444203',destination_table= f'miscellaneous-projects-444203.capstone_data.player_{category}_odds',if_exists = 'append')
 
-        utils.send_email(
-        subject = str(f"{category} ODDS SCRAPING: COMPLTETED # OF PLAYERS {len(data)}"),
-        body = str(f'{len(data)} players odds scraped as of {scrape_date.date()}')
-        )
+        # utils.send_email(
+        # subject = str(f"{category} ODDS SCRAPING: COMPLTETED # OF PLAYERS {len(data)}"),
+        # body = str(f'{len(data)} players odds scraped as of {scrape_date.date()}')
+        # )
 
     except Exception as e:
         utils.send_email(
         subject = str(f"{category} failed processing retrying"),
         body = str(f'Retrying scraping script for {category}, \n {e}')
         )
+        driver.quit()
         process_categories(category)
 
-retries = 0
+retries = 0 #put for loop in function and this will allow for retrying more effectively using recursion i believe that driver.quit() will help with the issues of not loading correctly.
 for category in urls:
     if retries < 3:
         process_categories(category)
     else:
-        utils.send_email(
-        subject = str(f"{category} failed processing max retries occurred"),
-        body = str(f'Retrying scraping script for {category}')
-        )
+        # utils.send_email(
+        # subject = str(f"{category} failed processing max retries occurred"),
+        # body = str(f'Retrying scraping script for {category}')
+        # )
+        print("whoops")
 
 driver.quit()
