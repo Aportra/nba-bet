@@ -18,7 +18,7 @@ nba_teams = [
 ]
 
 def scrape_team_schedule(nba_teams):
-    driver = utils.establish_driver(local = True)
+    driver = utils.establish_driver()
     url = 'https://www.espn.com/nba/team/schedule/_/name/'
 
 
