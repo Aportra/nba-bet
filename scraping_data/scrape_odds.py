@@ -99,16 +99,16 @@ def process_categories(category):
         else:
             pandas_gbq.to_gbq(combined_data,project_id= 'miscellaneous-projects-444203',destination_table= f'miscellaneous-projects-444203.capstone_data.player_{category}_odds',if_exists = 'append')
 
-        # utils.send_email(
-        # subject = str(f"{category} ODDS SCRAPING: COMPLTETED # OF PLAYERS {len(data)}"),
-        # body = str(f'{len(data)} players odds scraped as of {scrape_date.date()}')
-        # )
+        utils.send_email(
+        subject = str(f"{category} ODDS SCRAPING: COMPLTETED # OF PLAYERS {len(data)}"),
+        body = str(f'{len(data)} players odds scraped as of {scrape_date.date()}')
+        )
         print('job completed') 
     except Exception as e:
-        # utils.send_email(
-        # subject = str(f"{category} failed processing retrying"),
-        # body = str(f'Retrying scraping script for {category}')
-        # )
+        utils.send_email(
+        subject = str(f"{category} failed processing retrying"),
+        body = str(f'Retrying scraping script for {category}')
+        )
         try:
             driver.quit()
         except:
