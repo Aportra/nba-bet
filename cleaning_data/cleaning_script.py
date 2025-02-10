@@ -92,6 +92,13 @@ def clean_current_player_data(data):
 
         model_dfs = []
         prediction_dfs = []
+        
+        modeling_data['season'] = modeling_data['game_date'].apply(
+            lambda x: f"{x.year}-{x.year + 1}" if x.month >= 10 else f"{x.year - 1}-{x.year}"
+        )
+        predict_data['season'] = predict_data['game_date'].apply(
+            lambda x: f"{x.year}-{x.year + 1}" if x.month >= 10 else f"{x.year - 1}-{x.year}"
+        )
 
         for idx,player in enumerate(players):
                 model_df = data[data['player'] == f'{player}'].copy()
@@ -115,6 +122,12 @@ def clean_current_player_data(data):
                     model_df[f'{feature}_3gm_avg'] = round(rolling_avg.iloc[-1], 2) if not rolling_avg.empty else 0
                     prediction_data[f'{feature}_3gm_avg'] = round(predict_avg.iloc[-1], 2) if not predict_avg.empty else 0
 
+                    modeling_data[f'{feature}_season'] = round(modeling_data.groupby(by=['player','season'])[feature].expanding().mean().shift(1).reset_index(level = [0,1], drop=True),2)
+                    prediction_data[f'{feature}_season'] = round(prediction_data.groupby(by=['player','season'])[feature].expanding().mean().reset_index(level = [0,1], drop=True),2)
+
+                    modeling_data[f'{feature}_momentum'] = modeling_data[f'{feature}_season'] - modeling_data[f'{feature}_3gm_avg']
+                    prediction_data[f'{feature}_momentum'] = prediction_data[f'{feature}_season'] - prediction_data[f'{feature}_3gm_avg']
+
 
                 model_df.dropna(inplace = True, ignore_index = True)
                 prediction_data.dropna(inplace = True, ignore_index = True)
@@ -130,12 +143,7 @@ def clean_current_player_data(data):
         model_data.loc[:, model_data.columns != 'game_date'] = model_data.drop(columns=['game_date']).fillna(0)
         predict_data.loc[:, predict_data.columns != 'game_date'] = predict_data.drop(columns=['game_date']).fillna(0)
 
-        model_data['season'] = model_data['game_date'].apply(
-            lambda x: f"{x.year}-{x.year + 1}" if x.month >= 10 else f"{x.year - 1}-{x.year}"
-        )
-        predict_data['season'] = predict_data['game_date'].apply(
-            lambda x: f"{x.year}-{x.year + 1}" if x.month >= 10 else f"{x.year - 1}-{x.year}"
-        )
+
 
 
         if not local:
@@ -200,11 +208,25 @@ def clean_past_player_data():
 
         prediction_data = modeling_data.copy()
 
+        modeling_data['season'] = modeling_data['game_date'].apply(
+            lambda x: f"{x.year}-{x.year + 1}" if x.month >= 10 else f"{x.year - 1}-{x.year}"
+        )
+        prediction_data['season'] = prediction_data['game_date'].apply(
+            lambda x: f"{x.year}-{x.year + 1}" if x.month >= 10 else f"{x.year - 1}-{x.year}"
+        )
+
         #using shifted windows for rolling data to prevent data leakage
         for feature in features_for_rolling:
             modeling_data[f'{feature}_3gm_avg'] = modeling_data.groupby(by = 'player')[f'{feature}'].apply(lambda x: x.shift(1).rolling(window = 3,min_periods=3).mean()).reset_index(level = 0,drop=True).round(2)
             prediction_data[f'{feature}_3gm_avg'] = prediction_data.groupby(by = 'player')[f'{feature}'].rolling(window = 3,min_periods=3).mean().reset_index(level = 0,drop=True).round(2)
-        
+            
+            modeling_data[f'{feature}_season'] = round(modeling_data.groupby(by=['player','season'])[feature].expanding().mean().shift(1).reset_index(level = [0,1], drop=True),2)
+            prediction_data[f'{feature}_season'] = round(prediction_data.groupby(by=['player','season'])[feature].expanding().mean().reset_index(level = [0,1], drop=True),2)
+
+            modeling_data[f'{feature}_momentum'] = modeling_data[f'{feature}_season'] - modeling_data[f'{feature}_3gm_avg']
+            prediction_data[f'{feature}_momentum'] = prediction_data[f'{feature}_season'] - prediction_data[f'{feature}_3gm_avg']
+
+ 
 
 
         model_data.append(modeling_data)
@@ -215,13 +237,6 @@ def clean_past_player_data():
 
     model_data.loc[:, model_data.columns != 'game_date'] = model_data.drop(columns=['game_date']).fillna(0)
     predict_data.loc[:, predict_data.columns != 'game_date'] = predict_data.drop(columns=['game_date']).fillna(0)
-
-    model_data['season'] = model_data['game_date'].apply(
-        lambda x: f"{x.year}-{x.year + 1}" if x.month >= 10 else f"{x.year - 1}-{x.year}"
-    )
-    predict_data['season'] = predict_data['game_date'].apply(
-        lambda x: f"{x.year}-{x.year + 1}" if x.month >= 10 else f"{x.year - 1}-{x.year}"
-    )
 
 
     if local:
@@ -268,12 +283,23 @@ def clean_past_team_ratings():
 
         num_columns = modeling_data.columns[5:19]
 
+        modeling_data['season'] = modeling_data['game_date'].apply(
+            lambda x: f"{x.year}-{x.year + 1}" if x.month >= 10 else f"{x.year - 1}-{x.year}"
+        )
+        prediction_data['season'] = prediction_data['game_date'].apply(
+            lambda x: f"{x.year}-{x.year + 1}" if x.month >= 10 else f"{x.year - 1}-{x.year}"
+        )
 
         #using shifted windows for rolling data to prevent data leakage
         for column in num_columns:
             modeling_data[f'{column}_3gm_avg'] = modeling_data.groupby(by = 'team')[column].apply(lambda x: x.shift(1).rolling(window = 3,min_periods=3).mean()).reset_index(level = 0,drop = True).round(2)
             prediction_data[f'{column}_3gm_avg'] = prediction_data.groupby(by = 'team')[column].rolling(window = 3,min_periods=3).mean().reset_index(level = 0,drop = True).round(2)
+            
+            modeling_data[f'{column}_season'] = round(modeling_data.groupby(by=['team','season'])[column].expanding().mean().shift(1).reset_index(level = [0,1], drop=True),2)
+            prediction_data[f'{column}_season'] = round(prediction_data.groupby(by=['team','season'])[column].expanding().mean().reset_index(level = [0,1], drop=True),2)
 
+            modeling_data[f'{column}_momentum'] = modeling_data[f'{column}_season'] - modeling_data[f'{column}_3gm_avg']
+            prediction_data[f'{column}_momentum'] = prediction_data[f'{column}_season'] - prediction_data[f'{column}_3gm_avg']
 
         model_data.append(modeling_data)
         predict_data.append(prediction_data)
@@ -281,12 +307,6 @@ def clean_past_team_ratings():
     model_data = pd.concat(model_data,ignore_index = True)
     predict_data = pd.concat(predict_data,ignore_index = True)
 
-    model_data['season'] = model_data['game_date'].apply(
-        lambda x: f"{x.year}-{x.year + 1}" if x.month >= 10 else f"{x.year - 1}-{x.year}"
-    )
-    predict_data['season'] = predict_data['game_date'].apply(
-        lambda x: f"{x.year}-{x.year + 1}" if x.month >= 10 else f"{x.year - 1}-{x.year}"
-    )
 
 
     model_data.loc[:, model_data.columns != 'game_date'] = model_data.drop(columns=['game_date']).fillna(0)
@@ -348,6 +368,13 @@ def clean_current_team_ratings(game_data):
             modeling_data = pd.DataFrame(pandas_gbq.read_gbq(modeling_query,project_id='miscellaneous-projects-444203',credentials=credentials))
             prediction_data = pd.DataFrame(pandas_gbq.read_gbq(prediction_query,project_id='miscellaneous-projects-444203',credentials=credentials))
 
+        modeling_data['season'] = modeling_data['game_date'].apply(
+            lambda x: f"{x.year}-{x.year + 1}" if x.month >= 10 else f"{x.year - 1}-{x.year}"
+        )
+        prediction_data['season'] = prediction_data['game_date'].apply(
+            lambda x: f"{x.year}-{x.year + 1}" if x.month >= 10 else f"{x.year - 1}-{x.year}"
+        )
+
         for team in teams:
             team_data = game_data[game_data['team'] == f'{team}'].copy()
             predict_data = game_data[game_data['team'] == f'{team}'].copy()
@@ -364,6 +391,12 @@ def clean_current_team_ratings(game_data):
                 team_data[f'{feature}_3gm_avg'] = round(rolling_avg.iloc[-1], 2) if not rolling_avg.empty else 0
                 predict_data[f'{feature}_3gm_avg'] = round(predict_avg.iloc[-1], 2) if not predict_avg.empty else 0
 
+                team_data[f'{feature}_season'] = round(modeling_data.groupby(by=['team','season'])[feature].expanding().mean().shift(1).reset_index(level = [0,1], drop=True),2)
+                prediction_data[f'{feature}_season'] = round(prediction_data.groupby(by=['team','season'])[feature].expanding().mean().reset_index(level = [0,1], drop=True),2)
+
+                team_data[f'{feature}_momentum'] = modeling_data[f'{feature}_season'] - modeling_data[f'{feature}_3gm_avg']
+                prediction_data[f'{feature}_momentum'] = prediction_data[f'{feature}_season'] - prediction_data[f'{feature}_3gm_avg']
+
 
             team_dfs.append(team_data)
             predict_dfs.append(predict_data)
@@ -375,12 +408,7 @@ def clean_current_team_ratings(game_data):
         team_data.loc[:, team_data.columns != 'game_date'] = team_data.drop(columns=['game_date']).fillna(0)
         predict_data.loc[:, predict_data.columns != 'game_date'] = predict_data.drop(columns=['game_date']).fillna(0)
 
-        team_data['season'] = team_data['game_date'].apply(
-            lambda x: f"{x.year}-{x.year + 1}" if x.month >= 10 else f"{x.year - 1}-{x.year}"
-        )
-        predict_data['season'] = predict_data['game_date'].apply(
-            lambda x: f"{x.year}-{x.year + 1}" if x.month >= 10 else f"{x.year - 1}-{x.year}"
-        )
+
 
 
         if isinstance(team_data,pd.DataFrame) and isinstance(predict_data,pd.DataFrame):
