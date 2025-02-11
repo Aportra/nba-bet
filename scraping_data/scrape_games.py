@@ -110,7 +110,7 @@ def scrape_current_games():
             subject = str(f"NBA SCRAPING: COMPLTETED # OF GAMES {len(game_data)}"),
             body = str(f'{len(game_data)} games scraped as of {scrape_date.date()}')
         )
-            
+            print('successful') 
 
             return combined_dataframes,len(game_data)
             
@@ -141,6 +141,7 @@ def scrape_current_games():
             subject="NBA SCRAPING: SCRIPT CRASHED",
             body=error_message
         )
+        
     finally:
         driver.quit()
 

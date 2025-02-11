@@ -93,12 +93,10 @@ def clean_current_player_data(data):
         model_dfs = []
         prediction_dfs = []
         
-        modeling_data['season'] = modeling_data['game_date'].apply(
+        data['season'] = data['game_date'].apply(
             lambda x: f"{x.year}-{x.year + 1}" if x.month >= 10 else f"{x.year - 1}-{x.year}"
         )
-        predict_data['season'] = predict_data['game_date'].apply(
-            lambda x: f"{x.year}-{x.year + 1}" if x.month >= 10 else f"{x.year - 1}-{x.year}"
-        )
+
 
         for idx,player in enumerate(players):
                 model_df = data[data['player'] == f'{player}'].copy()
@@ -161,6 +159,7 @@ def clean_current_player_data(data):
         subject="NBA PLAYER Cleaning Failed",
         body=f"{e}"
         )
+        
 
 
 
