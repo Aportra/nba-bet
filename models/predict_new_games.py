@@ -8,7 +8,7 @@ from selenium import webdriver
 from google.oauth2 import service_account
 from datetime import datetime as date
 from selenium.webdriver.firefox.options import Options
-from scraping_data.utils import establish_driver
+from scraping_data import utils
 
 import pandas as pd
 import pandas_gbq
@@ -35,7 +35,7 @@ def gather_data_to_model():
 
 def scrape_roster(data):
 
-    driver = establish_driver(local = True)
+    driver = utils.establish_driver(local = True)
 
     teams_playing = data['team']
     opponents = data['opponent']
@@ -113,14 +113,12 @@ def recent_player_data(games):
     ORDER BY opponents, game_date DESC;
     """
 
-    player_data = pd.DataFrame(pandas_gbq.read_gbq(query,project_id='miscellaneous-projects-444203'))
-    opponent = pd.DataFrame(pandas_gbq.read_gbq(query,project_id='miscellaneous-projects-444203'))
+    player_data = pd.DataFrame(pandas_gbq.read_gbq(player_query,project_id='miscellaneous-projects-444203'))
+    opponent = pd.DataFrame(pandas_gbq.read_gbq(opponent_query,project_id='miscellaneous-projects-444203'))
 
 #     for player in players:
 #         print(player_data[player_data['player'] == player])
 
 
 data = gather_data_to_model()
-
-players = scrape_roster(data)
-
+scrape_roster(data)
