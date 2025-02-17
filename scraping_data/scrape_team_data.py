@@ -151,11 +151,7 @@ def scrape_past_team_data():
         local = True
         print("Running with default credentials")
 
-    urls = {'2021-2022_team_ratings':'https://www.nba.com/stats/teams/boxscores-advanced?Season=2021-22',
-            '2022-2023_team_ratings':'https://www.nba.com/stats/teams/boxscores-advanced?Season=2022-23',
-            '2023-2024_team_ratings':'https://www.nba.com/stats/teams/boxscores-advanced?Season=2023-24',
-            '2024-2025_team_ratings':'https://www.nba.com/stats/teams/boxscores-advanced?Season=2024-25'
-    }
+    urls = {f'{i}-{i+1}_team_ratings':f'https://www.nba.com/stats/teams/boxscores-advanced?Season={i}-{str(i-2000+1)}'for i in range(2015,2025)}
     
     driver = utils.establish_driver(local = True)
     scrape_date = date.today()
@@ -213,7 +209,7 @@ def scrape_past_team_data():
                 data[column] = data[column].astype('float64')
 
         
-        pandas_gbq.to_gbq(data,project_id= 'miscellaneous-projects-444203',destination_table= f'miscellaneous-projects-444203.capstone_data.{url}',if_exists='replace',table_schema=[{"name":"game date","type":"DATE"},],credentials=credentials)
+        pandas_gbq.to_gbq(data,project_id= 'miscellaneous-projects-444203',destination_table= f'miscellaneous-projects-444203.capstone_data.{url}',if_exists='replace',table_schema=[{"name":"game date","type":"DATE"},])
 
 
     driver.quit()

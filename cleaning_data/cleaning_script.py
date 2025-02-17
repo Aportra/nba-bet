@@ -175,10 +175,7 @@ def clean_past_player_data():
         local = True
         print("Running with default credentials")
 
-    tables = ['NBA_Season_2021-2022_uncleaned',
-              'NBA_Season_2022-2023_uncleaned',
-              'NBA_Season_2023-2024_uncleaned',
-              'NBA_Season_2024-2025_uncleaned']
+    tables = [f'{i}-{i+1}_uncleaned' for i in range(2015,2025)]
 
     model_data = []
     predict_data = []
@@ -257,10 +254,7 @@ def clean_past_team_ratings():
     except:
         local = True
         print("Running with default credentials")
-    tables = ['2021-2022_team_ratings',
-              '2022-2023_team_ratings',
-              '2023-2024_team_ratings',
-              '2024-2025_team_ratings']
+    tables = [f'{i}-{i+1}_team_ratings' for i in range(2015,2025)]
 
 
     for season in tables:

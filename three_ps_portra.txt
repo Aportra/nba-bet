@@ -1,3 +1,16 @@
+2/17/2025
+Progress:
+I have fit and saved models. I will be retraining on a larger dataset to see if it helps improve performance. I have scraped data back from 2015 to currrent. I chose 2015 because this was the beginning of the three point revolution.
+
+Problems:
+Model performance on assists,points and rebounds show promise but 3 pointers made has been struggling. Will tune models to see if performance can be improved.
+
+Plans:
+With the models now saved, I can continue building out the pipeline to make predictions on future games and storing them then to the dashboard.
+
+Time:
+I spent around 15 hours since last Tuesday on this.
+***********************************************************************************************************************************************************************************************************************************************************
 2/10/2025
 
 Progress:

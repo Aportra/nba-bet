@@ -102,9 +102,9 @@ def scrape_current_games():
             combined_dataframes = utils.prepare_for_gbq(combined_dataframes)
 
             if not local:
-                pandas_gbq.to_gbq(combined_dataframes,project_id= 'miscellaneous-projects-444203',destination_table= f'miscellaneous-projects-444203.capstone_data.NBA_Season_2024-2025_uncleaned',if_exists = 'append',credentials=credentials,table_schema= [{'name':'game_date','type':'DATE'},])
+                pandas_gbq.to_gbq(combined_dataframes,project_id= 'miscellaneous-projects-444203',destination_table= f'miscellaneous-projects-444203.capstone_data.2024-2025_uncleaned',if_exists = 'append',credentials=credentials,table_schema= [{'name':'game_date','type':'DATE'},])
             else:
-                pandas_gbq.to_gbq(combined_dataframes,project_id= 'miscellaneous-projects-444203',destination_table= f'miscellaneous-projects-444203.capstone_data.NBA_Season_2024-2025_uncleaned',if_exists = 'append',table_schema= [{'name':'game_date','type':'DATE'},])
+                pandas_gbq.to_gbq(combined_dataframes,project_id= 'miscellaneous-projects-444203',destination_table= f'miscellaneous-projects-444203.capstone_data.2024-2025_uncleaned',if_exists = 'append',table_schema= [{'name':'game_date','type':'DATE'},])
 
             utils.send_email(
             subject = str(f"NBA SCRAPING: COMPLTETED # OF GAMES {len(game_data)}"),
@@ -148,11 +148,7 @@ def scrape_current_games():
 
 def scrape_past_games(multi_threading = True, max_workers = 0):
     
-    urls = {'NBA_Season_2021-2022_uncleaned':'https://www.nba.com/stats/teams/boxscores?Season=2021-22',
-            'NBA_Season_2022-2023_uncleaned':'https://www.nba.com/stats/teams/boxscores?Season=2022-23',
-            'NBA_Season_2023-2024_uncleaned':'https://www.nba.com/stats/teams/boxscores?Season=2023-24',
-            'NBA_Season_2024-2025_uncleaned':'https://www.nba.com/stats/teams/boxscores?Season=2024-25'
-    }
+    urls = {f'{i}-{i+1}_uncleaned':f'https://www.nba.com/stats/teams/boxscores-advanced?Season={i}-{str(i-2000+1)}'for i in range(2015,2025)}
 
 
     
@@ -191,7 +187,7 @@ def scrape_past_games(multi_threading = True, max_workers = 0):
             with tqdm(total=len(game_data), desc="Processing Games", ncols=80) as pbar:
                 for game_id,date,home,away in game_data:
                     page = f'{game_id}/box-score'
-                    result = utils.process_page(page,game_id,date,home,away,driver)
+                    result = utils.process_page(page,game_id,date,home,away)
                     if isinstance(result, pd.DataFrame):
                         data.append(result)
                     else:

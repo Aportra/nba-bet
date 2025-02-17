@@ -264,28 +264,29 @@ def process_all_pages(pages_info,max_threads):
         with ThreadPoolExecutor(max_workers=max_threads) as executor:
             future_to_page = {executor.submit(process_page, *args): args for args in remaining_pages}
 
-            with tqdm(total=total_pages, desc="Processing Pages", ncols=80) as pbar:
-                for future in as_completed(future_to_page):
-                    args = future_to_page[future]  # Get page details
 
-                    try:
-                        result = future.result()  # Attempt processing
-                        if isinstance(result, pd.DataFrame):
-                            all_dataframes.append(result)  # Successful page
-                        else:
-                            raise Exception("Processing failed")  # Handle failure
-                    except Exception:
-                        game_id, game_date, home, away = args[1:5]  # Extract identifiers
-                        key = (game_id, game_date, home, away)
+            for future in as_completed(future_to_page):
+                args = future_to_page[future]  # Get page details
+                start_time = time.time()
+                try:
+                    result = future.result()  # Attempt processing
+                    process_time = time.time() - start_time
+                    if isinstance(result, pd.DataFrame):
+                        all_dataframes.append(result)  # Successful page
+                        print(f'Processed at time: {process_time}')
+                    else:
+                        raise Exception("Processing failed")  # Handle failure
+                except Exception:
+                    game_id, game_date, home, away = args[1:5]  # Extract identifiers
+                    key = (game_id, game_date, home, away)
 
-                        # Track retries
-                        if key in retries:
-                            retries[key] += 1
-                        else:
-                            retries[key] = 1
-                        failed_pages.append(args)
+                    # Track retries
+                    if key in retries:
+                        retries[key] += 1
+                    else:
+                        retries[key] = 1
+                    failed_pages.append(args)
 
-                    pbar.update(1)  # Update progress bar
 
         remaining_pages = failed_pages  # Reattempt only failed pages
         executor.shutdown(wait=True)
