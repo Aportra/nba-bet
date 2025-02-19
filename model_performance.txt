@@ -1,0 +1,154 @@
+Agenda:
+
+-Hyperparameter tuning
+-Feature engineer
+-Work on linear model
+-SHAP
+-Fit more models
+-RandomizeSearchCV
+-Pace Adjusted Features
+-Build dashboard
+	-Looker
+	-Tableau 
+	-PowerBI 
+
+Models to Fit
+
+-Arima
+-Neural Net
+-lightgbm
+
+Linear Regression Model
+
+### How to Improve Your Linear Model
+
+1. **Feature Selection Using Regularization (Lasso)**
+   - Use Lasso (`L1` regularization) to remove unimportant features.
+   - Reduces overfitting and improves model interpretability.
+
+   ```python
+   from sklearn.linear_model import LassoCV
+
+   lasso = LassoCV(cv=5, alphas=[0.001, 0.01, 0.1, 1, 10])
+   lasso.fit(x_train, y_train)
+
+   selected_features = x_train.columns[lasso.coef_ != 0]
+
+   lr = LinearRegression()
+   lr.fit(x_train[selected_features], y_train)
+   print(f"Improved Linear Model R²: {lr.score(x_test[selected_features], y_test)}")
+   ```
+
+2. **Handle Multicollinearity (VIF Analysis)**
+   - Remove redundant, highly correlated features.
+   - More stable coefficients and better generalization.
+
+   ```python
+   from statsmodels.stats.outliers_influence import variance_inflation_factor
+
+   def calculate_vif(df):
+       vif_data = pd.DataFrame()
+       vif_data["Feature"] = df.columns
+       vif_data["VIF"] = [variance_inflation_factor(df.values, i) for i in range(len(df.columns))]
+       return vif_data
+
+   vif_df = calculate_vif(x_train)
+   high_vif_features = vif_df[vif_df["VIF"] > 10]["Feature"].tolist()
+   x_train_filtered = x_train.drop(columns=high_vif_features)
+   x_test_filtered = x_test.drop(columns=high_vif_features)
+
+   lr = LinearRegression()
+   lr.fit(x_train_filtered, y_train)
+   print(f"VIF-Reduced Linear Model R²: {lr.score(x_test_filtered, y_test)}")
+   ```
+
+3. **Add Interaction Terms**
+   - Captures hidden relationships between features.
+
+   ```python
+   from sklearn.preprocessing import PolynomialFeatures
+
+   poly = PolynomialFeatures(degree=2, interaction_only=True, include_bias=False)
+   x_train_poly = poly.fit_transform(x_train)
+   x_test_poly = poly.transform(x_test)
+
+   lr = LinearRegression()
+   lr.fit(x_train_poly, y_train)
+   print(f"Interaction Term Linear Model R²: {lr.score(x_test_poly, y_test)}")
+   ```
+
+4. **Scale Features for Stability**
+   - Standardizing inputs prevents large-coefficient bias.
+
+   ```python
+   from sklearn.preprocessing import StandardScaler
+
+   scaler = StandardScaler()
+   x_train_scaled = scaler.fit_transform(x_train)
+   x_test_scaled = scaler.transform(x_test)
+
+   lr = LinearRegression()
+   lr.fit(x_train_scaled, y_train)
+   print(f"Standardized Linear Model R²: {lr.score(x_test_scaled, y_test)}")
+   ```
+
+5. **Use Principal Component Analysis (PCA)**
+   - Reduces feature dimensions while preserving information.
+
+   ```python
+   from sklearn.decomposition import PCA
+
+   pca = PCA(n_components=10)  # Keep top 10 features
+   x_train_pca = pca.fit_transform(x_train)
+   x_test_pca = pca.transform(x_test)
+
+   lr = LinearRegression()
+   lr.fit(x_train_pca, y_train)
+   print(f"PCA-Reduced Linear Model R²: {lr.score(x_test_pca, y_test)}")
+   ```
+
+6. Try to incorporate non-linear features:
+   this would be useful
+
+### **Expected Improvement**
+- **Lasso Feature Selection** → ~5-10% R² boost
+- **VIF Filtering** → More stable coefficients
+- **Interaction Terms** → ~5-15% improvement
+- **Standardization** → Better coefficient reliability
+- **PCA** → Removes redundant information, improving generalization
+
+If your `pts` model has **R² = 0.48**, these optimizations could push it beyond **0.55-0.60**, while `blk` and `stl` may still be low due to their inherent volatility.
+
+### **Recommended Order of Optimization**
+1. **Feature Selection (Lasso)**
+2. **Multicollinearity Check (VIF)**
+3. **Add Interaction Terms**
+4. **Scale Features (Standardization)**
+5. **Dimensionality Reduction (PCA)**
+6. **Season-to-Date averages
+This approach should significantly improve linear model performance without switching to tree-based models.
+Performance for Linear Model:
+pts
+0.5401139387876936
+reb
+0.4331728237868906
+ast
+0.564901196119147
+3pm
+0.3667133325775348
+
+XGBoost Model
+
+Performance for XGboost model:
+pts
+{'booster': 'dart', 'eta': 0.05, 'max_depth': 4}
+0.5403287610650266
+reb
+{'booster': 'dart', 'eta': 0.1, 'max_depth': 3}
+0.4785974454265366
+ast
+{'booster': 'gbtree', 'eta': 0.1, 'max_depth': 2}
+0.5180398112089918
+3pm
+{'booster': 'dart', 'eta': 0.05, 'max_depth': 4}
+0.33131099859117225
