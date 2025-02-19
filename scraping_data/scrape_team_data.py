@@ -1,5 +1,5 @@
 import pandas as pd
-import scraping_data.utils as utils
+import utils
 from datetime import datetime as date
 from datetime import timedelta
 from selenium.webdriver.support.ui import WebDriverWait
@@ -16,7 +16,6 @@ import traceback
 from google.oauth2 import service_account
 
 def scrape_current_team_data(length):
-    scrape_date = date.today() - timedelta(1)
 
     try:
         credentials = service_account.Credentials.from_service_account_file('/home/aportra99/scraping_key.json')
@@ -34,7 +33,7 @@ def scrape_current_team_data(length):
     driver = utils.establish_driver()
 
 
-    scrape_date = date.today() - timedelta(1)
+    scrape_date = date.today()
     try:
         for url in urls:
 

@@ -16,7 +16,7 @@ import regex as re
 import pandas_gbq
 import traceback
 import pandas as pd
-import scraping_data.utils as utils
+import utils
 import time
 import gc
 
@@ -33,7 +33,7 @@ def scrape_current_games():
     driver = utils.establish_driver()
 
 
-    scrape_date = date.today() - timedelta(1)
+    scrape_date = date.today()
     url = {'NBA_Season_2024-2025_uncleaned':'https://www.nba.com/stats/teams/boxscores?Season=2024-25'}
 
     driver.get(url['NBA_Season_2024-2025_uncleaned'])
