@@ -1,5 +1,5 @@
 import pandas as pd
-import utils
+import scraping_data.utils as utils
 from datetime import datetime as date
 from datetime import timedelta
 from selenium.webdriver.support.ui import WebDriverWait

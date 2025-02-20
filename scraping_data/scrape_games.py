@@ -16,7 +16,7 @@ import regex as re
 import pandas_gbq
 import traceback
 import pandas as pd
-import utils
+import scraping_data.utils as utils
 import time
 import gc
 
