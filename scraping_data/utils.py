@@ -56,7 +56,6 @@ def terminate_firefox_processes(): #Used for memory efficieny
 #Select all option only works when at least half screen due to blockage of the all option when not in headerless option
 
 def select_all_option(driver):
-    time.sleep(5)
     try:
         # Click the dropdown
         
@@ -198,7 +197,7 @@ def prepare_for_gbq(combined_dataframes):
 
     num_columns = ['FGM', 'FGA', 'FG%', '3PM', '3PA', '3P%', 'FTM', 'FTA', 'FT%', 'OREB', 'DREB', 'REB', 'AST', 'STL', 'BLK', 'TO', 'PF', 'PTS', 'plus_mins'] #Selecting numeric columnc to force to numeric
     combined_dataframes[num_columns] = combined_dataframes[num_columns].apply(pd.to_numeric, errors='coerce')
-
+    combined_dataframes['game_date'] = pd.to_datetime(combined_dataframes['game_date'],format = '%m/%d/%Y',errors='coerce')
     for column in combined_dataframes.columns:
         combined_dataframes.rename(columns = {column:column.lower()},inplace = True)
     
@@ -276,10 +275,10 @@ def process_all_pages(pages_info,max_threads):
                         print(f'Processed at time: {process_time}')
                     else:
                         raise Exception("Processing failed")  # Handle failure
-                except Exception:
+                except Exception as e:
                     game_id, game_date, home, away = args[1:5]  # Extract identifiers
                     key = (game_id, game_date, home, away)
-
+                    print(f'Process failed {game_id}')
                     # Track retries
                     if key in retries:
                         retries[key] += 1
@@ -287,7 +286,7 @@ def process_all_pages(pages_info,max_threads):
                         retries[key] = 1
                     failed_pages.append(args)
 
-
+        terminate_firefox_processes()
         remaining_pages = failed_pages  # Reattempt only failed pages
         executor.shutdown(wait=True)
     return pd.concat(all_dataframes, ignore_index=True) if all_dataframes else None

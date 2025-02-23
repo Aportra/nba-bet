@@ -150,7 +150,7 @@ def scrape_past_team_data():
         local = True
         print("Running with default credentials")
 
-    urls = {f'{i}-{i+1}_team_ratings':f'https://www.nba.com/stats/teams/boxscores-advanced?Season={i}-{str(i-2000+1)}'for i in range(2015,2025)}
+    urls = {f'{i}-{i+1}_team_ratings':f'https://www.nba.com/stats/teams/boxscores-advanced?Season={i}-{str(i-2000+1)}'for i in range(2017,2018)}
     
     driver = utils.establish_driver(local = True)
     scrape_date = date.today()
