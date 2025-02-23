@@ -8,15 +8,16 @@ from selenium import webdriver
 from google.oauth2 import service_account
 from datetime import datetime as date
 from selenium.webdriver.firefox.options import Options
-from scraping_data import utils
 
+import pickle as pkl
+import utils
 import pandas as pd
 import pandas_gbq
 import time
 
 def gather_data_to_model():
     query = """
-    select team,opponent
+    select team,opponent,date
     from `capstone_data.schedule`
     where date = current_date()
     """
@@ -61,64 +62,115 @@ def scrape_roster(data):
             players.append(name_text)
     
     driver.quit()
-    print(len(players))
-    print(len(opponent))
-    print(len(teams))
+    
+    team_mapping = {'WSH':'WAS',
+                        'UTAH':'UTA',
+                        'NO':'NOP'} 
+
+    teams = [team_mapping.get(team,team) for team in teams]
+    opponent = [team_mapping.get(team,team) for team in opponent]
+
     games = pd.DataFrame(data = {'player':players,'team':teams,'opponent':opponent})
-    return print(games)
+
+    return games
 
 
 
 def recent_player_data(games):
 
-    players = games['player']
-    teams = games['teams'].unique()
+    players = games['player'].unique()
+    teams = games['team'].unique()
     opponents = games['opponent'].unique()
 
-    player_query = f"""
-    WITH RankedGames AS (
-        SELECT game_date,matchup,
-            ROW_NUMBER() OVER (PARTITION BY player ORDER BY game_date DESC) AS game_rank
-        FROM `capstone_data.NBA_Cleaned`
-        WHERE player IN ({','.join([f'"{player}"' for player in players])})
-    )
-    SELECT *
-    FROM RankedGames
-    WHERE game_rank <= 3
-    ORDER BY player, game_date DESC;
+    games = games.rename(columns={'opponent':'matchup'})
+
+    existing_players_query = """
+    SELECT DISTINCT player FROM `capstone_data.player_prediction_data`
     """
+    existing_players_df = pandas_gbq.read_gbq(existing_players_query, project_id="miscellaneous-projects-444203")
+
+    # Convert to a set for fast lookup
+    existing_players_set = set(existing_players_df['player'])
+
+    # Filter players list to only include those in BigQuery
+    filtered_players = [player for player in players if player in existing_players_set]
+
+    if not filtered_players:
+        print("No valid players found in the dataset.")
+    else:
+        # Now run the query with only valid players
+        player_query = f"""
+        WITH RankedGames AS (
+            SELECT *,
+                ROW_NUMBER() OVER (PARTITION BY player ORDER BY game_date DESC) AS game_rank
+            FROM `capstone_data.player_prediction_data`
+            WHERE player IN ({','.join([f'"{player}"' for player in filtered_players])})
+        )
+        SELECT *
+        FROM RankedGames
+        WHERE game_rank <= 1
+        ORDER BY player, game_date DESC;
+        """
+    
     opponent_query = f"""
     WITH RankedGames AS (
         SELECT *,
-            ROW_NUMBER() OVER (PARTITION BY player ORDER BY game_date DESC) AS game_rank
-        FROM `capstone_data.Cleaned_team_ratings`
-        WHERE `match up` IN ({','.join([f'"{opponent}"' for opponent in opponents])})
+            ROW_NUMBER() OVER (PARTITION BY team ORDER BY game_date DESC) AS game_rank
+        FROM `capstone_data.team_prediction_data`
+        WHERE team IN ({','.join([f'"{opponent}"' for opponent in opponents])})
     )
-    SELECT defrtg as opponent_drtg,`oreb%` as opponent_off_reb, `dreb%` as opponent_def_reb
+    SELECT *
     FROM RankedGames
-    WHERE game_rank <= 3
-    ORDER BY opponents, game_date DESC;
+    WHERE game_rank <= 1
+    ORDER BY team, game_date DESC;
     """
 
     team_query = f"""
     WITH RankedGames AS (
         SELECT *,
-            ROW_NUMBER() OVER (PARTITION BY player ORDER BY game_date DESC) AS game_rank
-        FROM `capstone_data.Cleaned_team_ratings`
+            ROW_NUMBER() OVER (PARTITION BY team ORDER BY game_date DESC) AS game_rank
+        FROM `capstone_data.team_prediction_data`
         WHERE team IN ({','.join([f'"{team}"' for team in teams])})
     )
     SELECT *
     FROM RankedGames
-    WHERE game_rank <= 3
-    ORDER BY opponents, game_date DESC;
+    WHERE game_rank <= 1
+    ORDER BY team, game_date DESC;
     """
 
     player_data = pd.DataFrame(pandas_gbq.read_gbq(player_query,project_id='miscellaneous-projects-444203'))
-    opponent = pd.DataFrame(pandas_gbq.read_gbq(opponent_query,project_id='miscellaneous-projects-444203'))
+    opponent_data = pd.DataFrame(pandas_gbq.read_gbq(opponent_query,project_id='miscellaneous-projects-444203'))
+    team_data = pd.DataFrame(pandas_gbq.read_gbq(team_query,project_id='miscellaneous-projects-444203'))
 
-#     for player in players:
-#         print(player_data[player_data['player'] == player])
+    opponent_data = opponent_data.rename(columns={
+    col: ('matchup' if col == 'team' else 'game_id' if col == 'game_id' else f'opponent_{col}') for col in team_data.columns})
+
+    full_data = games.merge(player_data, on = ['player','team'], how = 'inner',suffixes=('','remove'))
+    full_data = games.merge(opponent_data,on = ['matchup'],how = 'inner',suffixes=('','remove'))
+    full_data = games.merge(team_data, on = ['team'],how = 'inner',suffixes=('','remove'))
+    full_data.drop([column for column in full_data.columns if 'remove' in column],axis = 1 , inplace=True) 
+    full_data.drop([column for column in full_data.columns if '_1' in column],axis = 1 , inplace=True)
 
 
-data = gather_data_to_model()
-scrape_roster(data)
+    return full_data
+
+
+# def predict_games(player_data):
+#     for 
+
+
+
+def predict_games():
+    
+    # Load the models
+    with open('models/models.pkl', "rb") as file:
+        models = pkl.load(file)
+
+    # Check the loaded models
+      # Check if it's a dict, list, or something else
+    print(models.keys() if isinstance(models, dict) else models)  # Print model names if dict
+
+predict_games()
+# data = gather_data_to_model()
+# games = scrape_roster(data)
+# full_data = recent_player_data(games)
