@@ -30,7 +30,7 @@ def scrape_current_team_data(length):
 
 
 
-    driver = utils.establish_driver()
+    driver = utils.establish_driver(local = True)
 
 
     scrape_date = date.today()
@@ -39,7 +39,6 @@ def scrape_current_team_data(length):
 
             driver.get(urls[url]) 
             time.sleep(5)
-            utils.select_all_option(driver)
             source = driver.page_source
             #For each row collect game_date,game_id, and matchup
             table_element = driver.find_element(By.XPATH, "//table[contains(@class, 'Crom_table__p1iZz')]")

@@ -73,7 +73,7 @@ def select_all_option(driver):
     except Exception as e:
         print(f"Error selecting the 'All' option: {e}")
 
-def gather_data(rows,current = True,scrape_date = date.today() - timedelta(1)):
+def gather_data(rows,current = True,scrape_date = date.today()):
     game_data =[]
     unique_game_id = set()
 
