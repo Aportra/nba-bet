@@ -1,3 +1,18 @@
+2/24/2025
+Progress:
+Implementing script to automatically pull who is playing and the odds connected to who is playing then making predictions.
+
+Problems:
+Part of the automatic scraping script broke randomly due to date formatting needing to be specified more. Proper logging for automatic scraping and
+date fix implemented.
+
+Plans:
+This week I will finish the automatic predictions and then build the dashboard.
+
+Time:
+I spent 10 hours since last Tuesday on this.
+
+***********************************************************************************************************************************************************************************************************************************************************
 2/17/2025
 Progress:
 I have fit and saved models. I will be retraining on a larger dataset to see if it helps improve performance. I have scraped data back from 2015 to currrent. I chose 2015 because this was the beginning of the three point revolution.

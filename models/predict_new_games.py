@@ -9,7 +9,7 @@ from google.oauth2 import service_account
 from datetime import datetime as date
 from selenium.webdriver.firefox.options import Options
 
-import pickle as pkl
+import joblib
 import utils
 import pandas as pd
 import pandas_gbq
@@ -154,23 +154,44 @@ def recent_player_data(games):
 
     return full_data
 
+def pull_odds(games):
+    players = games['players'].unique()
 
-# def predict_games(player_data):
-#     for 
+    tables = ['points','rebounds','assists','threes_made']
+
+    for table in tables:
+        odds_query=(
+        f"""
+        select * 
+        from `player_{table}_odds
+        where date(Date_Updated) = {str(date.today().date())}
+        """)
 
 
 
 def predict_games():
+    data = gather_data_to_model()
+    games = scrape_roster(data)
+    full_data = recent_player_data(games)
     
     # Load the models
-    with open('models/models.pkl', "rb") as file:
-        models = pkl.load(file)
+    models = joblib.load('models/models.pkl')
 
-    # Check the loaded models
-      # Check if it's a dict, list, or something else
-    print(models.keys() if isinstance(models, dict) else models)  # Print model names if dict
+    for category in models.keys():
+        for model in models[category]:
+            m = models[category][model]
+            if model.lower() != 'xgboost' and model.lower() != 'sarimax':
+                features = models[category][model].feature_names_in_
+                data = full_data[features]    
+                y_pred = models[category][model].predict(data)
+                full_data[f'{category}_{model}'] = y_pred
+            elif model.lower() == 'xgboost':
+                features = models[category][model].get_booster().feature_names
+                data = full_data[features]
+                y_pred = models[category][model].predict(data)
+                full_data[f'{category}_{model}'] = y_pred
+            elif model.lower() == 'sarimax':
+                print(model[category][model])
 
-predict_games()
-# data = gather_data_to_model()
-# games = scrape_roster(data)
-# full_data = recent_player_data(games)
+str(date.today().date())
+
