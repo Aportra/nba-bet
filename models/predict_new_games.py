@@ -136,61 +136,60 @@ def recent_player_data(games):
         WHERE game_rank <= 1
         ORDER BY player, game_date DESC;
         """
-    
-    opponent_query = f"""
-    WITH RankedGames AS (
-        SELECT *,
-            ROW_NUMBER() OVER (PARTITION BY team ORDER BY game_date DESC) AS game_rank
-        FROM `capstone_data.team_prediction_data`
-        WHERE team IN ({','.join([f'"{opponent}"' for opponent in opponents])})
-    )
-    SELECT *
-    FROM RankedGames
-    WHERE game_rank <= 1
-    ORDER BY team, game_date DESC;
-    """
+        
+        opponent_query = f"""
+        WITH RankedGames AS (
+            SELECT *,
+                ROW_NUMBER() OVER (PARTITION BY team ORDER BY game_date DESC) AS game_rank
+            FROM `capstone_data.team_prediction_data`
+            WHERE team IN ({','.join([f'"{opponent}"' for opponent in opponents])})
+        )
+        SELECT *
+        FROM RankedGames
+        WHERE game_rank <= 1
+        ORDER BY team, game_date DESC;
+        """
 
-    team_query = f"""
-    WITH RankedGames AS (
-        SELECT *,
-            ROW_NUMBER() OVER (PARTITION BY team ORDER BY game_date DESC) AS game_rank
-        FROM `capstone_data.team_prediction_data`
-        WHERE team IN ({','.join([f'"{team}"' for team in teams])})
-    )
-    SELECT *
-    FROM RankedGames
-    WHERE game_rank <= 1
-    ORDER BY team, game_date DESC;
-    """
-
-
-    if local:
-        player_data = pd.DataFrame(pandas_gbq.read_gbq(player_query,project_id='miscellaneous-projects-444203'))
-        opponent_data = pd.DataFrame(pandas_gbq.read_gbq(opponent_query,project_id='miscellaneous-projects-444203'))
-        team_data = pd.DataFrame(pandas_gbq.read_gbq(team_query,project_id='miscellaneous-projects-444203'))
-    else:
-        player_data = pd.DataFrame(pandas_gbq.read_gbq(player_query,project_id='miscellaneous-projects-444203',credentials=credentials))
-        opponent_data = pd.DataFrame(pandas_gbq.read_gbq(opponent_query,project_id='miscellaneous-projects-444203',credentials=credentials))
-        team_data = pd.DataFrame(pandas_gbq.read_gbq(team_query,project_id='miscellaneous-projects-444203',credentials=credentials))
-
-    opponent_data = opponent_data.rename(columns={
-    col: ('matchup' if col == 'team' else 'game_id' if col == 'game_id' else f'opponent_{col}') for col in team_data.columns})
-
-    full_data = games.merge(player_data, on = ['player','team'], how = 'inner',suffixes=('','remove'))
-    full_data = games.merge(opponent_data,on = ['matchup'],how = 'inner',suffixes=('','remove'))
-    full_data = games.merge(team_data, on = ['team'],how = 'inner',suffixes=('','remove'))
-    full_data.drop([column for column in full_data.columns if 'remove' in column],axis = 1 , inplace=True) 
-    full_data.drop([column for column in full_data.columns if '_1' in column],axis = 1 , inplace=True)
+        team_query = f"""
+        WITH RankedGames AS (
+            SELECT *,
+                ROW_NUMBER() OVER (PARTITION BY team ORDER BY game_date DESC) AS game_rank
+            FROM `capstone_data.team_prediction_data`
+            WHERE team IN ({','.join([f'"{team}"' for team in teams])})
+        )
+        SELECT *
+        FROM RankedGames
+        WHERE game_rank <= 1
+        ORDER BY team, game_date DESC;
+        """
 
 
-    return full_data,filtered_players,teams,opponents
+        if local:
+            player_data = pd.DataFrame(pandas_gbq.read_gbq(player_query,project_id='miscellaneous-projects-444203'))
+            opponent_data = pd.DataFrame(pandas_gbq.read_gbq(opponent_query,project_id='miscellaneous-projects-444203'))
+            team_data = pd.DataFrame(pandas_gbq.read_gbq(team_query,project_id='miscellaneous-projects-444203'))
+        else:
+            player_data = pd.DataFrame(pandas_gbq.read_gbq(player_query,project_id='miscellaneous-projects-444203',credentials=credentials))
+            opponent_data = pd.DataFrame(pandas_gbq.read_gbq(opponent_query,project_id='miscellaneous-projects-444203',credentials=credentials))
+            team_data = pd.DataFrame(pandas_gbq.read_gbq(team_query,project_id='miscellaneous-projects-444203',credentials=credentials))
 
-def pull_odds(games):
-    players = games['players'].unique()
+        opponent_data = opponent_data.rename(columns={
+        col: ('matchup' if col == 'team' else 'game_id' if col == 'game_id' else f'opponent_{col}') for col in team_data.columns})
+
+        full_data = games.merge(player_data, on = ['player','team'], how = 'inner',suffixes=('','remove'))
+        full_data = games.merge(opponent_data,on = ['matchup'],how = 'inner',suffixes=('','remove'))
+        full_data = games.merge(team_data, on = ['team'],how = 'inner',suffixes=('','remove'))
+        full_data.drop([column for column in full_data.columns if 'remove' in column],axis = 1 , inplace=True) 
+        full_data.drop([column for column in full_data.columns if '_1' in column],axis = 1 , inplace=True)
+
+
+        return full_data,filtered_players,teams,opponents
+
+def pull_odds():
 
     tables = ['points','rebounds','assists','threes_made']
 
-    odds_data = {col:[] for col in tables}
+    odds_data = {}
 
 
     try:
@@ -209,9 +208,9 @@ def pull_odds(games):
         where date(Date_Updated) = {str(date.today().date())}
         """)
         if local:    
-            odds_data[table].append(pd.DataFrame(pandas_gbq.read_gbq(odds_query,project_id='miscellaneous-projects-444203')))
-       else: 
-            odds_data[table].append(pd.DataFrame(pandas_gbq.read_gbq(odds_query,project_id='miscellaneous-projects-444203',credentials=credentials)))
+            odds_data[table] = pd.DataFrame(pandas_gbq.read_gbq(odds_query,project_id='miscellaneous-projects-444203'))
+        else: 
+            odds_data[table] = pd.DataFrame(pandas_gbq.read_gbq(odds_query,project_id='miscellaneous-projects-444203',credentials=credentials))
     return odds_data 
 
 def predict_games():
@@ -332,9 +331,9 @@ def predict_games():
 
                 full_data[f'{category}_{model}'] = pred
         
-    odds_data= pull_odds(games)
+    odds_data= pull_odds()
     
-    for key in odds_data.key():
+    for key in odds_data.keys():
         data = odds_data[key]
         data['Over'] = data['Over'].str.replace('+','',regex = False).astype(int)
         data['Under'] = data['Under'].astype(int)
