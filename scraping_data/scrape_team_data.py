@@ -30,7 +30,7 @@ def scrape_current_team_data(length):
 
 
 
-    driver = utils.establish_driver(local = True)
+    driver = utils.establish_driver()
 
 
     scrape_date = date.today()
