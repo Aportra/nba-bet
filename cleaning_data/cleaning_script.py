@@ -61,7 +61,7 @@ def clean_current_player_data(data):
             SELECT *,
                 ROW_NUMBER() OVER (PARTITION BY player ORDER BY game_date DESC) AS game_rank
             FROM `capstone_data.player_modeling_data`
-            WHERE player IN ({','.join([f'"{player}"' for player in players])}) and season = {season}
+            WHERE player IN ({','.join([f'"{player}"' for player in players])}) and season = '{season}'
         )
         SELECT *
         FROM RankedGames
@@ -73,7 +73,7 @@ def clean_current_player_data(data):
             SELECT *,
                 ROW_NUMBER() OVER (PARTITION BY player ORDER BY game_date DESC) AS game_rank
             FROM `capstone_data.player_prediction_data`
-            WHERE player IN ({','.join([f'"{player}"' for player in players])}) and season = {season}
+            WHERE player IN ({','.join([f'"{player}"' for player in players])}) and season = '{season}'
         )
         SELECT *
         FROM RankedGames
@@ -157,11 +157,6 @@ def clean_current_player_data(data):
         subject="NBA PLAYER Cleaning Failed",
         body=f"{e}"
         )
-        
-
-
-
-
 
 
 def clean_past_player_data():
@@ -320,12 +315,13 @@ def clean_current_team_ratings(game_data):
     except:
         local = True
         print("Running with default credentials")
-    d = date.today().month()
-    y = date.today().year()
-    if d >= 10:
-        current_season = f'{y}-{y+1}'
-    else:
-        current_season = f'{y-1}-{y}'
+    today = date.today().date()
+
+    if today.month >= 10:
+        season = f"{today.year}-{today.year + 1}" 
+
+    else: 
+        season = f"{today.year - 1}-{today.year}"
     try:
         teams = game_data['team'].unique()
         game_data.rename(columns = {'game date':'game_date'},inplace = True)
@@ -334,7 +330,7 @@ def clean_current_team_ratings(game_data):
             SELECT *,
                 ROW_NUMBER() OVER (PARTITION BY team ORDER BY game_date DESC) AS game_rank
             FROM `capstone_data.team_modeling_data`
-            WHERE team IN ({','.join([f'"{team}"' for team in teams])}) and season = {current_season}
+            WHERE team IN ({','.join([f'"{team}"' for team in teams])}) and season = '{season}'
         )
         SELECT *
         FROM RankedGames
@@ -345,7 +341,7 @@ def clean_current_team_ratings(game_data):
             SELECT *,
                 ROW_NUMBER() OVER (PARTITION BY team ORDER BY game_date DESC) AS game_rank
             FROM `capstone_data.team_prediction_data`
-            WHERE team IN ({','.join([f'"{team}"' for team in teams])}) and season = {current_season}
+            WHERE team IN ({','.join([f'"{team}"' for team in teams])}) and season = '{season}'
         )
         SELECT *
         FROM RankedGames
