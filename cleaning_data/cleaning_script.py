@@ -51,17 +51,17 @@ def clean_current_player_data(data):
         today = date.today().date()
 
         if today.month >= 10:
-            season = f"{today.year}-{today.year + 1}" 
+            season = today.year
 
         else: 
-            season = f"{today.year - 1}-{today.year}"
+            season = today.year - 1
 
         modeling_query = f"""
         WITH RankedGames AS (
             SELECT *,
                 ROW_NUMBER() OVER (PARTITION BY player ORDER BY game_date DESC) AS game_rank
             FROM `capstone_data.player_modeling_data`
-            WHERE player IN ({','.join([f'"{player}"' for player in players])}) and season = '{season}'
+            WHERE player IN ({','.join([f'"{player}"' for player in players])}) and season = 2024
         )
         SELECT *
         FROM RankedGames
@@ -139,15 +139,24 @@ def clean_current_player_data(data):
         model_data.loc[:, model_data.columns != 'game_date'] = model_data.drop(columns=['game_date']).fillna(0)
         predict_data.loc[:, predict_data.columns != 'game_date'] = predict_data.drop(columns=['game_date']).fillna(0)
 
+        partioned_model_data = model_data
+        partitioned_predict_data = predict_data
 
-
+        partioned_model_data['season_start_year'] = season
+        partitioned_predict_data['season_start_year'] = season
 
         if not local:
             pandas_gbq.to_gbq(model_data,destination_table = f'capstone_data.player_modeling_data',project_id='miscellaneous-projects-444203',if_exists= 'append',credentials=credentials,table_schema=[{'name':'game_date','type':'DATE'},])
             pandas_gbq.to_gbq(predict_data,destination_table = f'capstone_data.player_prediction_data',project_id='miscellaneous-projects-444203',if_exists= 'append',credentials=credentials,table_schema=[{'name':'game_date','type':'DATE'},])
+
+            pandas_gbq.to_gbq(partioned_model_data,destination_table = f'capstone_data.player_modeling_data_partitioned',project_id='miscellaneous-projects-444203',if_exists= 'append',credentials=credentials,table_schema=[{'name':'game_date','type':'DATE'},])
+            pandas_gbq.to_gbq(partitioned_predict_data,destination_table = f'capstone_data.player_prediction_data_partitioned',project_id='miscellaneous-projects-444203',if_exists= 'append',credentials=credentials,table_schema=[{'name':'game_date','type':'DATE'},])
         else:
             pandas_gbq.to_gbq(model_data,destination_table = f'capstone_data.player_modeling_data',project_id='miscellaneous-projects-444203',if_exists= 'append',table_schema=[{'name':'game_date','type':'DATE'},])
             pandas_gbq.to_gbq(predict_data,destination_table = f'capstone_data.player_prediction_data',project_id='miscellaneous-projects-444203',if_exists= 'append',table_schema=[{'name':'game_date','type':'DATE'},])
+
+            pandas_gbq.to_gbq(partioned_model_data,destination_table = f'capstone_data.player_modeling_data_partitioned',project_id='miscellaneous-projects-444203',if_exists= 'append',table_schema=[{'name':'game_date','type':'DATE'},])
+            pandas_gbq.to_gbq(partitioned_predict_data,destination_table = f'capstone_data.player_prediction_data_partitioned',project_id='miscellaneous-projects-444203',if_exists= 'append',table_schema=[{'name':'game_date','type':'DATE'},])
         send_email(
             subject="NBA PLAYER DATA CLEANED",
             body="Data uploaded to NBA_Cleaned"
@@ -318,10 +327,10 @@ def clean_current_team_ratings(game_data):
     today = date.today().date()
 
     if today.month >= 10:
-        season = f"{today.year}-{today.year + 1}" 
+        season = today.year
 
     else: 
-        season = f"{today.year - 1}-{today.year}"
+        season = today.year - 1
     try:
         teams = game_data['team'].unique()
         game_data.rename(columns = {'game date':'game_date'},inplace = True)
@@ -329,8 +338,8 @@ def clean_current_team_ratings(game_data):
         WITH RankedGames AS (
             SELECT *,
                 ROW_NUMBER() OVER (PARTITION BY team ORDER BY game_date DESC) AS game_rank
-            FROM `capstone_data.team_modeling_data`
-            WHERE team IN ({','.join([f'"{team}"' for team in teams])}) and season = '{season}'
+            FROM `capstone_data.team_modeling_data_partitioned`
+            WHERE team IN ({','.join([f'"{team}"' for team in teams])}) and season = {season}
         )
         SELECT *
         FROM RankedGames
@@ -340,8 +349,8 @@ def clean_current_team_ratings(game_data):
         WITH RankedGames AS (
             SELECT *,
                 ROW_NUMBER() OVER (PARTITION BY team ORDER BY game_date DESC) AS game_rank
-            FROM `capstone_data.team_prediction_data`
-            WHERE team IN ({','.join([f'"{team}"' for team in teams])}) and season = '{season}'
+            FROM `capstone_data.team_prediction_data_partitioned`
+            WHERE team IN ({','.join([f'"{team}"' for team in teams])}) and season = {season}
         )
         SELECT *
         FROM RankedGames
@@ -399,8 +408,11 @@ def clean_current_team_ratings(game_data):
         team_data.loc[:, team_data.columns != 'game_date'] = team_data.drop(columns=['game_date']).fillna(0)
         predict_data.loc[:, predict_data.columns != 'game_date'] = predict_data.drop(columns=['game_date']).fillna(0)
 
+        team_data_partitioned = team_data
+        predict_data_partitioned = predict_data
 
-
+        team_data_partitioned['season_start_year'] = season
+        predict_data_partitioned['season_start_year'] = season
 
         if isinstance(team_data,pd.DataFrame) and isinstance(predict_data,pd.DataFrame):
             print('cleaning has been completed')
@@ -411,9 +423,16 @@ def clean_current_team_ratings(game_data):
         if local:
             pandas_gbq.to_gbq(team_data,destination_table='capstone_data.team_modeling_data',project_id='miscellaneous-projects-444203',table_schema=[{'name':'game_date','type':'DATE'}],if_exists='append')
             pandas_gbq.to_gbq(predict_data,destination_table='capstone_data.team_prediction_data',project_id='miscellaneous-projects-444203',table_schema=[{'name':'game_date','type':'DATE'}],if_exists='append')
+
+            pandas_gbq.to_gbq(team_data_partitioned,destination_table='capstone_data.team_modeling_data',project_id='miscellaneous-projects-444203',table_schema=[{'name':'game_date','type':'DATE'}],if_exists='append')
+            pandas_gbq.to_gbq(predict_data_partitioned,destination_table='capstone_data.team_prediction_data',project_id='miscellaneous-projects-444203',table_schema=[{'name':'game_date','type':'DATE'}],if_exists='append')
         else:
             pandas_gbq.to_gbq(team_data,destination_table='capstone_data.team_modeling_data',project_id='miscellaneous-projects-444203',table_schema=[{'name':'game_date','type':'DATE'}],credentials=credentials,if_exists='append')
             pandas_gbq.to_gbq(predict_data,destination_table='capstone_data.team_prediction_data',project_id='miscellaneous-projects-444203',table_schema=[{'name':'game_date','type':'DATE'}],credentials=credentials,if_exists='append')
+
+            pandas_gbq.to_gbq(team_data_partitioned,destination_table='capstone_data.team_modeling_data',project_id='miscellaneous-projects-444203',table_schema=[{'name':'game_date','type':'DATE'}],credentials=credentials,if_exists='append')
+            pandas_gbq.to_gbq(predict_data_partitioned,destination_table='capstone_data.team_prediction_data',project_id='miscellaneous-projects-444203',table_schema=[{'name':'game_date','type':'DATE'}],credentials=credentials,if_exists='append')
+
         send_email(
         subject="NBA TEAM DATA CLEANED",
         body="Data uploaded to Cleaned_team_ratings"

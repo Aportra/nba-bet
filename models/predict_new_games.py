@@ -123,10 +123,10 @@ def recent_player_data(games):
     today = date.today().date()
     
     if today.month >= 10:
-        season = f"{today.year}-{today.year + 1}" 
+        season = today.year 
 
     else: 
-        season = f"{today.year - 1}-{today.year}"
+        season = today.year - 1
 
     if not filtered_players:
         print("No valid players found in the dataset.")
@@ -136,8 +136,8 @@ def recent_player_data(games):
         WITH RankedGames AS (
             SELECT *,
                 ROW_NUMBER() OVER (PARTITION BY player ORDER BY game_date DESC) AS game_rank
-            FROM `capstone_data.player_prediction_data`
-            WHERE player IN ({','.join([f'"{player}"' for player in filtered_players])}) and season = {season}
+            FROM `capstone_data.player_prediction_data_partitioned`
+            WHERE player IN ({','.join([f'"{player}"' for player in filtered_players])}) and season_start_year = {season}
         )
         SELECT *
         FROM RankedGames
@@ -148,8 +148,8 @@ def recent_player_data(games):
         WITH RankedGames AS (
             SELECT *,
                 ROW_NUMBER() OVER (PARTITION BY team ORDER BY game_date DESC) AS game_rank
-            FROM `capstone_data.team_prediction_data`
-            WHERE team IN ({','.join([f'"{opponent}"' for opponent in opponents])}) and season = {season}
+            FROM `capstone_data.team_prediction_data_partitioned`
+            WHERE team IN ({','.join([f'"{opponent}"' for opponent in opponents])}) and season_start_year = {season}
         )
         SELECT *
         FROM RankedGames
@@ -160,8 +160,8 @@ def recent_player_data(games):
         WITH RankedGames AS (
             SELECT *,
                 ROW_NUMBER() OVER (PARTITION BY team ORDER BY game_date DESC) AS game_rank
-            FROM `capstone_data.team_prediction_data`
-            WHERE team IN ({','.join([f'"{team}"' for team in teams])}) and season = {season}
+            FROM `capstone_data.team_prediction_data_partitioned`
+            WHERE team IN ({','.join([f'"{team}"' for team in teams])}) and season_start_year = {season}
         )
         SELECT *
         FROM RankedGames
