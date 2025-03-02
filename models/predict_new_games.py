@@ -119,6 +119,14 @@ def recent_player_data(games):
 
     # Filter players list to only include those in BigQuery
     filtered_players = [player for player in players if player in existing_players_set]
+    
+    today = date.today().date()
+    
+    if today.month >= 10:
+        season = f"{today.year}-{today.year + 1}" 
+
+    else: 
+        season = f"{today.year - 1}-{today.year}"
 
     if not filtered_players:
         print("No valid players found in the dataset.")
@@ -129,11 +137,10 @@ def recent_player_data(games):
             SELECT *,
                 ROW_NUMBER() OVER (PARTITION BY player ORDER BY game_date DESC) AS game_rank
             FROM `capstone_data.player_prediction_data`
-            WHERE player IN ({','.join([f'"{player}"' for player in filtered_players])})
+            WHERE player IN ({','.join([f'"{player}"' for player in filtered_players])}) and season = {season}
         )
         SELECT *
         FROM RankedGames
-        WHERE game_rank <= 1
         ORDER BY player, game_date DESC;
         """
         
@@ -142,11 +149,10 @@ def recent_player_data(games):
             SELECT *,
                 ROW_NUMBER() OVER (PARTITION BY team ORDER BY game_date DESC) AS game_rank
             FROM `capstone_data.team_prediction_data`
-            WHERE team IN ({','.join([f'"{opponent}"' for opponent in opponents])})
+            WHERE team IN ({','.join([f'"{opponent}"' for opponent in opponents])}) and season = {season}
         )
         SELECT *
         FROM RankedGames
-        WHERE game_rank <= 1
         ORDER BY team, game_date DESC;
         """
 
@@ -155,11 +161,10 @@ def recent_player_data(games):
             SELECT *,
                 ROW_NUMBER() OVER (PARTITION BY team ORDER BY game_date DESC) AS game_rank
             FROM `capstone_data.team_prediction_data`
-            WHERE team IN ({','.join([f'"{team}"' for team in teams])})
+            WHERE team IN ({','.join([f'"{team}"' for team in teams])}) and season = {season}
         )
         SELECT *
         FROM RankedGames
-        WHERE game_rank <= 1
         ORDER BY team, game_date DESC;
         """
 
@@ -237,51 +242,6 @@ def predict_games():
 
     # Ensure data is sorted correctly for chronological calculations
     data_ordered = data_ordered.sort_values(by=['player', 'season', 'game_date'])
-
-    # Separate home and away games
-    home_performance = data_ordered[data_ordered['home'] == 1]
-    away_performance = data_ordered[data_ordered['home'] == 0]  # Fixed to align with `home` flag
-
-    # Compute season-to-date averages for home and away games (including game_id)
-    home_rolling = (
-        home_performance.groupby(['player', 'season'])[['game_id', 'pts', 'reb', 'ast', '3pm']]
-        .apply(lambda x: x.set_index('game_id').expanding().mean())  # Prevent data leakage
-        .reset_index()
-    )
-
-    away_rolling = (
-        away_performance.groupby(['player', 'season'])[['game_id', 'pts', 'reb', 'ast', '3pm']]
-        .apply(lambda x: x.set_index('game_id').expanding().mean())
-        .reset_index()
-    )
-
-    # Rename columns before merging
-    home_rolling = home_rolling.rename(columns={'pts': 'home_avg_pts', 'reb': 'home_avg_reb', 
-                                                'ast': 'home_avg_ast', '3pm': 'home_avg_3pm'})
-    away_rolling = away_rolling.rename(columns={'pts': 'away_avg_pts', 'reb': 'away_avg_reb', 
-                                                'ast': 'away_avg_ast', '3pm': 'away_avg_3pm'})
-
-    # Merge rolling averages back into `data_ordered`
-    data_ordered = data_ordered.merge(home_rolling[['player', 'game_id', 'home_avg_pts', 'home_avg_reb', 'home_avg_ast', 'home_avg_3pm']],
-                                    on=['player', 'game_id'], how='left')
-
-    data_ordered = data_ordered.merge(away_rolling[['player', 'game_id', 'away_avg_pts', 'away_avg_reb', 'away_avg_ast', 'away_avg_3pm']],
-                                    on=['player', 'game_id'], how='left')
-
-    # Fill missing values for early season games
-    for cat in ['pts', 'reb', 'ast', '3pm']:
-        data_ordered[f'home_avg_{cat}'] = data_ordered[f'home_avg_{cat}'].fillna(0)
-        data_ordered[f'away_avg_{cat}'] = data_ordered[f'away_avg_{cat}'].fillna(0)
-
-        # Compute home vs. away performance difference conditionally
-        data_ordered[f'{cat}_home_away_diff'] = (
-            (data_ordered['home'] == 1) * (data_ordered[f'home_avg_{cat}'] - data_ordered[f'away_avg_{cat}']) +
-            (data_ordered['home'] == 0) * (data_ordered[f'away_avg_{cat}'] - data_ordered[f'home_avg_{cat}'])
-        )
-
-    # Drop unnecessary columns
-    data_ordered = data_ordered.drop(columns=[f'home_avg_{cat}' for cat in ['pts', 'reb', 'ast', '3pm']] + 
-                                            [f'away_avg_{cat}' for cat in ['pts', 'reb', 'ast', '3pm']])
 
     data_ordered.dropna(inplace=True)
 
