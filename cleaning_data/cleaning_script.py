@@ -60,8 +60,8 @@ def clean_current_player_data(data):
         WITH RankedGames AS (
             SELECT *,
                 ROW_NUMBER() OVER (PARTITION BY player ORDER BY game_date DESC) AS game_rank
-            FROM `capstone_data.player_modeling_data`
-            WHERE player IN ({','.join([f'"{player}"' for player in players])}) and season = 2024
+            FROM `capstone_data.player_modeling_data_partitioned`
+            WHERE player IN ({','.join([f'"{player}"' for player in players])}) and season = {season}
         )
         SELECT *
         FROM RankedGames
@@ -72,8 +72,8 @@ def clean_current_player_data(data):
         WITH RankedGames AS (
             SELECT *,
                 ROW_NUMBER() OVER (PARTITION BY player ORDER BY game_date DESC) AS game_rank
-            FROM `capstone_data.player_prediction_data`
-            WHERE player IN ({','.join([f'"{player}"' for player in players])}) and season = '{season}'
+            FROM `capstone_data.player_prediction_data_partitioned`
+            WHERE player IN ({','.join([f'"{player}"' for player in players])}) and season = {season}
         )
         SELECT *
         FROM RankedGames
