@@ -212,7 +212,7 @@ def clean_past_player_data():
         prediction_data['season'] = prediction_data['game_date'].apply(
             lambda x: f"{x.year}-{x.year + 1}" if x.month >= 10 else f"{x.year - 1}-{x.year}"
         )
-
+        
         #using shifted windows for rolling data to prevent data leakage
         for feature in features_for_rolling:
             modeling_data[f'{feature}_3gm_avg'] = modeling_data.groupby(by = 'player')[f'{feature}'].apply(lambda x: x.shift(1).rolling(window = 3,min_periods=3).mean()).reset_index(level = 0,drop=True).round(2)
@@ -236,14 +236,24 @@ def clean_past_player_data():
     model_data.loc[:, model_data.columns != 'game_date'] = model_data.drop(columns=['game_date']).fillna(0)
     predict_data.loc[:, predict_data.columns != 'game_date'] = predict_data.drop(columns=['game_date']).fillna(0)
 
+    modeling_data_partitioned = model_data
+    prediction_data_partitioned = predict_data
+
+    modeling_data_partitioned['season_start_year'] = modeling_data['season'].apply(lambda x: int(x.split('-')[0]))
+    prediction_data_partitioned['season_start_year'] = prediction_data['season'].apply(lambda x: int(x.split('-')[0]))
 
     if local:
         pandas_gbq.to_gbq(model_data,destination_table = f'capstone_data.player_modeling_data',project_id='miscellaneous-projects-444203',if_exists='replace',table_schema=[{'name':'game_date','type':'DATE'},])
         pandas_gbq.to_gbq(predict_data,destination_table = f'capstone_data.player_prediction_data',project_id='miscellaneous-projects-444203',if_exists='replace',table_schema=[{'name':'game_date','type':'DATE'},])
-    else:
-        pandas_gbq.to_gbq(model_data,destination_table = f'capstone_data.player_modeling_data',project_id='miscellaneous-projects-444203',if_exists='replace',credentials=credentials,table_schema=[{'name':'game_date','type':'DATE'},])
-        pandas_gbq.to_gbq(predict_data,destination_table = f'capstone_data.player_prediction_data',project_id='miscellaneous-projects-444203',if_exists='replace',credentials=credentials,table_schema=[{'name':'game_date','type':'DATE'},])
 
+        pandas_gbq.to_gbq(modeling_data_partitioned,destination_table = f'capstone_data.player_modeling_data_partitioned',project_id='miscellaneous-projects-444203',if_exists='replace',table_schema=[{'name':'game_date','type':'DATE'},])
+        pandas_gbq.to_gbq(prediction_data_partitioned,destination_table = f'capstone_data.player_prediction_data_partitioned',project_id='miscellaneous-projects-444203',if_exists='replace',table_schema=[{'name':'game_date','type':'DATE'},])
+    else:
+        pandas_gbq.to_gbq(modeling_data_partitioned,destination_table = f'capstone_data.player_modeling_data',project_id='miscellaneous-projects-444203',if_exists='replace',credentials=credentials,table_schema=[{'name':'game_date','type':'DATE'},])
+        pandas_gbq.to_gbq(prediction_data_partitioned,destination_table = f'capstone_data.player_prediction_data',project_id='miscellaneous-projects-444203',if_exists='replace',credentials=credentials,table_schema=[{'name':'game_date','type':'DATE'},])
+
+        pandas_gbq.to_gbq(modeling_data_partitioned,destination_table = f'capstone_data.player_modeling_data_partitioned',project_id='miscellaneous-projects-444203',if_exists='replace',credentials=credentials,table_schema=[{'name':'game_date','type':'DATE'},])
+        pandas_gbq.to_gbq(prediction_data_partitioned,destination_table = f'capstone_data.player_prediction_data_partitioned',project_id='miscellaneous-projects-444203',if_exists='replace',credentials=credentials,table_schema=[{'name':'game_date','type':'DATE'},])
 
 
 def clean_past_team_ratings():
@@ -284,7 +294,8 @@ def clean_past_team_ratings():
         prediction_data['season'] = prediction_data['game_date'].apply(
             lambda x: f"{x.year}-{x.year + 1}" if x.month >= 10 else f"{x.year - 1}-{x.year}"
         )
-
+        modeling_data['season_start_year'] = modeling_data['season'].apply(lambda x: int(x.split('-')[0]))
+        prediction_data['season_start_year'] = prediction_data['season'].apply(lambda x: int(x.split('-')[0]))
         #using shifted windows for rolling data to prevent data leakage
         for column in num_columns:
             modeling_data[f'{column}_3gm_avg'] = modeling_data.groupby(by = 'team')[column].apply(lambda x: x.shift(1).rolling(window = 3,min_periods=3).mean()).reset_index(level = 0,drop = True).round(2)
@@ -302,18 +313,27 @@ def clean_past_team_ratings():
     model_data = pd.concat(model_data,ignore_index = True)
     predict_data = pd.concat(predict_data,ignore_index = True)
 
-
-
     model_data.loc[:, model_data.columns != 'game_date'] = model_data.drop(columns=['game_date']).fillna(0)
     predict_data.loc[:, predict_data.columns != 'game_date'] = predict_data.drop(columns=['game_date']).fillna(0)
+
+    modeling_data_partitioned = model_data
+    prediction_data_partitioned = predict_data
+
+    modeling_data_partitioned['season_start_year'] = modeling_data['season'].apply(lambda x: int(x.split('-')[0]))
+    prediction_data_partitioned['season_start_year'] = prediction_data['season'].apply(lambda x: int(x.split('-')[0]))
 
     if local:
         pandas_gbq.to_gbq(model_data,destination_table='capstone_data.team_modeling_data',project_id='miscellaneous-projects-444203',table_schema=[{'name':'game_date','type':'DATE'}],if_exists='replace')
         pandas_gbq.to_gbq(predict_data,destination_table='capstone_data.team_prediction_data',project_id='miscellaneous-projects-444203',table_schema=[{'name':'game_date','type':'DATE'}],if_exists='replace')
+
+        pandas_gbq.to_gbq(modeling_data_partitioned,destination_table='capstone_data.team_modeling_data_partitioned',project_id='miscellaneous-projects-444203',table_schema=[{'name':'game_date','type':'DATE'}],if_exists='replace')
+        pandas_gbq.to_gbq(prediction_data_partitioned,destination_table='capstone_data.team_prediction_data_partitioned',project_id='miscellaneous-projects-444203',table_schema=[{'name':'game_date','type':'DATE'}],if_exists='replace')
     else:
         pandas_gbq.to_gbq(model_data,destination_table='capstone_data.team_modeling_data',project_id='miscellaneous-projects-444203',table_schema=[{'name':'game_date','type':'DATE'}],credentials=credentials,if_exists='replace')
-        pandas_gbq.to_gbq(predict_data,destination_table='capstone_data.team_prediction_data',project_id='miscellaneous-projects-444203',table_schema=[{'name':'game_date','type':'DATE'}],if_exists='replace')
+        pandas_gbq.to_gbq(predict_data,destination_table='capstone_data.team_prediction_data',project_id='miscellaneous-projects-444203',table_schema=[{'name':'game_date','type':'DATE'}],credentials=credentials,if_exists='replace')
 
+        pandas_gbq.to_gbq(modeling_data_partitioned,destination_table='capstone_data.team_modeling_data_partitioned',project_id='miscellaneous-projects-444203',table_schema=[{'name':'game_date','type':'DATE'}],credentials=credentials,if_exists='replace')
+        pandas_gbq.to_gbq(prediction_data_partitioned,destination_table='capstone_data.team_prediction_data_partitioned',project_id='miscellaneous-projects-444203',table_schema=[{'name':'game_date','type':'DATE'}],credentials=credentials,if_exists='replace')
 
 
 def clean_current_team_ratings(game_data):
