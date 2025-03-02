@@ -119,6 +119,14 @@ def recent_player_data(games):
 
     # Filter players list to only include those in BigQuery
     filtered_players = [player for player in players if player in existing_players_set]
+    
+    today = date.today().date()
+    
+    if today.month >= 10:
+        season = today.year 
+
+    else: 
+        season = today.year - 1
 
     if not filtered_players:
         print("No valid players found in the dataset.")
@@ -128,12 +136,11 @@ def recent_player_data(games):
         WITH RankedGames AS (
             SELECT *,
                 ROW_NUMBER() OVER (PARTITION BY player ORDER BY game_date DESC) AS game_rank
-            FROM `capstone_data.player_prediction_data`
-            WHERE player IN ({','.join([f'"{player}"' for player in filtered_players])})
+            FROM `capstone_data.player_prediction_data_partitioned`
+            WHERE player IN ({','.join([f'"{player}"' for player in filtered_players])}) and season_start_year = {season}
         )
         SELECT *
         FROM RankedGames
-        WHERE game_rank <= 1
         ORDER BY player, game_date DESC;
         """
         
@@ -141,12 +148,11 @@ def recent_player_data(games):
         WITH RankedGames AS (
             SELECT *,
                 ROW_NUMBER() OVER (PARTITION BY team ORDER BY game_date DESC) AS game_rank
-            FROM `capstone_data.team_prediction_data`
-            WHERE team IN ({','.join([f'"{opponent}"' for opponent in opponents])})
+            FROM `capstone_data.team_prediction_data_partitioned`
+            WHERE team IN ({','.join([f'"{opponent}"' for opponent in opponents])}) and season_start_year = {season}
         )
         SELECT *
         FROM RankedGames
-        WHERE game_rank <= 1
         ORDER BY team, game_date DESC;
         """
 
@@ -154,12 +160,11 @@ def recent_player_data(games):
         WITH RankedGames AS (
             SELECT *,
                 ROW_NUMBER() OVER (PARTITION BY team ORDER BY game_date DESC) AS game_rank
-            FROM `capstone_data.team_prediction_data`
-            WHERE team IN ({','.join([f'"{team}"' for team in teams])})
+            FROM `capstone_data.team_prediction_data_partitioned`
+            WHERE team IN ({','.join([f'"{team}"' for team in teams])}) and season_start_year = {season}
         )
         SELECT *
         FROM RankedGames
-        WHERE game_rank <= 1
         ORDER BY team, game_date DESC;
         """
 
@@ -176,16 +181,15 @@ def recent_player_data(games):
         opponent_data = opponent_data.rename(columns={
         col: ('matchup' if col == 'team' else 'game_id' if col == 'game_id' else f'opponent_{col}') for col in team_data.columns})
 
-        full_data = games.merge(player_data, on = ['player','team'], how = 'inner',suffixes=('','remove'))
-        full_data = games.merge(opponent_data,on = ['matchup'],how = 'inner',suffixes=('','remove'))
-        full_data = games.merge(team_data, on = ['team'],how = 'inner',suffixes=('','remove'))
+        full_data = games.merge(player_data, on = ['player'], how = 'inner',suffixes=('','remove'))
+        full_data = full_data.merge(opponent_data,on = ['matchup'],how = 'inner',suffixes=('','remove'))
+        full_data = full_data.merge(team_data, on = ['team'],how = 'inner',suffixes=('','remove'))
         full_data.drop([column for column in full_data.columns if 'remove' in column],axis = 1 , inplace=True) 
         full_data.drop([column for column in full_data.columns if '_1' in column],axis = 1 , inplace=True)
 
-
         return full_data,filtered_players,teams,opponents
 
-def pull_odds():
+def pull_odds(filtered_players):
 
     tables = ['points','rebounds','assists','threes_made']
 
@@ -204,8 +208,8 @@ def pull_odds():
         odds_query=(
         f"""
         select * 
-        from `player_{table}_odds
-        where date(Date_Updated) = {str(date.today().date())}
+        from `capstone_data.player_{table}_odds`
+        where date(Date_Updated) = date('{date.today().strftime('%Y-%m-%d')}') and Player in 
         """)
         if local:    
             odds_data[table] = pd.DataFrame(pandas_gbq.read_gbq(odds_query,project_id='miscellaneous-projects-444203'))
@@ -218,6 +222,28 @@ def predict_games():
     games = scrape_roster(data)
     full_data,filtered_players,teams,opponents = recent_player_data(games)
     
+    data_ordered = full_data.sort_values('game_date')
+   
+     
+    data_ordered['pts_per_min_3gm'] = data_ordered['pts_3gm_avg']/data_ordered['min_3gm_avg']
+    data_ordered['pts_per_min_season'] = data_ordered['pts_season']/data_ordered['min_season']
+    data_ordered['pts_per_min_momentum'] = data_ordered['pts_per_min_3gm'] - data_ordered['pts_per_min_season']
+
+    data_ordered['3pm_per_min_3gm'] = data_ordered['3pm_3gm_avg']/data_ordered['min_3gm_avg']
+    data_ordered['3pm_per_min_season'] = data_ordered['3pm_season']/data_ordered['min_season']
+    data_ordered['3pm_per_min_momentum'] = data_ordered['3pm_per_min_3gm'] - data_ordered['3pm_per_min_season'] 
+
+    data_ordered['reb_per_min_3gm'] = data_ordered['reb_3gm_avg']/data_ordered['min_3gm_avg']
+    data_ordered['reb_per_min_season'] = data_ordered['reb_season']/data_ordered['min_season']
+    data_ordered['reb_per_min_momentum'] = data_ordered['3pm_per_min_3gm'] - data_ordered['reb_per_min_season']
+
+    home_performance = data_ordered[data_ordered['home'] == 1]
+    away_performance = data_ordered[data_ordered['away'] == 1]    
+
+    # Ensure data is sorted correctly for chronological calculations
+    data_ordered = data_ordered.sort_values(by=['player', 'season', 'game_date'])
+
+    data_ordered.dropna(inplace=True)
 
     try:
         credentials = service_account.Credentials.from_service_account_file('/home/aportra99/scraping_key.json') #For Google VM
@@ -227,123 +253,52 @@ def predict_games():
         local = True
         credentials = False
 
-    player_query = f"""
-    WITH RankedGames AS (
-        SELECT *,
-            ROW_NUMBER() OVER (PARTITION BY player ORDER BY game_date DESC) AS game_rank
-        FROM `capstone_data.player_modeling_data`
-        WHERE player IN ({','.join([f'"{player}"' for player in filtered_players])})
-    )
-    SELECT *
-    FROM RankedGames
-    WHERE game_rank > 1 and game_rank <= 10
-    ORDER BY player, game_date DESC;
-    """
-    
-    opponent_query = f"""
-    WITH RankedGames AS (
-        SELECT *,
-            ROW_NUMBER() OVER (PARTITION BY team ORDER BY game_date DESC) AS game_rank
-        FROM `capstone_data.team_modeling_data`
-        WHERE team IN ({','.join([f'"{opponent}"' for opponent in opponents])})
-    )
-    SELECT *
-    FROM RankedGames
-    WHERE game_rank > 1 and game_rank <= 10
-    ORDER BY team, game_date DESC;
-    """
-
-    team_query = f"""
-    WITH RankedGames AS (
-        SELECT *,
-            ROW_NUMBER() OVER (PARTITION BY team ORDER BY game_date DESC) AS game_rank
-        FROM `capstone_data.team_modeling_data`
-        WHERE team IN ({','.join([f'"{team}"' for team in teams])})
-    )
-    SELECT *
-    FROM RankedGames
-    WHERE game_rank > 1 and game_rank <= 10
-    ORDER BY team, game_date DESC;
-    """
-
-    if local:
-        team_data = pd.DataFrame(pandas_gbq.read_gbq(team_query,project_id='miscellaneous-projects-444203'))
-        player_data = pd.DataFrame(pandas_gbq.read_gbq(player_query,project_id='miscellaneous-projects-444203'))
-        opponents_data = pd.DataFrame(pandas_gbq.read_gbq(opponent_query,project_id='miscellaneous-projects-444203'))
-    else:
-        team_data = pd.DataFrame(pandas_gbq.read_gbq(team_query,project_id='miscellaneous-projects-444203',credentials=credentials))
-        player_data = pd.DataFrame(pandas_gbq.read_gbq(player_query,project_id='miscellaneous-projects-444203',credentials=credentials))
-        opponents_data = pd.DataFrame(pandas_gbq.read_gbq(opponent_query,project_id='miscellaneous-projects-444203',credentials=credentials))
-
-    opponents_data = opponents_data.rename(columns={
-    col: ('matchup' if col == 'team' else 'game_id' if col == 'game_id' else f'opponent_{col}') for col in team_data.columns})
-
-    sarima_data = player_data.merge(opponents_data,on = ['matchup'],how = 'inner',suffixes=('','remove'))
-    sarima_data = team_data.merge(team_data, on = ['team'],how = 'inner',suffixes=('','remove'))
-    sarima_data.drop([column for column in full_data.columns if 'remove' in column],axis = 1 , inplace=True) 
-    sarima_data.drop([column for column in full_data.columns if '_1' in column],axis = 1 , inplace=True)
-
-    sarima_data = sarima_data.sort_values(by='game_date',ascending=True)
-    sarima_data = sarima_data.set_index('game_date')
-    sarima_data = sarima_data.asfreq(pd.infer_freq(sarima_data['game_date']))
-
-    # Load the models
+   # Load the models
     models = joblib.load('models/models.pkl')
 
     for category in models.keys():
         for model in models[category]:
             if model.lower() != 'xgboost' and model.lower() != 'sarimax':
-
-                features = models[category][model].feature_names_in_
-                data = full_data[features]    
+                print(f"Processing {model}")
+                features = [f.replace("\n", "").strip() for f in models[category][model].feature_names_in_]
+                data = data_ordered[features]
+                print(data)
                 y_pred = models[category][model].predict(data)
-                full_data[f'{category}_{model}'] = y_pred
+                data_ordered[f'{category}_{model}'] = y_pred
 
             elif model.lower() == 'xgboost':
 
                 features = models[category][model].get_booster().feature_names
-                data = full_data[features]
+                data = data_ordered[features]
                 y_pred = models[category][model].predict(data)
-                full_data[f'{category}_{model}'] = y_pred
-
-            if model.lower() == 'sarimax':
-
-                order = models[category][model]['order']
-                seasonal_order = models[category][model]['seasonal_order']
-                exog_columns = models[category][model]['exog_columns']
-                
-                exog_data = full_data[exog_columns]
-
-                sarimax_model = SARIMAX(
-                    sarima_data[category],
-                    order=order,
-                    seasonal_order=seasonal_order,
-                    exog_columns=exog_data
-                )
-                
-                data = full_data[exog_columns]
-                data = data.sort_values(by='game_date',ascending=True)
-                data = data.set_index('game_date')
-                
-                forecast_steps = len(filtered_players)
-                
-                pred = sarimax_model.get_forecast(steps=forecast_steps, exog=exog_data if exog_data else None)
-
-                full_data[f'{category}_{model}'] = pred
+                data_ordered[f'{category}_{model}'] = y_pred
         
-    odds_data= pull_odds()
-    
+    odds_data=pull_odds()
+    print(data_ordered.columns)
     for key in odds_data.keys():
         data = odds_data[key]
-        data['Over'] = data['Over'].str.replace('+','',regex = False).astype(int)
-        data['Under'] = data['Under'].astype(int)
-        filtered_full_data = full_data[full_data['players'].isin(data['players'])]
 
-        for category in models.keys():
-            for model in models[category]:
-                data[f'{category}_{model}'] = filtered_full_data[f'{category}_{model}']
+        data['Over'] = pd.to_numeric(data['Over'].astype(str).str.replace('−', '-', regex=False).str.replace('+', '', regex=False),errors='coerce').fillna(0).astype(int)
+
+        data['Under'] = pd.to_numeric(data['Under'].astype(str).str.replace('−', '-', regex=False).str.replace('+', '', regex=False),errors='coerce').fillna(0).astype(int)
+        
+        filtered_full_data = data_ordered[data_ordered['player'].isin(data['Player'])]
+        
+        if key == 'points':
+            category = 'pts'
+        elif key == 'assists':
+            category = 'ast'
+        elif key == 'threes_made':
+            category = '3pm'
+        elif key == 'rebounds':
+            category = 'reb'
+        for model in models[category]:
+            if model == 'sarimax':
+                continue
+            data[f'{category}_{model}'] = filtered_full_data[f'{category}_{model}']
+
         if local:
-            pandas_gbq.to_gbq(data,f'miscellaneous-projects-444203.capstone_data.{key}_predictions')
+            pandas_gbq.to_gbq(data,f'miscellaneous-projects-444203.capstone_data.{key}_predictions',if_exists='replace')
         else: 
             pandas_gbq.to_gbq(data,f'miscellaneous-projects-444203.capstone_data.{key}_predictions',credentials=credentials)
             
