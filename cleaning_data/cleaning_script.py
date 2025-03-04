@@ -239,18 +239,21 @@ def clean_past_player_data():
     modeling_data_partitioned = model_data
     prediction_data_partitioned = predict_data
 
-    modeling_data_partitioned['season_start_year'] = modeling_data['season'].apply(lambda x: int(x.split('-')[0]))
-    prediction_data_partitioned['season_start_year'] = prediction_data['season'].apply(lambda x: int(x.split('-')[0]))
+    modeling_data_partitioned['season_start_year'] = modeling_data_partitioned['season'].apply(lambda x: int(x.split('-')[0]))
+    prediction_data_partitioned['season_start_year'] = prediction_data_partitioned['season'].apply(lambda x: int(x.split('-')[0]))
 
+    modeling_data_partitioned['season_start_year'] = modeling_data_partitioned['season_start_year'].astype('Int64')
+    prediction_data_partitioned['season_start_year'] = prediction_data_partitioned['season_start_year'].astype('Int64')
+    
     if local:
-        pandas_gbq.to_gbq(model_data,destination_table = f'capstone_data.player_modeling_data',project_id='miscellaneous-projects-444203',if_exists='replace',table_schema=[{'name':'game_date','type':'DATE'},])
-        pandas_gbq.to_gbq(predict_data,destination_table = f'capstone_data.player_prediction_data',project_id='miscellaneous-projects-444203',if_exists='replace',table_schema=[{'name':'game_date','type':'DATE'},])
+        #pandas_gbq.to_gbq(model_data,destination_table = f'capstone_data.player_modeling_data',project_id='miscellaneous-projects-444203',if_exists='replace',table_schema=[{'name':'game_date','type':'DATE'},])
+        #pandas_gbq.to_gbq(predict_data,destination_table = f'capstone_data.player_prediction_data',project_id='miscellaneous-projects-444203',if_exists='replace',table_schema=[{'name':'game_date','type':'DATE'},])
 
         pandas_gbq.to_gbq(modeling_data_partitioned,destination_table = f'capstone_data.player_modeling_data_partitioned',project_id='miscellaneous-projects-444203',if_exists='replace',table_schema=[{'name':'game_date','type':'DATE'},])
         pandas_gbq.to_gbq(prediction_data_partitioned,destination_table = f'capstone_data.player_prediction_data_partitioned',project_id='miscellaneous-projects-444203',if_exists='replace',table_schema=[{'name':'game_date','type':'DATE'},])
     else:
-        pandas_gbq.to_gbq(modeling_data_partitioned,destination_table = f'capstone_data.player_modeling_data',project_id='miscellaneous-projects-444203',if_exists='replace',credentials=credentials,table_schema=[{'name':'game_date','type':'DATE'},])
-        pandas_gbq.to_gbq(prediction_data_partitioned,destination_table = f'capstone_data.player_prediction_data',project_id='miscellaneous-projects-444203',if_exists='replace',credentials=credentials,table_schema=[{'name':'game_date','type':'DATE'},])
+        #pandas_gbq.to_gbq(modeling_data_partitioned,destination_table = f'capstone_data.player_modeling_data',project_id='miscellaneous-projects-444203',if_exists='replace',credentials=credentials,table_schema=[{'name':'game_date','type':'DATE'},])
+        #pandas_gbq.to_gbq(prediction_data_partitioned,destination_table = f'capstone_data.player_prediction_data',project_id='miscellaneous-projects-444203',if_exists='replace',credentials=credentials,table_schema=[{'name':'game_date','type':'DATE'},])
 
         pandas_gbq.to_gbq(modeling_data_partitioned,destination_table = f'capstone_data.player_modeling_data_partitioned',project_id='miscellaneous-projects-444203',if_exists='replace',credentials=credentials,table_schema=[{'name':'game_date','type':'DATE'},])
         pandas_gbq.to_gbq(prediction_data_partitioned,destination_table = f'capstone_data.player_prediction_data_partitioned',project_id='miscellaneous-projects-444203',if_exists='replace',credentials=credentials,table_schema=[{'name':'game_date','type':'DATE'},])
@@ -319,18 +322,21 @@ def clean_past_team_ratings():
     modeling_data_partitioned = model_data
     prediction_data_partitioned = predict_data
 
-    modeling_data_partitioned['season_start_year'] = modeling_data['season'].apply(lambda x: int(x.split('-')[0]))
-    prediction_data_partitioned['season_start_year'] = prediction_data['season'].apply(lambda x: int(x.split('-')[0]))
+    modeling_data_partitioned['season_start_year'] = modeling_data_partitioned['season'].apply(lambda x: int(x.split('-')[0]))
+    prediction_data_partitioned['season_start_year'] = prediction_data_partitioned['season'].apply(lambda x: int(x.split('-')[0]))
+
+    modeling_data_partitioned['season_start_year'] = modeling_data_partitioned['season_start_year'].astype('Int64')
+    prediction_data_partitioned['season_start_year'] = prediction_data_partitioned['season_start_year'].astype('Int64')
 
     if local:
-        pandas_gbq.to_gbq(model_data,destination_table='capstone_data.team_modeling_data',project_id='miscellaneous-projects-444203',table_schema=[{'name':'game_date','type':'DATE'}],if_exists='replace')
-        pandas_gbq.to_gbq(predict_data,destination_table='capstone_data.team_prediction_data',project_id='miscellaneous-projects-444203',table_schema=[{'name':'game_date','type':'DATE'}],if_exists='replace')
+        #pandas_gbq.to_gbq(model_data,destination_table='capstone_data.team_modeling_data',project_id='miscellaneous-projects-444203',table_schema=[{'name':'game_date','type':'DATE'}],if_exists='replace')
+        #pandas_gbq.to_gbq(predict_data,destination_table='capstone_data.team_prediction_data',project_id='miscellaneous-projects-444203',table_schema=[{'name':'game_date','type':'DATE'}],if_exists='replace')
 
         pandas_gbq.to_gbq(modeling_data_partitioned,destination_table='capstone_data.team_modeling_data_partitioned',project_id='miscellaneous-projects-444203',table_schema=[{'name':'game_date','type':'DATE'}],if_exists='replace')
         pandas_gbq.to_gbq(prediction_data_partitioned,destination_table='capstone_data.team_prediction_data_partitioned',project_id='miscellaneous-projects-444203',table_schema=[{'name':'game_date','type':'DATE'}],if_exists='replace')
     else:
-        pandas_gbq.to_gbq(model_data,destination_table='capstone_data.team_modeling_data',project_id='miscellaneous-projects-444203',table_schema=[{'name':'game_date','type':'DATE'}],credentials=credentials,if_exists='replace')
-        pandas_gbq.to_gbq(predict_data,destination_table='capstone_data.team_prediction_data',project_id='miscellaneous-projects-444203',table_schema=[{'name':'game_date','type':'DATE'}],credentials=credentials,if_exists='replace')
+        #pandas_gbq.to_gbq(model_data,destination_table='capstone_data.team_modeling_data',project_id='miscellaneous-projects-444203',table_schema=[{'name':'game_date','type':'DATE'}],credentials=credentials,if_exists='replace')
+        #pandas_gbq.to_gbq(predict_data,destination_table='capstone_data.team_prediction_data',project_id='miscellaneous-projects-444203',table_schema=[{'name':'game_date','type':'DATE'}],credentials=credentials,if_exists='replace')
 
         pandas_gbq.to_gbq(modeling_data_partitioned,destination_table='capstone_data.team_modeling_data_partitioned',project_id='miscellaneous-projects-444203',table_schema=[{'name':'game_date','type':'DATE'}],credentials=credentials,if_exists='replace')
         pandas_gbq.to_gbq(prediction_data_partitioned,destination_table='capstone_data.team_prediction_data_partitioned',project_id='miscellaneous-projects-444203',table_schema=[{'name':'game_date','type':'DATE'}],credentials=credentials,if_exists='replace')
