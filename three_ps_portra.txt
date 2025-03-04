@@ -1,3 +1,16 @@
+3/3/2025
+Progress:
+Script to automatically make predictions has been implemeneted.
+
+Problems:
+Need to keep an eye out for differences in names.For example Carlton Carrington listed as Bub Carrington on NBA.com but as Carlton on DraftKings.
+
+Plans:
+Working on the dashboard and experimenting with player specific models for those with enough data.
+
+Time:
+I spent 6 hours since last Tuesday on this. 
+***********************************************************************************************************************************************************************************************************************************************************
 2/24/2025
 Progress:
 Implementing script to automatically pull who is playing and the odds connected to who is playing then making predictions.
