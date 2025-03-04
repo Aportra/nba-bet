@@ -9,18 +9,38 @@ from google.oauth2 import service_account
 from datetime import datetime as date
 from selenium.webdriver.firefox.options import Options
 from statsmodels.tsa.statespace.sarimax import SARIMAX 
+from sklearn.preprocessing import StandardScaler
 
 import joblib
-import utils
+import model_utils as model_utils
 import pandas as pd
 import pandas_gbq
 import time
+
+def clean_player_name(name):
+
+    """Standardizes player names by removing special characters and handling known name variations."""
+    name = name.lower().strip()  # Convert to lowercase & remove extra spaces
+    name = name.replace(".", "")# Remove periods
+
+    # Known name changes (add more as needed)
+    name_corrections = {
+        "alexandre sarr":"alex sarr",
+        "jimmy butler": "jimmy butler iii",
+        'nicolas claxton':'nic claxton',
+          'kenyon martin jr':'kj martin',
+          'carlton carrington':'bub carrington' # Example name change
+    }
+
+    # Apply corrections if the name exists in the dictionary
+    return name_corrections.get(name, name)  # Default to original name if no correction found
+
 
 def gather_data_to_model():
     query = """
     select team,opponent,date
     from `capstone_data.schedule`
-    where date = current_date()
+    where date = current_date('America/Los_Angeles')
     """
     team_mapping = {'WAS':'WSH',
                     'UTA':'UTAH',
@@ -49,7 +69,8 @@ def gather_data_to_model():
 
 def scrape_roster(data):
 
-    driver = utils.establish_driver(local = True)
+    print('pulling rosters')
+    driver = model_utils.establish_driver(local=True)
 
     teams_playing = data['team']
     opponents = data['opponent']
@@ -87,6 +108,34 @@ def scrape_roster(data):
 
     return games
 
+def pull_odds():
+
+    tables = ['points','rebounds','assists','threes_made']
+
+    odds_data = {}
+
+    try:
+        credentials = service_account.Credentials.from_service_account_file('/home/aportra99/scraping_key.json') #For Google VM
+        local = False
+    except FileNotFoundError:
+        print("File not found continuing as if on local")
+        local = True
+        credentials = False
+
+    for table in tables:
+        odds_query=(
+        f"""
+        select * 
+        from `capstone_data.player_{table}_odds`
+        where date(Date_Updated) = current_date('America/Los_Angeles')
+        """)
+        if local:    
+            odds_data[table] = pd.DataFrame(pandas_gbq.read_gbq(odds_query,project_id='miscellaneous-projects-444203'))
+        else: 
+            odds_data[table] = pd.DataFrame(pandas_gbq.read_gbq(odds_query,project_id='miscellaneous-projects-444203',credentials=credentials))
+        odds_data[table]['Player'] = odds_data[table]['Player'].apply(clean_player_name)
+        
+    return odds_data 
 
 
 def recent_player_data(games):
@@ -94,12 +143,21 @@ def recent_player_data(games):
     players = games['player'].unique()
     teams = games['team'].unique()
     opponents = games['opponent'].unique()
-
+    
+    players = [clean_player_name(player) for player in players]
     games = games.rename(columns={'opponent':'matchup'})
 
-    existing_players_query = """
-    SELECT DISTINCT player FROM `capstone_data.player_prediction_data`
-    """
+    today = date.today()
+
+    if today.month >= 10:
+        season = today.year
+    else:
+        season = today.year - 1
+
+    existing_players_query = f"""
+    SELECT DISTINCT player 
+    FROM `capstone_data.player_prediction_data_partitioned`
+    where season_start_year = 2024"""
 
     try:
         credentials = service_account.Credentials.from_service_account_file('/home/aportra99/scraping_key.json') #For Google VM
@@ -116,17 +174,9 @@ def recent_player_data(games):
         
     # Convert to a set for fast lookup
     existing_players_set = set(existing_players_df['player'])
-
+    existing_players_set = [clean_player_name(player) for player in existing_players_set]
     # Filter players list to only include those in BigQuery
     filtered_players = [player for player in players if player in existing_players_set]
-    
-    today = date.today().date()
-    
-    if today.month >= 10:
-        season = today.year 
-
-    else: 
-        season = today.year - 1
 
     if not filtered_players:
         print("No valid players found in the dataset.")
@@ -137,10 +187,11 @@ def recent_player_data(games):
             SELECT *,
                 ROW_NUMBER() OVER (PARTITION BY player ORDER BY game_date DESC) AS game_rank
             FROM `capstone_data.player_prediction_data_partitioned`
-            WHERE player IN ({','.join([f'"{player}"' for player in filtered_players])}) and season_start_year = {season}
+            WHERE lower(player) IN ({','.join([f'"{player}"' for player in filtered_players])})
         )
         SELECT *
         FROM RankedGames
+        where game_rank <= 1
         ORDER BY player, game_date DESC;
         """
         
@@ -153,6 +204,7 @@ def recent_player_data(games):
         )
         SELECT *
         FROM RankedGames
+        where game_rank <= 1
         ORDER BY team, game_date DESC;
         """
 
@@ -165,9 +217,11 @@ def recent_player_data(games):
         )
         SELECT *
         FROM RankedGames
-        ORDER BY team, game_date DESC;
+        where game_rank <= 1
+        ORDER BY team, game_date DESc;
         """
 
+        games['player'] = games['player'].apply(clean_player_name)
 
         if local:
             player_data = pd.DataFrame(pandas_gbq.read_gbq(player_query,project_id='miscellaneous-projects-444203'))
@@ -178,6 +232,7 @@ def recent_player_data(games):
             opponent_data = pd.DataFrame(pandas_gbq.read_gbq(opponent_query,project_id='miscellaneous-projects-444203',credentials=credentials))
             team_data = pd.DataFrame(pandas_gbq.read_gbq(team_query,project_id='miscellaneous-projects-444203',credentials=credentials))
 
+        player_data['player'] = player_data['player'].apply(clean_player_name)
         opponent_data = opponent_data.rename(columns={
         col: ('matchup' if col == 'team' else 'game_id' if col == 'game_id' else f'opponent_{col}') for col in team_data.columns})
 
@@ -186,120 +241,156 @@ def recent_player_data(games):
         full_data = full_data.merge(team_data, on = ['team'],how = 'inner',suffixes=('','remove'))
         full_data.drop([column for column in full_data.columns if 'remove' in column],axis = 1 , inplace=True) 
         full_data.drop([column for column in full_data.columns if '_1' in column],axis = 1 , inplace=True)
-
-        return full_data,filtered_players,teams,opponents
-
-def pull_odds(filtered_players):
-
-    tables = ['points','rebounds','assists','threes_made']
-
-    odds_data = {}
-
-
-    try:
-        credentials = service_account.Credentials.from_service_account_file('/home/aportra99/scraping_key.json') #For Google VM
-        local = False
-    except FileNotFoundError:
-        print("File not found continuing as if on local")
-        local = True
-        credentials = False
-
-    for table in tables:
-        odds_query=(
-        f"""
-        select * 
-        from `capstone_data.player_{table}_odds`
-        where date(Date_Updated) = date('{date.today().strftime('%Y-%m-%d')}') and Player in 
-        """)
-        if local:    
-            odds_data[table] = pd.DataFrame(pandas_gbq.read_gbq(odds_query,project_id='miscellaneous-projects-444203'))
-        else: 
-            odds_data[table] = pd.DataFrame(pandas_gbq.read_gbq(odds_query,project_id='miscellaneous-projects-444203',credentials=credentials))
-    return odds_data 
-
-def predict_games():
-    data = gather_data_to_model()
-    games = scrape_roster(data)
-    full_data,filtered_players,teams,opponents = recent_player_data(games)
-    
-    data_ordered = full_data.sort_values('game_date')
-   
-     
-    data_ordered['pts_per_min_3gm'] = data_ordered['pts_3gm_avg']/data_ordered['min_3gm_avg']
-    data_ordered['pts_per_min_season'] = data_ordered['pts_season']/data_ordered['min_season']
-    data_ordered['pts_per_min_momentum'] = data_ordered['pts_per_min_3gm'] - data_ordered['pts_per_min_season']
-
-    data_ordered['3pm_per_min_3gm'] = data_ordered['3pm_3gm_avg']/data_ordered['min_3gm_avg']
-    data_ordered['3pm_per_min_season'] = data_ordered['3pm_season']/data_ordered['min_season']
-    data_ordered['3pm_per_min_momentum'] = data_ordered['3pm_per_min_3gm'] - data_ordered['3pm_per_min_season'] 
-
-    data_ordered['reb_per_min_3gm'] = data_ordered['reb_3gm_avg']/data_ordered['min_3gm_avg']
-    data_ordered['reb_per_min_season'] = data_ordered['reb_season']/data_ordered['min_season']
-    data_ordered['reb_per_min_momentum'] = data_ordered['3pm_per_min_3gm'] - data_ordered['reb_per_min_season']
-
-    home_performance = data_ordered[data_ordered['home'] == 1]
-    away_performance = data_ordered[data_ordered['away'] == 1]    
-
-    # Ensure data is sorted correctly for chronological calculations
-    data_ordered = data_ordered.sort_values(by=['player', 'season', 'game_date'])
-
-    data_ordered.dropna(inplace=True)
-
-    try:
-        credentials = service_account.Credentials.from_service_account_file('/home/aportra99/scraping_key.json') #For Google VM
-        local = False
-    except FileNotFoundError:
-        print("File not found continuing as if on local")
-        local = True
-        credentials = False
-
-   # Load the models
-    models = joblib.load('models/models.pkl')
-
-    for category in models.keys():
-        for model in models[category]:
-            if model.lower() != 'xgboost' and model.lower() != 'sarimax':
-                print(f"Processing {model}")
-                features = [f.replace("\n", "").strip() for f in models[category][model].feature_names_in_]
-                data = data_ordered[features]
-                print(data)
-                y_pred = models[category][model].predict(data)
-                data_ordered[f'{category}_{model}'] = y_pred
-
-            elif model.lower() == 'xgboost':
-
-                features = models[category][model].get_booster().feature_names
-                data = data_ordered[features]
-                y_pred = models[category][model].predict(data)
-                data_ordered[f'{category}_{model}'] = y_pred
         
-    odds_data=pull_odds()
-    print(data_ordered.columns)
+        full_data['player'] = full_data['player'].apply(clean_player_name)
+        odds_data=pull_odds()
+
+        return full_data,odds_data
+
+
+
+def predict_games(full_data,odds_data):
+    models = joblib.load('models.pkl')
     for key in odds_data.keys():
-        data = odds_data[key]
 
-        data['Over'] = pd.to_numeric(data['Over'].astype(str).str.replace('−', '-', regex=False).str.replace('+', '', regex=False),errors='coerce').fillna(0).astype(int)
+        data_ordered = full_data.sort_values('game_date')
+        
+        data_ordered = data_ordered[data_ordered['player'].isin(odds_data[key]['Player'])]
+        print(len(data_ordered))
+        data_ordered['pts_per_min_3gm'] = data_ordered['pts_3gm_avg']/data_ordered['min_3gm_avg']
+        data_ordered['pts_per_min_season'] = data_ordered['pts_season']/data_ordered['min_season']
+        data_ordered['pts_per_min_momentum'] = data_ordered['pts_per_min_3gm'] - data_ordered['pts_per_min_season']
 
-        data['Under'] = pd.to_numeric(data['Under'].astype(str).str.replace('−', '-', regex=False).str.replace('+', '', regex=False),errors='coerce').fillna(0).astype(int)
+        data_ordered['3pm_per_min_3gm'] = data_ordered['3pm_3gm_avg']/data_ordered['min_3gm_avg']
+        data_ordered['3pm_per_min_season'] = data_ordered['3pm_season']/data_ordered['min_season']
+        data_ordered['3pm_per_min_momentum'] = data_ordered['3pm_per_min_3gm'] - data_ordered['3pm_per_min_season'] 
+
+        data_ordered['reb_per_min_3gm'] = data_ordered['reb_3gm_avg']/data_ordered['min_3gm_avg']
+        data_ordered['reb_per_min_season'] = data_ordered['reb_season']/data_ordered['min_season']
+        data_ordered['reb_per_min_momentum'] = data_ordered['3pm_per_min_3gm'] - data_ordered['reb_per_min_season']
         
-        filtered_full_data = data_ordered[data_ordered['player'].isin(data['Player'])]
-        
+        # Ensure data is sorted correctly for chronological calculations
+        data_ordered = data_ordered.sort_values(by=['player', 'season', 'game_date'])
+
+        # Fill missing values for early season games
+        # data_ordered = data_ordered.fillna(0,downcast='infer')
+        try:
+            credentials = service_account.Credentials.from_service_account_file('/home/aportra99/scraping_key.json') #For Google VM
+            local = False
+        except FileNotFoundError:
+            print("File not found continuing as if on local")
+            local = True
+            credentials = False
+
+# Load the models
         if key == 'points':
             category = 'pts'
-        elif key == 'assists':
-            category = 'ast'
-        elif key == 'threes_made':
-            category = '3pm'
         elif key == 'rebounds':
             category = 'reb'
-        for model in models[category]:
-            if model == 'sarimax':
-                continue
-            data[f'{category}_{model}'] = filtered_full_data[f'{category}_{model}']
+        elif key == 'assists':
+            category = 'ast'
+        else:
+            category = '3pm'
 
-        if local:
-            pandas_gbq.to_gbq(data,f'miscellaneous-projects-444203.capstone_data.{key}_predictions',if_exists='replace')
-        else: 
-            pandas_gbq.to_gbq(data,f'miscellaneous-projects-444203.capstone_data.{key}_predictions',credentials=credentials)
+        for model in models[category]:
+            if model.lower() != 'xgboost' and model.lower() != 'sarimax' and model.lower() != 'mlp' and model.lower() != 'random_forest':
+                features = [f.replace("\n", "").strip() for f in models[category][model].feature_names_in_]
+                if set(features).issubset(data_ordered.columns):  # Ensure all required features exist
+                    y_pred = models[category][model].predict(data_ordered[features])
+                    data_ordered[f'{category}_{model}'] = y_pred
+                else:
+                    print(f"Skipping model {model} for {category}: Missing features")
+
+                # elif model.lower() == 'xgboost':
+                #     features = models[category][model].get_booster().feature_names
+                #     scaler = StandardScaler()
+                #     scaled_data = scaler.fit_transform(data_ordered[features])
+
+                #     scaled_data = pd.DataFrame(scaled_data,columns=features)
+                #     if set(features).issubset(data_ordered.columns):  # Ensure all required features exist
+                #         y_pred = models[category][model].predict(scaled_data)
+                #         data_ordered[f'{category}_{model}'] = y_pred
+                # elif model.lower() == 'mlp':
+                #     features = [f.replace("\n", "").strip() for f in models[category][model].feature_names_in_]
+                #     scaler = StandardScaler()
+                #     scaled_data = scaler.fit_transform(data_ordered[features])
+                #     scaled_data = pd.DataFrame(scaled_data,columns=features)
+                #     if set(features).issubset(data_ordered.columns):  # Ensure all required features exist
+                #         y_pred = models[category][model].predict(scaled_data)
+                #         data_ordered[f'{category}_{model}'] = y_pred
+                #     else:
+                #         print(f"Skipping XGBoost model {model} for {category}: Missing features")
+
+    # Standardizing player names
+        data_ordered['player'] = data_ordered['player'].apply(clean_player_name)
+        players = data_ordered['player'].tolist()
+
+        data = odds_data[key]
+
+        data['Over'] = pd.to_numeric(
+            data['Over'].astype(str).str.replace('−', '-', regex=False).str.replace('+', '', regex=False),
+            errors='coerce'
+        ).fillna(0).astype(int)
+
+        data['Under'] = pd.to_numeric(
+            data['Under'].astype(str).str.replace('−', '-', regex=False).str.replace('+', '', regex=False),
+            errors='coerce'
+        ).fillna(0).astype(int)
+
+        # Standardize player names
+        data['Player'] = data['Player'].str.strip().str.lower()
+        data['Player'] = data['Player'].apply(clean_player_name)
+
+
+
+
+        # Assign model predictions to data
+        for category in models.keys():
+            for idx, row in data.iterrows():
+                
+                player_name = row['Player']
+
+ 
+                        # Find matching player rows in data_ordered
+               
+                matching_rows = data_ordered[data_ordered['player'] == player_name]
             
-predict_games()
+                if not matching_rows.empty:
+                    for model in models[category]:
+                        if model not in ['lightgbm','linear_model']:
+                            continue  # Skip SARIMAX
+                        
+                        col_name = f'{category}_{model}'
+                        if col_name in matching_rows.columns:
+                            data.at[idx, col_name] = matching_rows[col_name].values[0]  # Assign the first matching value
+                            prediction_value = pd.to_numeric(matching_rows[col_name].values[0])
+
+                            data.at[idx, col_name] = prediction_value  # Assign the first matching value
+                            # Add recommendation logic for each category and model
+                            actual_value = float(row[key])  # Get the actual value from the category (points, rebounds, etc.)
+
+                            # Compare predicted value with the actual data
+                            if prediction_value > actual_value:
+                                recommendation = 'Over'
+                            else:
+                                recommendation = 'Under'
+                            # Store recommendation in new column
+                            recommendation_col = f'recommendation_{category}_{model}'
+                            data.at[idx, recommendation_col] = recommendation
+
+                        else:
+                            print(f"Missing column {col_name} for {player_name} in {category}")
+                else:   
+                    print(f"Warning: No match found for player {player_name} in category {category}")
+            
+        if local:
+            pandas_gbq.to_gbq(data, f'miscellaneous-projects-444203.capstone_data.{key}_predictions', if_exists='append')
+        else:
+            pandas_gbq.to_gbq(data, f'miscellaneous-projects-444203.capstone_data.{key}_predictions', credentials=credentials, if_exists='append')
+            print(f"✅ Successfully uploaded {key} predictions!")
+
+def run_predictions():
+    data = gather_data_to_model()
+    games = scrape_roster(data)
+    full_data,odds_data= recent_player_data(games)
+    predict_games(full_data,odds_data)
