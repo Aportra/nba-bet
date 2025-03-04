@@ -70,7 +70,7 @@ def gather_data_to_model():
 def scrape_roster(data):
 
     print('pulling rosters')
-    driver = model_utils.establish_driver(local=True)
+    driver = model_utils.establish_driver()
 
     teams_playing = data['team']
     opponents = data['opponent']
