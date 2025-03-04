@@ -365,7 +365,7 @@ def clean_current_team_ratings(game_data):
             SELECT *,
                 ROW_NUMBER() OVER (PARTITION BY team ORDER BY game_date DESC) AS game_rank
             FROM `capstone_data.team_modeling_data_partitioned`
-            WHERE team IN ({','.join([f'"{team}"' for team in teams])}) and season_star_year = {season}
+            WHERE team IN ({','.join([f'"{team}"' for team in teams])}) and season_start_year = {season}
         )
         SELECT *
         FROM RankedGames

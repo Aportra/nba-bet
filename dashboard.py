@@ -3,7 +3,7 @@ import pandas_gbq
 import streamlit as st
 from google.oauth2 import service_account
 
-# ✅ Function to clean player names for consistency
+# Function to clean player names for consistency
 def clean_player_name(name):
     """Standardizes player names by removing special characters and handling known name variations."""
     name = name.lower().strip()  # Convert to lowercase & remove extra spaces
@@ -42,7 +42,7 @@ def pull_odds():
         else:
             odds_data[table] = pd.DataFrame(pandas_gbq.read_gbq(odds_query, project_id='miscellaneous-projects-444203', credentials=credentials))
 
-        # ✅ Clean player names for consistency
+        # Clean player names for consistency
         odds_data[table]['Player'] = odds_data[table]['Player'].apply(clean_player_name)
     return odds_data
 
@@ -63,13 +63,13 @@ def make_dashboard(player_images, odds_data):
         st.error("No player images found. Please check your dataset.")
         return
 
-    # ✅ Category filter dropdown
+    # Category filter dropdown
     category = st.selectbox("Select a category:", ["All", "Points", "Assists", "Rebounds", "Threes Made"])
 
-    # ✅ Search bar for players
+    # Search bar for players
  
 
-    # ✅ Dynamically populate players based on category selection
+    # Dynamically populate players based on category selection
     available_players = set()
     if category == "All":
         # Collect all unique players across all categories
@@ -82,33 +82,33 @@ def make_dashboard(player_images, odds_data):
         if category_key in odds_data and not odds_data[category_key].empty:
             available_players = odds_data[category_key]['Player'].unique()
 
-    available_players = list(sorted(available_players))
-    # ✅ Player selection dropdown
-    player_selected = st.selectbox("Search or Select a Player:", [""] + available_players)
+    available_players = sorted([player.title() for player in available_players])
+    # Player selection dropdown
+    player_selected = st.selectbox("Search or Select a Player:", [""] + available_players).lower()
 
-    # ✅ Prepare for image lookup
+    # Prepare for image lookup
     player_images['players_lower'] = player_images['players'].str.lower()
 
     selected_image = None
     player_name = None
 
-    # ✅ Search functionality (exact match using lower case)
+    # Search functionality (exact match using lower case)
  
     if player_selected != "None":
         player_row = player_images.loc[player_images['players'] == player_selected]
         player_name = player_selected
         selected_image = player_row['images'].values[0] if len(player_row['images'].values) > 0 else None
 
-    # ✅ Display player image
+    # Display player image
     if selected_image:
-        st.subheader(f"{player_name}")
+        st.subheader(f"{player_name.title()}")
         st.image(selected_image, width=250)
     else:
         st.write("No player found. Please check the name.")
 
-    # ✅ Modified Section: Show betting odds for the selected player
+    # Show betting odds for the selected player
     if player_name:
-        st.subheader(f"Betting Odds for {player_name}")
+        st.subheader(f"Betting Odds for {player_name.title()}")
 
         # Collect odds across categories and add a category label to each subset
         player_odds = []
@@ -129,7 +129,6 @@ def make_dashboard(player_images, odds_data):
         else:
             st.write("No odds available for this player today.")
 
-# ✅ Run the functions
 images = pull_images()
 odds_data = pull_odds()
 make_dashboard(images, odds_data)
