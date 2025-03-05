@@ -7,11 +7,11 @@ from google.oauth2 import service_account
 from datetime import datetime as date
 from selenium.webdriver.firefox.options import Options
 from bs4 import BeautifulSoup
+from scraping_data import utils
 
 import time
 import traceback
 import pandas_gbq
-import utils
 import pandas as pd
 
 
@@ -35,7 +35,6 @@ def process_categories():
         default_creds = True
         print("No File to Load Using Default Credentials")
     for category in urls:
-        process_categories(category)
 
 
         try:

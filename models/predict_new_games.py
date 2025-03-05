@@ -8,11 +8,10 @@ from selenium import webdriver
 from google.oauth2 import service_account
 from datetime import datetime as date
 from selenium.webdriver.firefox.options import Options
-from statsmodels.tsa.statespace.sarimax import SARIMAX 
 from sklearn.preprocessing import StandardScaler
+from models import model_utils
 
 import joblib
-import model_utils as model_utils
 import pandas as pd
 import pandas_gbq
 import time
@@ -29,7 +28,8 @@ def clean_player_name(name):
         "jimmy butler": "jimmy butler iii",
         'nicolas claxton':'nic claxton',
           'kenyon martin jr':'kj martin',
-          'carlton carrington':'bub carrington' # Example name change
+          'carlton carrington':'bub carrington', # Example name change
+          'ron holland ii':'ronald holland ii'
     }
 
     # Apply corrections if the name exists in the dictionary
@@ -54,7 +54,7 @@ def gather_data_to_model():
         local = True
         credentials = False
 
-    if local:
+    if not local:
         teams_playing = [team_mapping.get(team,team) for team in pd.DataFrame(pandas_gbq.read_gbq(query,project_id='miscellaneous-projects-444203',credentials=credentials))['team']]
         opponents = [team_mapping.get(opponent,opponent) for opponent in pd.DataFrame(pandas_gbq.read_gbq(query,project_id='miscellaneous-projects-444203',credentials=credentials))['opponent']]
     else:
@@ -250,7 +250,7 @@ def recent_player_data(games):
 
 
 def predict_games(full_data,odds_data):
-    models = joblib.load('models.pkl')
+    models = joblib.load('/home/aportra99/Capstone/models/models.pkl')
     for key in odds_data.keys():
 
         data_ordered = full_data.sort_values('game_date')
