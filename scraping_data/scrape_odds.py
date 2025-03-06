@@ -117,7 +117,7 @@ def process_categories():
                 pass
 
             driver = utils.establish_driver()
-            process_categories(category)
+            process_categories()
     driver.quit()
 
         
