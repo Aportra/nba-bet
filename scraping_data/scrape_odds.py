@@ -50,7 +50,7 @@ def process_categories():
             for row in rows:
                 print
                 try:
-                    name_element = row.find_element(By.XPATH,"./th/div/div[1]/a/span")
+                    name_element = row.find_element(By.XPATH,".//th/div/a/span")
                     name = name_element.text
 
                     over_element = row.find_element(By.XPATH,"./td[1]")
