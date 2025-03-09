@@ -34,7 +34,7 @@ def pull_odds():
         odds_query = f"""
         SELECT * 
         FROM `capstone_data.player_{table}_odds`
-        WHERE DATE(Date_Updated) = DATE_SUB(CURRENT_DATE('America/Los_Angeles'), INTERVAL 1 DAY)
+        WHERE DATE(Date_Updated) = CURRENT_DATE('America/Los_Angeles')
 
         """
         if local:
@@ -114,18 +114,18 @@ def make_dashboard(player_images, odds_data):
         player_odds = []
         for table_name, df in odds_data.items():
             if player_name in df['Player'].values:
-                temp_df = df[df['Player'] == player_name][['Player',f'{table_name}','Over','Under']].copy()  # Label the odds with the category
+                temp_df = df[df['Player'] == player_name][[f'{table_name}','Over','Under']].copy()  # Label the odds with the category
                 player_odds.append((table_name,temp_df))
 
         if player_odds:
             # If odds exist in just one category, display that table directly
             if len(player_odds) == 1:
-                st.dataframe(player_odds[0])
+                st.dataframe(player_odds[0].style.hide(axis='index'))
             else:
                 # Display odds for each category separately
                 for table_name,odds in player_odds:
                     st.markdown(f"**{table_name.capitalize()} Odds**")
-                    st.dataframe(odds)
+                    st.dataframe(odds.style.hide(axis='index'))
         else:
             st.write("No odds available for this player today.")
 
