@@ -92,7 +92,7 @@ def process_categories():
                         subject="NBA SCRAPING: ERROR PROCESSING PLAYER DATA",
                         body=error_message,
                     )
-
+                    process_categories()
             combined_data = pd.DataFrame(data)
 
             table_id = f"miscellaneous-projects-444203.capstone_data.player_{category}_odds"
@@ -130,5 +130,5 @@ def process_categories():
                 subject=f"{category} ODDS SCRAPING: ERROR",
                 body=error_message,
             )
-
+            process_categories()
     driver.quit()
