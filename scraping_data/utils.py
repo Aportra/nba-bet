@@ -232,6 +232,113 @@ def process_all_pages(pages_info, max_threads):
 
     return pd.concat(all_dataframes, ignore_index=True) if all_dataframes else None
 
+def prepare_for_gbq(combined_dataframes):
+    """Prepares the dataframe for Google BigQuery by cleaning and formatting data.
+
+    Args:
+        combined_dataframes (pd.DataFrame): The dataframe containing game data.
+
+    Returns:
+        pd.DataFrame: The cleaned and formatted dataframe ready for BigQuery upload.
+    """
+    valid_time_pattern = r"^\d{1,2}:\d{1,2}$"
+    
+    # Standardizing column names
+    combined_dataframes.rename(columns={'+/-': 'plus_mins'}, inplace=True)
+
+    # Identify invalid 'MIN' rows
+    invalid_rows = ~combined_dataframes['MIN'].str.match(valid_time_pattern)
+
+    # Swap misplaced values due to NA columns
+    columns_to_swap = ['FGM', 'FGA', 'FG%', '3PM', '3PA', '3P%']
+    valid_columns = ['team', 'game_id', 'game_date', 'matchup', 'url', 'last_updated']
+    
+    combined_dataframes.loc[invalid_rows, valid_columns] = combined_dataframes.loc[invalid_rows, columns_to_swap].values
+    combined_dataframes.loc[invalid_rows, columns_to_swap] = None  # Filling with NA values
+
+    # Standardize date and timezone
+    combined_dataframes['last_updated'] = (
+        pd.to_datetime(combined_dataframes['last_updated'], errors='coerce')
+        .dt.tz_localize('UTC')
+        .dt.tz_convert('America/Los_Angeles')
+    )
+
+    # Clean string fields
+    combined_dataframes['url'] = combined_dataframes['url'].astype(str).str.strip()
+    combined_dataframes['game_id'] = combined_dataframes['game_id'].str.lstrip('https://www.nba.com/game/')
+
+    # Convert numerical columns to appropriate types
+    num_columns = [
+        'FGM', 'FGA', 'FG%', '3PM', '3PA', '3P%', 'FTM', 'FTA', 'FT%', 
+        'OREB', 'DREB', 'REB', 'AST', 'STL', 'BLK', 'TO', 'PF', 'PTS', 'plus_mins'
+    ]
+    combined_dataframes[num_columns] = combined_dataframes[num_columns].apply(pd.to_numeric, errors='coerce')
+    
+    # Convert date field to datetime format
+    combined_dataframes['game_date'] = pd.to_datetime(
+        combined_dataframes['game_date'], format='%m/%d/%Y', errors='coerce'
+    )
+
+    # Convert all column names to lowercase
+    combined_dataframes.rename(columns=str.lower, inplace=True)
+
+    return combined_dataframes
+
+
+def send_email(subject, body):
+    """Sends an email notification.
+
+    Args:
+        subject (str): The email subject.
+        body (str): The email body content.
+    """
+    try:
+        load_dotenv('/home/aportra99/Capstone/.env')
+        print('Loaded the .env file.')
+    except FileNotFoundError:
+        print('Could not load .env file.')
+
+    sender_email = os.getenv('SERVER_EMAIL')
+    receiver_email = os.getenv('EMAIL_USERNAME')
+    password = os.getenv('EMAIL_PASSWORD')
+
+    msg = MIMEMultipart()
+    msg['From'] = sender_email
+    msg['To'] = receiver_email
+    msg['Subject'] = subject
+    msg.attach(MIMEText(body, 'plain'))
+
+    try:
+        server = smtplib.SMTP('smtp.gmail.com', 587)
+        server.starttls()
+        server.login(sender_email, password)
+        server.send_message(msg)
+    except Exception as e:
+        print(f"Failed to send email: {e}")
+    finally:
+        server.quit()
+
+
+def convert_date(date_str):
+    """Converts a date string to a datetime object with the correct year.
+
+    Args:
+        date_str (str): The date string in the format "Weekday, Month Day" (e.g., "Tue, Oct 10").
+
+    Returns:
+        datetime.date or None: The converted date object or None if invalid.
+    """
+    try:
+        date_obj = date.strptime(date_str, "%a, %b %d")
+
+        # Assign correct year based on NBA season start (October)
+        assumed_year = 2024 if date_obj.month >= 10 else 2025
+        date_obj = date_obj.replace(year=assumed_year)
+
+        return date_obj.date()
+    except ValueError as e:
+        print(f"Skipping invalid date: {date_str} - {e}")
+        return None
 
 if __name__ == "__main__":
     driver = establish_driver()
