@@ -1,3 +1,16 @@
+3/11/2025
+Progress:
+Continung to work on dashboard.Script to run and make predictions has been implemeneted.
+
+Problems:
+Running into some issues when constructing player specific models.Will explore better feature selection as well as using concurrent processing to speed up the process.
+
+Plans:
+Will finish dashboard and implement player specific models and also a script to compare outcomes.
+
+Time:
+I spent 7 hours since last Tuesday on this.
+***********************************************************************************************************************************************************************************************************************************************************
 3/3/2025
 Progress:
 Script to automatically make predictions has been implemeneted.
