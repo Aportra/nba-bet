@@ -44,7 +44,7 @@ def process_categories():
         try:
             driver.get(url)
             driver.implicitly_wait(10)
-            WebDriverWait(driver, 30).until(
+            WebDriverWait(driver, 300).until(
                 EC.presence_of_all_elements_located(
                     (By.XPATH, "//tbody[@class='sportsbook-table__body']/tr")
                 )
