@@ -21,7 +21,8 @@ from bs4 import BeautifulSoup
 from tqdm import tqdm
 
 
-def establish_driver(local=False):
+
+def establish_driver(local = False):
     """Establishes a Selenium WebDriver for Firefox.
 
     Args:
@@ -30,27 +31,24 @@ def establish_driver(local=False):
     Returns:
         webdriver.Firefox: A configured instance of the Firefox WebDriver.
     """
-    try:
+    if not local: 
         options = Options()
+        options.binary_location = '/usr/bin/firefox'
         options.add_argument("--headless")
-        options.add_argument("--window-size=1920,1080")
-
-        if not local:
-            options.binary_location = "/usr/bin/firefox"
-            geckodriver_path = "/usr/local/bin/geckodriver"
-            service = Service(executable_path=geckodriver_path, log_path="geckodriver.log")
-
-            driver = webdriver.Firefox(service=service, options=options)
-            print("Remote WebDriver initialized successfully.")
-        else:
-            driver = webdriver.Firefox(options=options)
-            print("Local WebDriver initialized successfully.")
+        geckodriver_path = '/usr/local/bin/geckodriver'
+        service = Service(executable_path=geckodriver_path, log_path="geckodriver.log")
+        # options.add_argument("user-agent=Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Safari/537.36")
+        driver = webdriver.Firefox(service = service,options = options)
+        driver.set_window_size(1920, 1080)
 
         return driver
+    else: 
+        options = Options()
+        options.add_argument("--headless")
+        driver = webdriver.Firefox(options=options)
+        driver.set_window_size(1920, 1080)
 
-    except Exception as e:
-        print(f"Error initializing WebDriver: {e}")
-        return None
+        return driver
 
 
 def terminate_firefox_processes():
