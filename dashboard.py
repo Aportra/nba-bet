@@ -2,6 +2,7 @@ import pandas as pd
 import pandas_gbq
 import streamlit as st
 from google.oauth2 import service_account
+from datetime import datetime as dt,timedelta
 
 # Function to clean player names for consistency
 def clean_player_name(name):
@@ -31,9 +32,10 @@ def pull_odds():
         credentials = None
 
     for table in tables:
+        current_day = True
         odds_query = f"""
         SELECT * 
-        FROM `capstone_data.player_{table}_odds`
+        FROM `capstone_data.{table}_predictions`
         WHERE DATE(Date_Updated) = CURRENT_DATE('America/Los_Angeles')
 
         """
@@ -42,9 +44,25 @@ def pull_odds():
         else:
             odds_data[table] = pd.DataFrame(pandas_gbq.read_gbq(odds_query, project_id='miscellaneous-projects-444203', credentials=credentials))
 
+
+        if odds_data[table].empty:
+            current_day = False
+            odds_query = f"""
+            SELECT * 
+            FROM `capstone_data.{table}_predictions`
+            WHERE DATE(Date_Updated) = Date_sub(CURRENT_DATE('America/Los_Angeles'),interval 1 day)
+
+            """
+            if local:
+                odds_data[table] = pd.DataFrame(pandas_gbq.read_gbq(odds_query, project_id='miscellaneous-projects-444203'))
+            else:
+                odds_data[table] = pd.DataFrame(pandas_gbq.read_gbq(odds_query, project_id='miscellaneous-projects-444203', credentials=credentials))
+
+
         # Clean player names for consistency
         odds_data[table]['Player'] = odds_data[table]['Player'].apply(clean_player_name)
-    return odds_data
+
+    return odds_data,current_day
 
 @st.cache_data
 def pull_images():
@@ -56,8 +74,14 @@ def pull_images():
     player_images['players'] = player_images['players'].apply(clean_player_name)
     return player_images
 
-def make_dashboard(player_images, odds_data):
-    st.title("NBA Player Headshots & Betting Odds")
+def make_dashboard(player_images, odds_data,current_day):
+    if current_day:
+        today = dt.today().date()
+        st.title(f"NBA Player Betting Odds {today}")
+    else:
+        today = dt.today().date() - timedelta(days=1)
+        st.title(f"NBA Player Betting Odds {today}")
+        st.subheader("Displaying yesterday's values. Today's values have not been updated yet")
 
     if player_images.empty:
         st.error("No player images found. Please check your dataset.")
@@ -112,15 +136,15 @@ def make_dashboard(player_images, odds_data):
 
         # Collect odds across categories and add a category label to each subset
         player_odds = []
-        for table_name, df in odds_data.items():
+        for (table_name, df),cat in zip(odds_data.items(),['pts','reb','ast','3pm']):
             if player_name in df['Player'].values:
-                temp_df = df[df['Player'] == player_name][[f'{table_name}','Over','Under']].copy()  # Label the odds with the category
+                temp_df = df[df['Player'] == player_name][[f'{table_name}','Over','Under',f'recommendation_{cat}_linear_model',f'recommendation_{cat}_lightgbm']].copy()  # Label the odds with the category
                 player_odds.append((table_name,temp_df))
 
         if player_odds:
             # If odds exist in just one category, display that table directly
             if len(player_odds) == 1:
-                st.dataframe(player_odds[0].style.hide(axis='index'))
+                st.dataframe(player_odds[0][1])
             else:
                 # Display odds for each category separately
                 for table_name,odds in player_odds:
@@ -130,5 +154,5 @@ def make_dashboard(player_images, odds_data):
             st.write("No odds available for this player today.")
 
 images = pull_images()
-odds_data = pull_odds()
-make_dashboard(images, odds_data)
+odds_data,current_day = pull_odds()
+make_dashboard(images, odds_data,current_day)
