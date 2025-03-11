@@ -36,13 +36,14 @@ def clean_player_name(name):
     return name_corrections.get(name, name)  # Default to original name if no correction found
 
 
-def fetch_bigquery_data(query, credentials):
+def fetch_bigquery_data(query,credentials):
     """Fetches data from BigQuery."""
+    print(f"Fetching data from BigQuery: {query[:50]}...") 
     try:
         return pd.DataFrame(
             pandas_gbq.read_gbq(
                 query, 
-                project_id="miscellaneous-projects-444203", 
+                project_id="miscellaneous-projects-444203",
                 credentials=credentials
             )
         )
@@ -69,7 +70,7 @@ def gather_data_to_model():
         local = True
         credentials = None
 
-    teams_data = fetch_bigquery_data(query, credentials)
+    teams_data = fetch_bigquery_data(query,credentials=credentials)
     if teams_data.empty:
         print("No game data found for today.")
         return pd.DataFrame()
@@ -103,7 +104,9 @@ def scrape_roster(data):
         except Exception as e:
             print(f"Error scraping {team} roster: {e}")
 
+    print("Quitting WebDriver...")  # Debugging print
     driver.quit()
+    print("WebDriver successfully quit.")
 
     # Standardize team names
     team_mapping = {"WSH": "WAS", "UTAH": "UTA", "NO": "NOP"}
@@ -132,7 +135,7 @@ def pull_odds():
         FROM `capstone_data.player_{table}_odds`
         WHERE DATE(Date_Updated) = CURRENT_DATE('America/Los_Angeles')
         """
-        odds_data[table] = fetch_bigquery_data(odds_query, credentials)
+        odds_data[table] = fetch_bigquery_data(odds_query,credentials=credentials)
         odds_data[table]["Player"] = odds_data[table]["Player"].apply(clean_player_name)
 
     return odds_data
@@ -153,10 +156,11 @@ def recent_player_data(games):
     FROM `capstone_data.player_prediction_data_partitioned`
     WHERE season_start_year = 2024
     """
-
-    credentials = service_account.Credentials.from_service_account_file("/home/aportra99/scraping_key.json")
-
-    existing_players = fetch_bigquery_data(existing_players_query, credentials)
+    try:
+        credentials = service_account.Credentials.from_service_account_file("/home/aportra99/scraping_key.json")
+    except FileNotFoundError:
+        credentials=None
+    existing_players = fetch_bigquery_data(existing_players_query)
     existing_players_set = set(existing_players["player"].apply(clean_player_name))
     filtered_players = [player for player in games["player"].unique() if player in existing_players_set]
 
@@ -165,26 +169,50 @@ def recent_player_data(games):
         return None, None
 
     queries = {
-        "player_data": f"""
-            SELECT * FROM `capstone_data.player_prediction_data_partitioned`
+    "player_data": f"""
+        WITH RankedGames AS (
+            SELECT *, 
+                ROW_NUMBER() OVER (PARTITION BY player ORDER BY game_date DESC) AS game_rank
+            FROM `capstone_data.player_prediction_data_partitioned`
             WHERE LOWER(player) IN ({','.join([f'"{player}"' for player in filtered_players])})
-        """,
-        "opponent_data": f"""
-            SELECT * FROM `capstone_data.team_prediction_data_partitioned`
+            AND season_start_year = {season}
+        )
+        SELECT *
+        FROM RankedGames
+        WHERE game_rank = 1;
+    """,
+    "opponent_data": f"""
+        WITH RankedGames AS (
+            SELECT *, 
+                ROW_NUMBER() OVER (PARTITION BY team ORDER BY game_date DESC) AS game_rank
+            FROM `capstone_data.team_prediction_data_partitioned`
             WHERE team IN ({','.join([f'"{opponent}"' for opponent in games["matchup"].unique()])}) 
             AND season_start_year = {season}
-        """,
-        "team_data": f"""
-            SELECT * FROM `capstone_data.team_prediction_data_partitioned`
+        )
+        SELECT *
+        FROM RankedGames
+        WHERE game_rank = 1;
+    """,
+    "team_data": f"""
+        WITH RankedGames AS (
+            SELECT *, 
+                ROW_NUMBER() OVER (PARTITION BY team ORDER BY game_date DESC) AS game_rank
+            FROM `capstone_data.team_prediction_data_partitioned`
             WHERE team IN ({','.join([f'"{team}"' for team in games["team"].unique()])}) 
             AND season_start_year = {season}
-        """
-    }
+        )
+        SELECT *
+        FROM RankedGames
+        WHERE game_rank = 1;
+    """
+}
+
 
     # Fetch player, opponent, and team data
-    player_data, opponent_data, team_data = [fetch_bigquery_data(queries[q], credentials) for q in queries]
-
+    player_data, opponent_data, team_data = [fetch_bigquery_data(queries[q],credentials=credentials) for q in queries]
+    print('queries complete')
     # Standardize player names in player_data
+    print('cleaning names')
     player_data["player"] = player_data["player"].apply(clean_player_name)
 
     # Rename opponent_data columns to avoid conflicts
@@ -193,6 +221,7 @@ def recent_player_data(games):
     })
 
     # Merge datasets while keeping only necessary columns
+    print('merging data')
     full_data = (
         games
         .merge(player_data, on="player", how="inner", suffixes=("", "_remove"))
@@ -204,6 +233,7 @@ def recent_player_data(games):
     full_data.drop([col for col in full_data.columns if "_remove" in col], axis=1, inplace=True)
     full_data.drop([col for col in full_data.columns if "_1" in col], axis=1, inplace=True)
 
+    print('data merged')
     odds_data = pull_odds()
 
     return full_data, odds_data
@@ -213,10 +243,11 @@ def recent_player_data(games):
 
 def predict_games(full_data, odds_data):
     """Predicts NBA player stats using pre-trained models and compares with betting odds."""
-    
+    print('loading models...')
     # Load models
-    models = joblib.load('/home/aportra99/Capstone/models/models.pkl')
+    # models = joblib.load('/home/aportra99/Capstone/models/models.pkl')
     
+    models = joblib.load('models/models.pkl')
     for key, odds_df in odds_data.items():
         print(f"Processing predictions for {key}...")
 

@@ -329,7 +329,7 @@ def convert_date(date_str):
         datetime.date or None: The converted date object or None if invalid.
     """
     try:
-        date_obj = date.strptime(date_str, "%a, %b %d")
+        date_obj = dt.strptime(date_str, "%a, %b %d")
 
         # Assign correct year based on NBA season start (October)
         assumed_year = 2024 if date_obj.month >= 10 else 2025
