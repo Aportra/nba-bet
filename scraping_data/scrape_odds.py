@@ -6,7 +6,7 @@ from datetime import datetime as dt
 
 import pandas as pd
 import pandas_gbq
-import scraping_data.utils as utils
+import utils as utils
 from google.cloud import bigquery
 from google.oauth2 import service_account
 from selenium.webdriver.common.by import By
@@ -16,7 +16,6 @@ from selenium.webdriver.support.ui import WebDriverWait
 
 def process_categories():
     """Scrapes NBA player prop odds from DraftKings and uploads data to BigQuery."""
-
     driver = utils.establish_driver()
     scrape_date = dt.today()
 
@@ -55,7 +54,7 @@ def process_categories():
 
             for row in rows:
                 try:
-                    name_element = row.find_element(By.XPATH, ".//th/div/a/span")
+                    name_element = row.find_element(By.XPATH, ".//a/span")
                     name = name_element.text
 
                     over_element = row.find_element(By.XPATH, "./td[1]")
