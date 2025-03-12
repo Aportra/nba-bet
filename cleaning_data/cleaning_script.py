@@ -113,11 +113,11 @@ def clean_current_player_data(data):
         # Fetch past modeling and prediction data from BigQuery
         modeling_data = pandas_gbq.read_gbq(
             modeling_query, project_id='miscellaneous-projects-444203', credentials=credentials
-        ) if not local else pd.DataFrame()
+        ) 
 
         predict_data = pandas_gbq.read_gbq(
             prediction_query, project_id='miscellaneous-projects-444203', credentials=credentials
-        ) if not local else pd.DataFrame()
+        )
 
         # Define features for rolling averages
         features_for_rolling = list(data.columns[1:21])
@@ -178,7 +178,14 @@ def clean_current_player_data(data):
                 pandas_gbq.to_gbq(dataset, destination_table=f'capstone_data.{table}',
                                   project_id='miscellaneous-projects-444203', if_exists='append',
                                   credentials=credentials, table_schema=[{'name': 'game_date', 'type': 'DATE'}])
+        
 
+        else:
+            for dataset, table in [(model_data, "player_modeling_data_partitioned"), 
+                                   (predict_data, "player_prediction_data_partitioned")]:
+                pandas_gbq.to_gbq(dataset, destination_table=f'capstone_data.{table}',
+                                  project_id='miscellaneous-projects-444203', if_exists='append',
+                                table_schema=[{'name': 'game_date', 'type': 'DATE'}])
         send_email(subject="NBA PLAYER DATA CLEANED", body="Data successfully uploaded to NBA_Cleaned.")
 
     except Exception as e:

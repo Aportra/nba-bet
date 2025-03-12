@@ -178,7 +178,7 @@ def scrape_past_games(multi_threading=True, max_workers=0):
         print("Running with default credentials.")
 
     for season, url in urls.items():
-        driver = utils.establish_driver(local=True)
+        driver = utils.establish_driver()
         driver.get(url)
         utils.select_all_option(driver)
         time.sleep(5)
