@@ -12,8 +12,8 @@ from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from dotenv import load_dotenv
 from selenium import webdriver
-from selenium.webdriver.firefox.service import Service
-from selenium.webdriver.firefox.options import Options
+from selenium.webdriver.chrome.service import Service
+from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.by import By
@@ -22,34 +22,31 @@ from tqdm import tqdm
 
 
 
-def establish_driver(local = False):
-    """Establishes a Selenium WebDriver for Firefox.
+def establish_driver(local=False):
+    """Establishes a Selenium WebDriver for Chrome.
 
     Args:
         local (bool): If True, runs WebDriver locally. Otherwise, uses a remote setup.
 
     Returns:
-        webdriver.Firefox: A configured instance of the Firefox WebDriver.
+        webdriver.Chrome: A configured instance of the Chrome WebDriver.
     """
-    if not local: 
-        options = Options()
-        options.binary_location = '/usr/bin/firefox'
-        options.add_argument("--headless")
-        geckodriver_path = '/usr/local/bin/geckodriver'
-        service = Service(executable_path=geckodriver_path, log_path="geckodriver.log")
-        options.add_argument("user-agent=Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Safari/537.36")
-        driver = webdriver.Firefox(service = service,options = options)
-        driver.set_window_size(1920, 1080)
+    options = Options()
+    options.add_argument("--headless")  # Run without UI
+    options.add_argument("--no-sandbox")
+    options.add_argument("--disable-dev-shm-usage")
+    options.add_argument("--disable-gpu")  # Prevents GPU-related crashes
 
-        return driver
-    else: 
-        options = Options()
-        options.add_argument("--headless")
-        driver = webdriver.Firefox(options=options)
-        driver.set_window_size(1920, 1080)
+    chromedriver_path = "/usr/bin/chromedriver"  
 
-        return driver
+    if not local:
+        service = Service(executable_path=chromedriver_path, log_path="chromedriver.log")
+        driver = webdriver.Chrome(service=service, options=options)
+    else:
+        driver = webdriver.Chrome(options=options)
 
+    driver.set_window_size(1920, 1080)
+    return driver
 
 def terminate_firefox_processes():
     """Forcefully terminates lingering Firefox & Geckodriver processes."""
