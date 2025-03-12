@@ -12,8 +12,8 @@ from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from dotenv import load_dotenv
 from selenium import webdriver
-from selenium.webdriver.firefox.service import Service
-from selenium.webdriver.firefox.options import Options
+from selenium.webdriver.chrome.service import Service
+from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.by import By
@@ -37,13 +37,16 @@ def establish_driver(local=False):
     options.add_argument("--disable-dev-shm-usage")
     options.add_argument("--disable-gpu")  # Prevents GPU-related crashes
 
-    gecko_path = "/usr/local/bin/geckodriver"  
+    
 
-    if not local:
-        service = Service(executable_path=gecko_path, log_path="geckodriver.log")
-        driver = webdriver.Firefox(service=service, options=options)
+    if local:
+        chrome_path = "/opt/homebrew/bin/chromedriver"  
+        service = Service(executable_path=chrome_path, log_path="chromedriver.log")
+        driver = webdriver.Chrome(service=service, options=options)
     else:
-        driver = webdriver.Firefox(options=options)
+        chrome_path = "/opt/homebrew/bin/chromedriver"  
+        service = Service(executable_path=chrome_path, log_path="chromedriver.log")
+        driver = webdriver.Chrome(options=options)
 
     driver.set_window_size(2560, 1440)
     return driver
