@@ -6,7 +6,7 @@ from datetime import datetime as dt
 
 import pandas as pd
 import pandas_gbq
-import utils as utils
+import scraping_data.utils as utils
 from google.cloud import bigquery
 from google.oauth2 import service_account
 from selenium.webdriver.common.by import By
