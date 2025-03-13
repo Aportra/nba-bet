@@ -22,32 +22,31 @@ from bs4 import BeautifulSoup
 from tqdm import tqdm
 
 
-
 def establish_driver(local=False):
-    """Establishes a Selenium WebDriver for Chrome.
+    """Establishes a Selenium WebDriver for Firefox.
 
     Args:
         local (bool): If True, runs WebDriver locally. Otherwise, uses a remote setup.
 
     Returns:
-        webdriver.Chrome: A configured instance of the Chrome WebDriver.
+        webdriver.Firefox: A configured instance of the Firefox WebDriver.
     """
     options = Options()
     options.add_argument("--headless")  # Run without UI
     options.add_argument("--no-sandbox")
     options.add_argument("--disable-dev-shm-usage")
     options.add_argument("--disable-gpu")  # Prevents GPU-related crashes
-    service = Service(GeckoDriverManager().install())
     
+    # Specify Firefox binary location
+    options.binary_location = "/usr/bin/firefox"
 
     if local:
-        chrome_path = "/opt/homebrew/bin/chromedriver"  
-        service = Service(executable_path=chrome_path, log_path="chromedriver.log")
-        driver = webdriver.Firefox(service=service, options=options)
+        # Use locally installed geckodriver (if necessary)
+        driver = webdriver.Firefox(service=Service(GeckoDriverManager().install()), options=options)
     else:
-        chrome_path = "/opt/homebrew/bin/chromedriver"  
-        service = Service(executable_path=chrome_path, log_path="chromedriver.log")
-        driver = webdriver.Firefox(service=service,options=options)
+        # Use remote or automatically installed GeckoDriver
+        service = Service(GeckoDriverManager().install())
+        driver = webdriver.Firefox(service=service, options=options)
 
     driver.set_window_size(2560, 1440)
     return driver
