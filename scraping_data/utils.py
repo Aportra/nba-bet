@@ -23,13 +23,13 @@ from tqdm import tqdm
 
 
 def establish_driver(local=False):
-    """Establishes a Selenium WebDriver for Firefox.
+    """Establishes a Selenium WebDriver for Chrome.
 
     Args:
         local (bool): If True, runs WebDriver locally. Otherwise, uses a remote setup.
 
     Returns:
-        webdriver.Firefox: A configured instance of the Firefox WebDriver.
+        webdriver.Chrome: A configured instance of the Chrome WebDriver.
     """
     options = Options()
     options.add_argument("--headless")  # Run without UI
@@ -37,11 +37,9 @@ def establish_driver(local=False):
     options.add_argument("--disable-dev-shm-usage")
     options.add_argument("--disable-gpu")  # Prevents GPU-related crashes
     
-    # Specify Firefox binary location
     chrome_path = chromedriver_autoinstaller.install()
     service = Service(chrome_path)
-    if local:
-        # Use locally installed geckodriver (if necessary)
+    if not local:
         options.binary_location = "/usr/bin/google-chrome-stable"
         driver = webdriver.Chrome(service=service, options=options)
     else:
@@ -95,7 +93,7 @@ def process_page(page, game_id, game_date, home, away):
     Returns:
         pd.DataFrame: Extracted game data or None if processing fails.
     """
-    driver = establish_driver()
+    driver = establish_driver(local=True)
     try:
         driver.get(page)
         driver.set_page_load_timeout(120)

@@ -31,7 +31,7 @@ def scrape_current_games():
         local = True
         credentials = None
 
-    driver = utils.establish_driver()
+    driver = utils.establish_driver(local=True)
     scrape_date = dt.today()
     url = {
         "NBA_Season_2024-2025_uncleaned": "https://www.nba.com/stats/teams/boxscores?Season=2024-25"
@@ -41,9 +41,9 @@ def scrape_current_games():
     time.sleep(5)
 
     try:
-        WebDriverWait(driver, 30).until(
+        WebDriverWait(driver, 300).until(
             EC.presence_of_element_located(
-                (By.XPATH, "/html/body/div[1]/div[2]/div[2]/div[3]/section[2]/div/div[2]/div[3]/table")
+                (By.XPATH, ".//table")
             )
         )
         print("The section has loaded!")
