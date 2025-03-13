@@ -41,7 +41,7 @@ def scrape_current_games():
     time.sleep(5)
 
     try:
-        WebDriverWait(driver, 300).until(
+        WebDriverWait(driver, 30).until(
             EC.presence_of_element_located(
                 (By.XPATH, ".//table")
             )
@@ -53,7 +53,7 @@ def scrape_current_games():
             body="The section did not load in time.",
         )
 
-    rows = driver.find_elements(By.XPATH, "//tbody[@class='Crom_body__UYOcU']/tr")
+    rows = driver.find_elements(By.XPATH, ".//tbody/tr")
     game_data = utils.gather_data(rows)
     driver.quit()
 
