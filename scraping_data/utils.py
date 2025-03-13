@@ -6,18 +6,18 @@ import smtplib
 import signal
 import psutil
 import pandas as pd
+import chromedriver_autoinstaller
 from datetime import datetime as dt
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from dotenv import load_dotenv
 from selenium import webdriver
-from selenium.webdriver.firefox.service import Service
-from selenium.webdriver.firefox.options import Options
+from selenium.webdriver.chrome.service import Service
+from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.by import By
-from webdriver_manager.firefox import GeckoDriverManager
 from bs4 import BeautifulSoup
 from tqdm import tqdm
 
@@ -38,15 +38,15 @@ def establish_driver(local=False):
     options.add_argument("--disable-gpu")  # Prevents GPU-related crashes
     
     # Specify Firefox binary location
-    options.binary_location = "/usr/bin/firefox"
-
+    chrome_path = chromedriver_autoinstaller.install()
+    service = Service(chrome_path)
     if local:
         # Use locally installed geckodriver (if necessary)
-        driver = webdriver.Firefox(service=Service(GeckoDriverManager().install()), options=options)
+        options.binary_location = "/usr/bin/google-chrome-stable"
+        driver = webdriver.Chrome(service=service, options=options)
     else:
         # Use remote or automatically installed GeckoDriver
-        service = Service(GeckoDriverManager().install())
-        driver = webdriver.Firefox(service=service, options=options)
+        driver = webdriver.Chrome(service=service, options=options)
 
     driver.set_window_size(2560, 1440)
     return driver
