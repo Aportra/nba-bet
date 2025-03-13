@@ -93,7 +93,12 @@ def scrape_roster(data):
         url = f"https://www.espn.com/nba/team/roster/_/name/{team}/"
         driver.get(url)
         time.sleep(5)
-
+        driver.implicitly_wait(10)
+        WebDriverWait(driver, 300).until(
+            EC.presence_of_all_elements_located(
+                (By.XPATH, "//tbody[@class=Table__TBODY']/tr")
+            )
+        )
         try:
             rows = driver.find_elements(By.XPATH, "//tbody[@class='Table__TBODY']/tr")
             for row in rows:
