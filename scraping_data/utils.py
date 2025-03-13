@@ -37,7 +37,7 @@ def establish_driver(local=False):
     options.add_argument("--no-sandbox")
     options.add_argument("--disable-dev-shm-usage")
     options.add_argument("--disable-gpu")  # Prevents GPU-related crashes
-    service = Service(GeckoDriverManager.install())
+    service = Service(GeckoDriverManager().install())
     
 
     if local:
