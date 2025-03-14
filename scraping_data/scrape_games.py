@@ -41,11 +41,12 @@ def scrape_current_games():
     time.sleep(5)
 
     try:
-        WebDriverWait(driver, 30).until(
-            EC.presence_of_element_located(
-                (By.XPATH, ".//table")
+        WebDriverWait(driver, 300).until(
+            EC.presence_of_all_elements_located(
+                (By.XPATH, "//tbody[@class='Crom_body__UYOcU']/tr")
             )
         )
+
         print("The section has loaded!")
     except TimeoutException:
         utils.send_email(
