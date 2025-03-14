@@ -9,7 +9,7 @@ from google.oauth2 import service_account
 from datetime import datetime as date
 from selenium.webdriver.firefox.options import Options
 from sklearn.preprocessing import StandardScaler
-from models import model_utils
+import model_utils
 
 import joblib
 import pandas as pd
@@ -29,7 +29,8 @@ def clean_player_name(name):
         "nicolas claxton": "nic claxton",
         "kenyon martin jr": "kj martin",
         "carlton carrington": "bub carrington",
-        "ron holland ii": "ronald holland ii"
+        "ron holland ii": "ronald holland ii",
+        'cameron thomas':'cam thomas'
     }
 
     # Apply corrections if the name exists in the dictionary
@@ -85,7 +86,7 @@ def scrape_roster(data):
     """Scrapes team rosters for today's games from ESPN."""
     print("Fetching team rosters...")
 
-    driver = model_utils.establish_driver()
+    driver = model_utils.establish_driver(local=True)
 
     teams, players, opponents = [], [], []
 
@@ -96,7 +97,7 @@ def scrape_roster(data):
         driver.implicitly_wait(10)
         WebDriverWait(driver, 300).until(
             EC.presence_of_all_elements_located(
-                (By.XPATH, "//tbody[@class=Table__TBODY']/tr")
+                (By.XPATH, '//tbody[@class="Table__TBODY"]/tr')
             )
         )
         try:
@@ -165,7 +166,7 @@ def recent_player_data(games):
         credentials = service_account.Credentials.from_service_account_file("/home/aportra99/scraping_key.json")
     except FileNotFoundError:
         credentials=None
-    existing_players = fetch_bigquery_data(existing_players_query)
+    existing_players = fetch_bigquery_data(existing_players_query,credentials=credentials)
     existing_players_set = set(existing_players["player"].apply(clean_player_name))
     filtered_players = [player for player in games["player"].unique() if player in existing_players_set]
 
@@ -363,3 +364,5 @@ def run_predictions():
         return
 
     predict_games(full_data, odds_data)
+
+

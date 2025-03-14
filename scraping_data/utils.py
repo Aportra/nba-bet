@@ -21,7 +21,6 @@ from selenium.webdriver.common.by import By
 from bs4 import BeautifulSoup
 from tqdm import tqdm
 
-
 def establish_driver(local=False):
     """Establishes a Selenium WebDriver for Chrome.
 
@@ -37,13 +36,16 @@ def establish_driver(local=False):
     options.add_argument("--disable-dev-shm-usage")
     options.add_argument("--disable-gpu")  # Prevents GPU-related crashes
     
-    chrome_path = chromedriver_autoinstaller.install()
-    service = Service(chrome_path)
     if not local:
+        chrome_path = chromedriver_autoinstaller.install()
+        service = Service(chrome_path)
         options.binary_location = "/usr/bin/google-chrome-stable"
         driver = webdriver.Chrome(service=service, options=options)
     else:
-        # Use remote or automatically installed GeckoDriver
+        # Use remote or automatically installed Chromedriver
+        chrome_path = chromedriver_autoinstaller.install()
+        print(chrome_path)
+        service = Service(chrome_path)
         driver = webdriver.Chrome(service=service, options=options)
 
     driver.set_window_size(2560, 1440)

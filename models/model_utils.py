@@ -2,8 +2,8 @@ from selenium import webdriver
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.by import By
-from selenium.webdriver.firefox.service import Service
-from selenium.webdriver.firefox.options import Options
+from selenium.webdriver.chrome.service import Service
+from selenium.webdriver.chrome.options import Options
 from bs4 import BeautifulSoup
 from datetime import datetime as date
 from datetime import timedelta
@@ -21,26 +21,38 @@ import time
 import pandas as pd
 import signal
 import psutil
+import chromedriver_autoinstaller
 
-def establish_driver(local = False):
-    if not local: 
-        options = Options()
-        options.binary_location = '/usr/bin/firefox'
-        options.add_argument("--headless")
-        geckodriver_path = '/usr/local/bin/geckodriver'
-        service = Service(executable_path=geckodriver_path, log_path="geckodriver.log")
-        # options.add_argument("user-agent=Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Safari/537.36")
-        driver = webdriver.Firefox(service = service,options = options)
-        driver.set_window_size(1920, 1080)
 
-        return driver
-    else: 
-        options = Options()
-        options.add_argument("--headless")
-        driver = webdriver.Firefox(options=options)
-        driver.set_window_size(1920, 1080)
+def establish_driver(local=False):
+    """Establishes a Selenium WebDriver for Chrome.
 
-        return driver
+    Args:
+        local (bool): If True, runs WebDriver locally. Otherwise, uses a remote setup.
+
+    Returns:
+        webdriver.Chrome: A configured instance of the Chrome WebDriver.
+    """
+    options = Options()
+    options.add_argument("--headless")  # Run without UI
+    options.add_argument("--no-sandbox")
+    options.add_argument("--disable-dev-shm-usage")
+    options.add_argument("--disable-gpu")  # Prevents GPU-related crashes
+    
+    if not local:
+        chrome_path = chromedriver_autoinstaller.install()
+        service = Service(chrome_path)
+        options.binary_location = "/usr/bin/google-chrome-stable"
+        driver = webdriver.Chrome(service=service, options=options)
+    else:
+        # Use remote or automatically installed Chromedriver
+        chrome_path = chromedriver_autoinstaller.install()
+        print(chrome_path)
+        service = Service(chrome_path)
+        driver = webdriver.Chrome(service=service, options=options)
+
+    driver.set_window_size(2560, 1440)
+    return driver
 
 def terminate_firefox_processes(): #Used for memory efficieny
     """
