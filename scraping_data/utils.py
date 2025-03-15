@@ -21,6 +21,7 @@ from selenium.webdriver.common.by import By
 from bs4 import BeautifulSoup
 from tqdm import tqdm
 
+
 def establish_driver(local=False):
     """Establishes a Selenium WebDriver for Chrome.
 
@@ -30,25 +31,27 @@ def establish_driver(local=False):
     Returns:
         webdriver.Chrome: A configured instance of the Chrome WebDriver.
     """
-    options = Options()
-    options.add_argument("--headless")  # Run without UI
-    options.add_argument("--no-sandbox")
-    options.add_argument("--disable-dev-shm-usage")
-    options.add_argument("--disable-gpu")  # Prevents GPU-related crashes
-    
-    if not local:
-        chrome_path = chromedriver_autoinstaller.install()
-        service = Service(chrome_path)
-        options.binary_location = "/usr/bin/google-chrome-stable"
-        driver = webdriver.Chrome(service=service, options=options)
-    else:
-        # Use remote or automatically installed Chromedriver
-        chrome_path = chromedriver_autoinstaller.install()
-        print(chrome_path)
-        service = Service(chrome_path)
-        driver = webdriver.Chrome(service=service, options=options)
+    chrome_options = webdriver.ChromeOptions()  # Correct usage of ChromeOptions
+    chrome_options.add_argument("--headless")  # Run without UI (remove if you need the UI)
+    chrome_options.add_argument("--disable-dev-shm-usage")
+    chrome_options.add_argument("--disable-gpu")  # Prevents GPU-related crashes
+    chrome_options.add_argument("user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/92.0.4515.159 Safari/537.36")
 
+    if not local:
+        # If not local, install chromedriver and set up the service for remote use
+        chrome_path = chromedriver_autoinstaller.install()
+        service = Service(chrome_path)
+        chrome_options.binary_location = "/usr/bin/google-chrome-stable"  # Path to Chrome binary if using a custom installation
+        driver = webdriver.Chrome(service=service, options=chrome_options)
+    else:
+        # If local, use the automatically installed chromedriver
+        chrome_path = chromedriver_autoinstaller.install()
+        service = Service(chrome_path)
+        driver = webdriver.Chrome(service=service, options=chrome_options)
+    
+    # Set the window size for the Chrome browser (optional)
     driver.set_window_size(2560, 1440)
+
     return driver
 
 def terminate_firefox_processes():
