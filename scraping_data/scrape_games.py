@@ -43,12 +43,13 @@ def scrape_current_games():
     try:
         WebDriverWait(driver, 300).until(
             EC.presence_of_all_elements_located(
-                (By.XPATH, "//tbody[@class='Crom_body__UYOcU']/tr")
+                (By.XPATH, "//tbody[@class='Crom_body__UYOcU']")
             )
         )
 
         print("The section has loaded!")
     except TimeoutException:
+        driver.refresh()
         utils.send_email(
             subject="NBA SCRAPING: DATE ERRORS",
             body="The section did not load in time.",
