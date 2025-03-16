@@ -23,7 +23,7 @@ def clean_player_name(name):
     return name_corrections.get(name, name)  # Default to original name if no correction found
 
 def classify_result(row,table,cat):
-    return "Under" if row[f'{table}'] < row[f'{cat}'] else "Over"
+    return "Under" if row[f'{table}'] > row[f'{cat}'] else "Over"
 
 def past_outcomes():
     tables = ["points", "rebounds", "assists", "threes_made"]
@@ -59,7 +59,7 @@ def past_outcomes():
         except FileNotFoundError:
             credentials = False
             local = True
-            
+
         predict_data = pandas_gbq.read_gbq(predict_query, project_id='miscellaneous-projects-444203',credentials=credentials if not local else None)
         
         predict_data['Player'] = predict_data['Player'].apply(clean_player_name)
@@ -77,7 +77,7 @@ def past_outcomes():
         full_data['result'] = full_data.apply(lambda row:classify_result(row,table,cat), axis=1)
         
 
-        data_to_upload = full_data[['player',f'{table}',f'{cat}','game_date',f'recommendation_{cat}_linear_model',f'recommendation_{cat}_lightgbm']]
+        data_to_upload = full_data[['player',f'{table}',f'{cat}','game_date','result',f'recommendation_{cat}_linear_model',f'recommendation_{cat}_lightgbm']]
         table_schema = [{"name": "game_date", "type": "DATE"}]
         table_id = f"miscellaneous-projects-444203.capstone_data.{cat}_outcome"
         pandas_gbq.to_gbq(
@@ -88,7 +88,6 @@ def past_outcomes():
                 credentials=credentials if credentials else None,
                 table_schema=table_schema,
             )
-past_outcomes()
 
 
 def current_outcome(data):
@@ -135,7 +134,7 @@ def current_outcome(data):
         full_data['result'] = full_data.apply(lambda row:classify_result(row,table,cat), axis=1)
         
 
-        data_to_upload = full_data[['player',f'{table}',f'{cat}','Over','Under','game_date',f'recommendation_{cat}_linear_model',f'recommendation_{cat}_lightgbm']]
+        data_to_upload = full_data[['player',f'{table}',f'{cat}','Over','Under','game_date','result',f'recommendation_{cat}_linear_model',f'recommendation_{cat}_lightgbm']]
         table_schema = [{"name": "game_date", "type": "DATE"}]
         table_id = f"miscellaneous-projects-444203.capstone_data.{cat}_outcome"
         pandas_gbq.to_gbq(
