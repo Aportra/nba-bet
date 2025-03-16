@@ -95,7 +95,7 @@ def process_page(page, game_id, game_date, home, away):
     Returns:
         pd.DataFrame: Extracted game data or None if processing fails.
     """
-    driver = establish_driver(local=True)
+    driver = establish_driver()
     try:
         driver.get(page)
         driver.set_page_load_timeout(120)

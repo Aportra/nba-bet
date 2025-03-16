@@ -38,7 +38,7 @@ def past_outcomes():
     today = dt.today().date()
     season = today.year if today.month >= 10 else today.year - 1
     game_query =f"""
-        select *
+        select  *
         from `capstone_data.player_prediction_data_partitioned`
         where season_start_year = {season}
         """
@@ -47,9 +47,15 @@ def past_outcomes():
     for table,cat in zip(tables,categories):
         
         predict_query = f"""
-            select *
-            from `capstone_data.{table}_predictions`
-            """
+            WITH ranked_predictions AS (
+                SELECT *, 
+                    ROW_NUMBER() OVER (PARTITION BY Player, date(Date_Updated) ORDER BY Date_Updated DESC) AS rn
+                FROM `capstone_data.{table}_predictions`
+            )
+            SELECT * 
+            FROM ranked_predictions
+            WHERE rn = 1"""
+
 
         try:
             credentials = service_account.Credentials.from_service_account_file(
@@ -89,7 +95,7 @@ def past_outcomes():
                 table_schema=table_schema,
             )
 
-
+past_outcomes()
 def current_outcome(data):
     game_data = data
     tables = ["points", "rebounds", "assists", "threes_made"]
@@ -106,9 +112,16 @@ def current_outcome(data):
     for table,cat in zip(tables,categories):
         
         predict_query = f"""
-            select *
-            from `capstone_data.{table}_predictions`
-            """
+          WITH ranked_predictions AS (
+                SELECT *, 
+                    ROW_NUMBER() OVER (PARTITION BY Player, Date_Updated ORDER BY Date_Updated DESC) AS rn
+                FROM `capstone_data.{table}_predictions`
+                where date(Date_Updated) = current_date('America/Los_Angeles')
+            )
+            SELECT * 
+            FROM ranked_predictions
+            WHERE rn = 1"""
+           
 
         try:
             credentials = service_account.Credentials.from_service_account_file(
