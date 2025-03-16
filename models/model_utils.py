@@ -3,22 +3,12 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.by import By
 from selenium.webdriver.chrome.service import Service
-from selenium.webdriver.chrome.options import Options
-from bs4 import BeautifulSoup
-from datetime import datetime as date
-from datetime import timedelta
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from dotenv import load_dotenv
-from selenium.webdriver import Remote
-from tqdm import tqdm
-from concurrent.futures import ThreadPoolExecutor, as_completed
 
 import os
 import smtplib
-import regex as re
-import time
-import pandas as pd
 import signal
 import psutil
 import chromedriver_autoinstaller

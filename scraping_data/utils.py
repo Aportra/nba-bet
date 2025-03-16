@@ -1,7 +1,6 @@
 """Selenium Utility Module for Web Scraping and Automation."""
 
 import os
-import time
 import smtplib
 import signal
 import psutil
@@ -14,12 +13,10 @@ from email.mime.multipart import MIMEMultipart
 from dotenv import load_dotenv
 from selenium import webdriver
 from selenium.webdriver.chrome.service import Service
-from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.by import By
 from bs4 import BeautifulSoup
-from tqdm import tqdm
 
 
 def establish_driver(local=False):
