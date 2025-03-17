@@ -9,7 +9,7 @@ from google.oauth2 import service_account
 from datetime import datetime as date
 from selenium.webdriver.firefox.options import Options
 from sklearn.preprocessing import StandardScaler
-import model_utils
+from models import model_utils
 
 import joblib
 import pandas as pd
@@ -187,18 +187,6 @@ def recent_player_data(games):
         FROM RankedGames
         WHERE game_rank = 1;
     """,
-    "opponent_data": f"""
-        WITH RankedGames AS (
-            SELECT *, 
-                ROW_NUMBER() OVER (PARTITION BY team ORDER BY game_date DESC) AS game_rank
-            FROM `capstone_data.team_prediction_data_partitioned`
-            WHERE team IN ({','.join([f'"{opponent}"' for opponent in games["matchup"].unique()])}) 
-            AND season_start_year = {season}
-        )
-        SELECT *
-        FROM RankedGames
-        WHERE game_rank = 1;
-    """,
     "team_data": f"""
         WITH RankedGames AS (
             SELECT *, 
@@ -215,24 +203,21 @@ def recent_player_data(games):
 
 
     # Fetch player, opponent, and team data
-    player_data, opponent_data, team_data = [fetch_bigquery_data(queries[q],credentials=credentials) for q in queries]
+    player_data, team_data = [fetch_bigquery_data(queries[q],credentials=credentials) for q in queries]
     print('queries complete')
     # Standardize player names in player_data
     print('cleaning names')
     player_data["player"] = player_data["player"].apply(clean_player_name)
 
-    # Rename opponent_data columns to avoid conflicts
-    opponent_data = opponent_data.rename(columns={
-        col: "matchup" if col == "team" else f"opponent_{col}" for col in team_data.columns
-    })
+    team_data  = team_data.merge(team_data,on='game_id',suffixes=("_team","_opponent"))
+    team_data_merged = team_data_merged[team_data_merged["team_id_team"] != team_data_merged["team_id_opponent"]]
 
     # Merge datasets while keeping only necessary columns
     print('merging data')
     full_data = (
         games
         .merge(player_data, on="player", how="inner", suffixes=("", "_remove"))
-        .merge(opponent_data, on="matchup", how="inner", suffixes=("", "_remove"))
-        .merge(team_data, on="team", how="inner", suffixes=("", "_remove"))
+        .merge(team_data, on="team_abbreviation", how="inner", suffixes=("", "_remove"))
     )
 
     # Drop duplicate or unnecessary columns

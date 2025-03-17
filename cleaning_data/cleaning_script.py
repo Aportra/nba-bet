@@ -163,6 +163,8 @@ def clean_current_player_data(data):
         model_data = pd.concat(model_dfs, ignore_index=True)
         predict_data = pd.concat(prediction_dfs, ignore_index=True)
 
+        model_data = model_data.rename(columns={'fg3m':'3pm'})
+        predict_data = predict_data.rename(columns={'fg3m':'3pm'})
         # Fill NaNs with 0 for modeling
         model_data.fillna(0, inplace=True)
         predict_data.fillna(0, inplace=True)
@@ -314,7 +316,10 @@ def clean_past_player_data():
         # Combine all processed data
         model_data = pd.concat(model_data, ignore_index=True)
         predict_data = pd.concat(predict_data, ignore_index=True)
+        
 
+        model_data = model_data.rename(columns={'fg3m':'3pm'})
+        predict_data = predict_data.rename(columns={'fg3m':'3pm'})
         # Fill NaN values (excluding game_date)
         for df in [model_data, predict_data]:
             df.loc[:, df.columns != "game_date"] = df.drop(columns=["game_date"]).fillna(0)

@@ -1,11 +1,14 @@
 """Selenium Utility Module for Web Scraping and Automation."""
 
 import os
+import time
+import random
 import smtplib
 import signal
 import psutil
 import pandas as pd
 import chromedriver_autoinstaller
+import requests
 from datetime import datetime as dt
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from email.mime.text import MIMEText
@@ -17,6 +20,7 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.by import By
 from bs4 import BeautifulSoup
+from tqdm import tqdm
 
 
 def establish_driver(local=False):
@@ -51,6 +55,30 @@ def establish_driver(local=False):
 
     return driver
 
+def establish_requests(url):
+    # Headers to mimic a real browser request (prevents bot blocking)
+
+    USER_AGENTS = [
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36",
+    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/92.0.4515.107 Safari/537.36",
+    "Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:90.0) Gecko/20100101 Firefox/90.0",
+        ]
+    headers = {
+        "User-Agent": random.choice(USER_AGENTS),
+        "Referer": "https://www.nba.com/",
+        "Origin": "https://www.nba.com",
+        "Accept": "application/json, text/plain, */*",
+        "Host": "stats.nba.com",
+        "Accept-Encoding": "gzip, deflate, br",
+        "Accept-Language": "en-US,en;q=0.9"
+    }
+
+    # Send request
+    response = requests.get(url, headers=headers)
+    
+    return response
+
+
 def terminate_firefox_processes():
     """Forcefully terminates lingering Firefox & Geckodriver processes."""
     for process in psutil.process_iter(attrs=["pid", "name"]):
@@ -82,153 +110,81 @@ def select_all_option(driver):
         print(f"Error selecting the 'All' option: {e}")
 
 
-def process_page(page, game_id, game_date, home, away):
-    """Processes an NBA game page and extracts statistical data.
 
-    Args:
-        page (str): The game URL.
-        game_id (str): Unique game identifier.
-        game_date (datetime.date): Date of the game.
-        home (str): Home team.
-        away (str): Away team.
-
-    Returns:
-        pd.DataFrame: Extracted game data or None if processing fails.
-    """
-    driver = establish_driver()
+def process_game(game_id):
+    """Fetch and process individual game data from the NBA API."""
     try:
-        driver.get(page)
-        driver.set_page_load_timeout(120)
+        url = f"https://stats.nba.com/stats/boxscoretraditionalv2?GameID={game_id}&StartPeriod=0&EndPeriod=10"
+        game_response = establish_requests(url)
 
-        WebDriverWait(driver, 10).until(EC.presence_of_element_located((By.CLASS_NAME, "StatsTable_st__g2iuW")))
+        # Check if request is successful
+        if game_response.status_code != 200:
+            raise Exception(f"API Error: Status Code {game_response.status_code}")
 
-        soup = BeautifulSoup(driver.page_source, "html5lib")
-        tables = soup.find_all("div", class_="StatsTable_st__g2iuW")
-        last_updated = dt.today()
+        game_response = game_response.json()
 
-        df_data = []
-        if tables:
-            for table_index, table in enumerate(tables):
-                rows = table.find_all("tr")
-                t1, t2 = (home, away) if table_index == 1 else (away, home)
+        # Extract headers and data
+        column = [header.lower() for header in game_response['resultSets'][0]['headers']]
+        row_data = game_response['resultSets'][0]['rowSet']
 
-                headers = [th.get_text(strip=True) for th in rows[0].find_all("th")] if rows else []
-                data = []
+        # Create DataFrame
+        game_data = pd.DataFrame(row_data, columns=column)
 
-                for row in rows[1:-1]:
-                    cols = row.find_all("td")
-                    name_span = row.find("td").find("span", class_="GameBoxscoreTablePlayer_gbpNameFull__cf_sn")
-                    player_name = name_span.get_text(strip=True).replace(".", "") if name_span else "Unknown"
+        # Drop unnecessary columns
+        game_data.drop(columns=['comment', 'start_position', 'nickname'], inplace=True, errors='ignore')
 
-                    row_data = [player_name] + [col.get_text(strip=True) for col in cols[1:]]
-                    row_data.extend([t1, game_id, game_date, t2, page, last_updated])
-                    data.append(row_data)
+        # Fix minutes column formatting
+        game_data['min'] = game_data['min'].apply(
+            lambda x: ''.join(x.split('.000000')) if isinstance(x, str) and '.000000' in x else x
+        )
 
-                if headers and data:
-                    headers = ["player"] + headers[1:] + ["team", "game_id", "game_date", "matchup", "url", "last_updated"]
-                    df_data.append(pd.DataFrame(data, columns=headers))
-                else:
-                    print(f"Could not process: {page}")
-                    return None
+        return game_data  # Return processed game DataFrame
 
-            return pd.concat(df_data, ignore_index=True)
-        else:
-            print(f"Could not process: {page}")
-            return None
+    except Exception as e:
+        print(f"Failed to process game {game_id}: {e}")
+        return None  # Return None if failure occurs
 
-    finally:
-        driver.quit()
-
-def gather_data(rows, current=True, scrape_date=dt.today()):
-    """Extracts game data from table rows.
+def process_all_games(game_ids, max_threads=5):
+    """Processes multiple NBA games concurrently using threading.
 
     Args:
-        rows (list): List of Selenium WebElements representing table rows.
-        current (bool, optional): If True, filters only current games. Defaults to True.
-        scrape_date (datetime.date, optional): The date to compare games against. Defaults to today.
-
-    Returns:
-        list: A list of tuples containing (game_id, game_date, home_team, away_team).
-    """
-    game_data = []
-    unique_game_ids = set()
-
-    for row in rows:
-        try:
-            # Extract game date
-            date_element = row.find_element(By.XPATH, ".//td[3]/a")
-            game_date_text = date_element.text.strip()
-            game_date = dt.strptime(game_date_text, "%m/%d/%Y").date()
-
-            # Filter only future games if current=True
-            if current and game_date < scrape_date.date():
-                break
-
-            # Extract game ID and matchup data
-            matchup_element = row.find_element(By.XPATH, ".//td[2]/a")
-            game_id = matchup_element.get_attribute("href")
-
-            # Skip duplicate game IDs
-            if game_id in unique_game_ids:
-                continue
-            unique_game_ids.add(game_id)
-
-            matchup_text = matchup_element.text.strip()
-
-            # Determine home and away teams
-            if "@" in matchup_text:
-                away, home = matchup_text.split(" @ ")
-            elif "vs." in matchup_text:
-                home, away = matchup_text.split(" vs. ")
-            else:
-                print(f"Unexpected matchup format: {matchup_text}")
-                continue  # Skip malformed rows
-
-            game_data.append((game_id, game_date, home, away))
-
-        except Exception as e:
-            print(f"Error processing row: {e}")
-            continue  # Skip problematic rows
-
-    return game_data
-
-
-def process_all_pages(pages_info, max_threads):
-    """Processes multiple pages concurrently using threading.
-
-    Args:
-        pages_info (list): List of tuples (page_url, game_id, game_date, home, away).
+        game_ids (list): List of game IDs to process.
         max_threads (int): Number of concurrent threads.
 
     Returns:
-        pd.DataFrame: Combined data from all processed pages.
+        pd.DataFrame: Combined data from all processed games.
     """
     all_dataframes = []
     retries = {}
-    remaining_pages = list(pages_info)
+    remaining_games = list(game_ids)
 
-    while remaining_pages:
-        failed_pages = []
+    while remaining_games:
+        failed_games = []
 
         with ThreadPoolExecutor(max_workers=max_threads) as executor:
-            future_to_page = {executor.submit(process_page, *args): args for args in remaining_pages}
+            future_to_game = {executor.submit(process_game, game): game for game in remaining_games}
 
-            for future in as_completed(future_to_page):
-                args = future_to_page[future]
+            # Using tqdm for progress tracking
+            for future in tqdm(as_completed(future_to_game), total=len(remaining_games), desc="Processing Games"):
+                game = future_to_game[future]
                 try:
                     result = future.result()
                     if isinstance(result, pd.DataFrame):
                         all_dataframes.append(result)
                     else:
-                        raise Exception("Processing failed")
-                except Exception:
-                    failed_pages.append(args)
-                    retries[args] = retries.get(args, 0) + 1
+                        raise Exception("Game processing failed")
+                except Exception as e:
+                    print(f"Retrying game {game}: {e}")
+                    failed_games.append(game)
+                    retries[game] = retries.get(game, 0) + 1
 
-        terminate_firefox_processes()
-        remaining_pages = failed_pages
+        remaining_games = [g for g in failed_games if retries[g] < 3]  # Retry failed games up to 3 times
+        time.sleep(2)  # Brief pause between retry loops
 
-    return pd.concat(all_dataframes, ignore_index=True) if all_dataframes else None
+    if all_dataframes:
+        return pd.concat(all_dataframes, ignore_index=True)
+    else:
+        return pd.DataFrame()  # Return empty D
 
 def prepare_for_gbq(combined_dataframes):
     """Prepares the dataframe for Google BigQuery by cleaning and formatting data.

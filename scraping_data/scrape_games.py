@@ -1,13 +1,14 @@
 """Module for scraping NBA game data and uploading to BigQuery."""
 
 import time
+import random
 import gc
 import traceback
-from datetime import datetime as dt
+from datetime import datetime as dt,timedelta
 
 import pandas as pd
 import pandas_gbq
-import scraping_data.utils as utils
+import utils as utils
 from google.cloud import bigquery
 from google.oauth2 import service_account
 from selenium.common.exceptions import TimeoutException
@@ -31,105 +32,107 @@ def scrape_current_games():
         local = True
         credentials = None
 
-    driver = utils.establish_driver(local=True)
-    scrape_date = dt.today()
-    url = {
-        "NBA_Season_2024-2025_uncleaned": "https://www.nba.com/stats/teams/boxscores?Season=2024-25"
-    }
-
-    driver.get(url["NBA_Season_2024-2025_uncleaned"])
-    time.sleep(5)
-
     try:
-        WebDriverWait(driver, 300).until(
-            EC.presence_of_all_elements_located(
-                (By.XPATH, "//tbody[@class='Crom_body__UYOcU']")
-            )
-        )
+        scrape_date = dt.today() - timedelta(1)
+        url = {
+            "2024-2025_uncleaned": "https://stats.nba.com/stats/teamgamelogs?LeagueID=00&Season=2024-25&SeasonType=Regular%20Season"
 
-        print("The section has loaded!")
-    except TimeoutException:
-        driver.refresh()
-        utils.send_email(
-            subject="NBA SCRAPING: DATE ERRORS",
-            body="The section did not load in time.",
-        )
+        }
 
-    rows = driver.find_elements(By.XPATH, ".//tbody/tr")
-    game_data = utils.gather_data(rows)
-    driver.quit()
+        response = utils.establish_requests(url["2024-2025_uncleaned"])
+        year = scrape_date.year if scrape_date.month >= 10 else scrape_date.year - 1
+        season = f'{year}-{year+1}'
+        time.sleep(5)
 
-    data = []
-    failed_pages = []
+        if response.status_code == 200:
+            data = response.json()
 
-    try:
-        if game_data:
-            for game_id, game_date, home, away in game_data:
-                page = f"{game_id}/box-score"
-                result = utils.process_page(page, game_id, game_date, home, away)
-                
-                if isinstance(result, pd.DataFrame):
-                    data.append(result)
-                else:
-                    failed_pages.append(result)
-                    print(f"Failed pages count: {len(failed_pages)}")
+            headers = [header.lower() for header in data['resultSets'][0]['headers']]
+            rows = data['resultSets'][0]['rowSet']
+            df = pd.DataFrame(rows,columns=headers)
+            df = df.drop(columns=[col for col in df.columns if '_rank' in col or col == 'available_flag'])
+            df['game_date'] = pd.to_datetime(df['game_date']).dt.date
 
-            retries = {}
-
-            while failed_pages:
-                game_id, game_date, home, away = failed_pages.pop(0)
-                key = (game_id, game_date, home, away)
-                retries[key] = retries.get(key, 0) + 1
-
-                print(f"Retry count for {game_id}: {retries[key]}")
-                print(f"Processing failed page: {game_id}")
-
-                page = f"{game_id}/box-score"
-                result = utils.process_page(page, game_id, game_date, home, away)
-
-                if isinstance(result, pd.DataFrame):
-                    data.append(result)
-                    print(f"Successfully processed failed page: {game_id}")
-                else:
-                    failed_pages.append((game_id, game_date, home, away))
-                    print(f"Retry failed: {game_id}. Re-adding to failed pages.")
-
-            combined_dataframes = pd.concat(data, ignore_index=True)
-            combined_dataframes = utils.prepare_for_gbq(combined_dataframes)
-
-            table_id = "miscellaneous-projects-444203.capstone_data.2024-2025_uncleaned"
-            table_schema = [{"name": "game_date", "type": "DATE"}]
-
-            if not local:
-                pandas_gbq.to_gbq(
-                    combined_dataframes,
+            team_table_id = f"miscellaneous-projects-444203.capstone_data.{season}_team_ratings"
+            table_schema = [{"name": "game_date", "type": "DATE"}]  
+            
+            df = df[df['game_date'] == scrape_date.date()]
+            
+            if local:
+                    pandas_gbq.to_gbq(
+                    df,
                     project_id="miscellaneous-projects-444203",
-                    destination_table=table_id,
-                    if_exists="append",
-                    credentials=credentials,
+                    destination_table=team_table_id,
+                    if_exists="replace",
                     table_schema=table_schema,
                 )
+
             else:
                 pandas_gbq.to_gbq(
-                    combined_dataframes,
+                    df,
                     project_id="miscellaneous-projects-444203",
-                    destination_table=table_id,
-                    if_exists="append",
-                    table_schema=table_schema,
+                    destination_table=team_table_id,
+                    if_exists="replace",
+                    credentials=credentials,
+                    table_schema=table_schema,)
+
+            game_ids = list(df[df['game_date'] == scrape_date.date()]['game_id'])
+
+            
+
+            games = []
+
+            for game in game_ids:
+                game_response = utils.establish_requests(f"https://stats.nba.com/stats/boxscoretraditionalv2?GameID={game}&StartPeriod=0&EndPeriod=10")
+                game_response = game_response.json()
+                column = [header.lower() for header in game_response['resultSets'][0]['headers']]
+                row_data = game_response['resultSets'][0]['rowSet']
+
+                game_data = pd.DataFrame(row_data,columns=column)
+                game_data.drop(columns=['comment','start_position','nickname'],inplace=True)
+
+                game_data['min'] = game_data['min'].apply(lambda x: ''.join(x.split('.000000')) if isinstance(x, str) and '.000000' in x else x)
+                
+                games.append(game_data)
+
+            full_data = pd.concat(games)
+
+            table_id = f"miscellaneous-projects-444203.capstone_data.{url}_team_ratings"
+            table_schema = [{"name": "game_date", "type": "DATE"}]  
+
+
+            if full_data:
+                utils.send_email(
+                    subject=f"NBA SCRAPING: COMPLETED # OF GAMES {len(game_data)}",
+                    body=f"{len(game_data)} games scraped as of {scrape_date.date()}",
                 )
 
+                if local:
+                    pandas_gbq.to_gbq(
+                    full_data,
+                    project_id="miscellaneous-projects-444203",
+                    destination_table=table_id,
+                    if_exists="replace",
+                    table_schema=table_schema,
+                    )
+
+                else:
+                    pandas_gbq.to_gbq(
+                        full_data,
+                        project_id="miscellaneous-projects-444203",
+                        destination_table=table_id,
+                        if_exists="replace",
+                        credentials=credentials,
+                        table_schema=table_schema,)
+                print("Scraping successful.")
+
+                return full_data, df
+        
+        else:
             utils.send_email(
-                subject=f"NBA SCRAPING: COMPLETED # OF GAMES {len(game_data)}",
-                body=f"{len(game_data)} games scraped as of {scrape_date.date()}",
+                subject="NBA SCRAPING: NO GAMES",
+                body=f"No games found as of {scrape_date.date()}",
             )
-            print("Scraping successful.")
-
-            return combined_dataframes, len(game_data)
-
-        utils.send_email(
-            subject="NBA SCRAPING: NO GAMES",
-            body=f"No games found as of {scrape_date.date()}",
-        )
 
     except Exception as e:
         error_traceback = traceback.format_exc()
@@ -150,23 +153,21 @@ def scrape_current_games():
             body=error_message,
         )
 
-    finally:
-        driver.quit()
 
 
 
-def scrape_past_games(multi_threading=True, max_workers=0):
+def scrape_past_games():
     """Scrapes past NBA game data from 2015 to 2025 and uploads to BigQuery.
     
     Args:
         multi_threading (bool): Whether to use multi-threading for scraping.
         max_workers (int): Number of workers to use for multi-threading.
     """
-
     urls = {
-        f"{i}-{i+1}_uncleaned": f"https://www.nba.com/stats/teams/boxscores-advanced?Season={i}-{str(i-2000+1)}"
-        for i in range(2015, 2025)
+        f"{i}-{i+1}_uncleaned": f"https://stats.nba.com/stats/teamgamelogs?LeagueID=00&Season={i}-{str(i-2000+1)}&SeasonType=Regular%20Season"
+        for i in range(2017, 2025)
     }
+    seasons = [f'{i}-{i+1}_team_ratings' for i in range(2017,2025)]
 
     try:
         credentials = service_account.Credentials.from_service_account_file(
@@ -179,83 +180,112 @@ def scrape_past_games(multi_threading=True, max_workers=0):
         credentials = None
         print("Running with default credentials.")
 
-    for season, url in urls.items():
-        driver = utils.establish_driver()
-        driver.get(url)
-        utils.select_all_option(driver)
-        time.sleep(5)
+    for url,season in zip(urls,seasons):
+        print(url)
+        print(season)
+        response = utils.establish_requests(urls[url])
+        time.sleep(random.randint(5,10))
+        print(response.status_code)
+        if response.status_code == 200:
+            data = response.json()
 
-        rows = driver.find_elements(By.XPATH, "//tbody[@class='Crom_body__UYOcU']/tr")
-        game_data = utils.gather_data(rows, current=False)
-        driver.quit()
+            headers = [header.lower() for header in data['resultSets'][0]['headers']]
+            rows = data['resultSets'][0]['rowSet']
+            df = pd.DataFrame(rows,columns=headers)
+            df = df.drop(columns=['available_flag'])
+            df['game_date'] = pd.to_datetime(df['game_date']).dt.date
+             
+            team_table_id = f"miscellaneous-projects-444203.capstone_data.{season}"
+            table_schema = [{"name": "game_date", "type": "DATE"}]  
+        
+            if local:
+                pandas_gbq.to_gbq(
+                    df,
+                    project_id="miscellaneous-projects-444203",
+                    destination_table=team_table_id,
+                    if_exists="replace",
+                    table_schema=table_schema,
+                )
 
-        if multi_threading:
-            print(f"Using {max_workers} threads.")
-            pages_info = [
-                (f"{game_id}/box-score", game_id, game_date, home, away)
-                for game_id, game_date, home, away in game_data
-            ]
-            combined_data = utils.process_all_pages(pages_info, max_threads=max_workers)
-        else:
-            data = []
-            failed_pages = []
+            else:
+                pandas_gbq.to_gbq(
+                    df,
+                    project_id="miscellaneous-projects-444203",
+                    destination_table=team_table_id,
+                    if_exists="replace",
+                    credentials=credentials,
+                    table_schema=table_schema,)
 
-            with tqdm(total=len(game_data), desc="Processing Games", ncols=80) as pbar:
-                for game_id, game_date, home, away in game_data:
-                    page = f"{game_id}/box-score"
-                    result = utils.process_page(page, game_id, game_date, home, away)
+            game_ids = list(df['game_id'].unique())
 
-                    if isinstance(result, pd.DataFrame):
-                        data.append(result)
-                    else:
-                        failed_pages.append(result)
-                        print(f"Failed pages count: {len(failed_pages)}")
+            games = []
+            retries = []
+            for game in tqdm(game_ids,desc='Processing games:'):
+                time.sleep(random.uniform(.01,1))
+                game_response = utils.establish_requests(f"https://stats.nba.com/stats/boxscoretraditionalv2?GameID={game}&StartPeriod=0&EndPeriod=10")
 
-                    pbar.update(1)
+                if game_response.status_code == 200:
+                    game_response = game_response.json()
+    
 
-            retries = {}
+                    column = [header.lower() for header in game_response['resultSets'][0]['headers']]
+                    row_data = game_response['resultSets'][0]['rowSet']
 
-            while failed_pages:
-                game_id, game_date, home, away = failed_pages.pop(0)
-                key = (game_id, game_date, home, away)
-                retries[key] = retries.get(key, 0) + 1
+                    game_data = pd.DataFrame(row_data,columns=column)
+                    game_data.drop(columns=['comment','start_position','nickname'],inplace=True)
 
-                print(f"Retry count for {game_id}: {retries[key]}")
-                print(f"Processing failed page: {game_id}")
+                    game_data['min'] = game_data['min'].apply(lambda x: ''.join(x.split('.000000')) if isinstance(x, str) and '.000000' in x else x)
 
-                page = f"{game_id}/box-score"
-                result = utils.process_page(page, game_id, game_date, home, away)
 
-                if isinstance(result, pd.DataFrame):
-                    data.append(result)
-                    print(f"Successfully processed failed page: {game_id}")
+                    games.append(game_data)
+
                 else:
-                    failed_pages.append((game_id, game_date, home, away))
-                    print(f"Retry failed: {game_id}. Re-adding to failed pages.")
+                    retries.append(game)
 
-            combined_data = pd.concat(data, ignore_index=True)
+            if len(retries) > 0:
+                while retries:
+                        retry_id = retries.pop(0) 
+                        game_response = utils.establish_requests(f"https://stats.nba.com/stats/boxscoretraditionalv2?GameID={retry_id}&StartPeriod=0&EndPeriod=10")
+                        if game_response.status_code == 200:
+                            game_response = game_response.json()
 
-        combined_data = utils.prepare_for_gbq(combined_data)
-        table_id = f"miscellaneous-projects-444203.capstone_data.{season}"
+                            column = [header.lower() for header in game_response['resultSets'][0]['headers']]
+                            row_data = game_response['resultSets'][0]['rowSet']
+
+                            game_data = pd.DataFrame(row_data,columns=column)
+                            game_data.drop(columns=['comment','start_position','nickname'],inplace=True)
+
+                            game_data['min'] = game_data['min'].apply(lambda x: ''.join(x.split('.000000')) if isinstance(x, str) and '.000000' in x else x)
+
+
+                            games.append(game_data)
+                        else:
+                            retries.append(retry_id)
+
+            full_data = pd.concat(games)
+
+
+
+        table_id = f"miscellaneous-projects-444203.capstone_data.{url}"
         table_schema = [{"name": "game_date", "type": "DATE"}]
 
         if local:
             pandas_gbq.to_gbq(
-                combined_data,
+                full_data,
                 project_id="miscellaneous-projects-444203",
                 destination_table=table_id,
                 if_exists="replace",
                 table_schema=table_schema,
             )
+
         else:
             pandas_gbq.to_gbq(
-                combined_data,
+                full_data,
                 project_id="miscellaneous-projects-444203",
                 destination_table=table_id,
                 if_exists="replace",
                 credentials=credentials,
-                table_schema=table_schema,
-            )
+                table_schema=table_schema,)
+            
 
-        del combined_data
-        gc.collect()
+scrape_past_games()
