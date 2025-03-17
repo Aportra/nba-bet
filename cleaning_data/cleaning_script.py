@@ -63,7 +63,7 @@ def clean_current_player_data(data):
         # Normalize player names (remove dots and accents)
         data['player'] = data['player'].str.replace('.', '', regex=False)
         data['player'] = data['player'].apply(remove_accents)
-
+        data.rename(columns={'team_abbreviation':'team','player_name':'player'},inplace=True)
         # Convert time played to decimal format
         data['min'] = data['min'].apply(convert_minutes_to_decimal)
 
@@ -120,7 +120,8 @@ def clean_current_player_data(data):
         )
 
         # Define features for rolling averages
-        features_for_rolling = list(data.columns[1:21])
+        features_for_rolling = modeling_data.select_dtypes(include=['int64', 'float64']).columns.tolist()
+
 
         # Prepare data for modeling and prediction
         model_dfs = []
@@ -218,15 +219,17 @@ def clean_past_player_data():
             print("Running with default credentials.")
 
         # Generate table names for each season
-        tables = [f"{i}-{i+1}_uncleaned" for i in range(2015, 2025)]
+        tables = [f"{i}-{i+1}" for i in range(2015, 2025)]
 
         model_data = []
         predict_data = []
 
         for table in tables:
             modeling_query = f"""
-            SELECT *
-            FROM `capstone_data.{table}`
+            SELECT pr.*,tr.game_date
+            FROM `capstone_data.{table}_uncleaned` pr
+            left join `capstone_data.{table}_team_ratings` tr
+                on pr.game_id = tr.game_id
             ORDER BY game_date ASC
             """
 
@@ -240,7 +243,7 @@ def clean_past_player_data():
 
             # Drop missing values and reset index
             modeling_data.dropna(inplace=True, ignore_index=True)
-
+            modeling_data.rename(columns={'team_abbreviation':'team','player_name':'player'},inplace=True)
             # Normalize player names
             modeling_data["player"] = modeling_data["player"].str.replace(".", "", regex=False)
             modeling_data["player"] = modeling_data["player"].apply(remove_accents)
@@ -249,7 +252,8 @@ def clean_past_player_data():
             modeling_data["min"] = modeling_data["min"].apply(convert_minutes_to_decimal)
 
             # Define rolling features
-            features_for_rolling = list(modeling_data.columns[1:21])
+            features_for_rolling = modeling_data.select_dtypes(include=['int64', 'float64']).columns.tolist()
+
 
             # Sort data for rolling calculations
             modeling_data.sort_values(by=["player", "game_date"], inplace=True)
@@ -348,16 +352,10 @@ def clean_past_player_data():
 
         print("Data upload complete.")
 
-        send_email(
-            subject="PAST NBA PLAYER DATA CLEANED",
-            body="Past data successfully uploaded to BigQuery."
-        )
+
 
     except Exception as e:
-        send_email(
-            subject="PAST NBA PLAYER Cleaning Failed",
-            body=f"Error: {e}"
-        )
+       print(e)
 
 
 
@@ -393,7 +391,7 @@ def clean_past_team_ratings():
         modeling_query = f"""
         SELECT *
         FROM `capstone_data.{season}`
-        ORDER BY `game date` ASC
+        ORDER BY `game_date` ASC
         """
 
         print(f"Fetching data from table: {season}")
@@ -405,9 +403,7 @@ def clean_past_team_ratings():
             credentials=credentials if not local else None,
         )
 
-        # Standardize column names
-        modeling_data.rename(columns={"game date": "game_date"}, inplace=True)
-
+        modeling_data.rename(columns={'team_abbreviation':'team'},inplace=True)
         # Sort data for rolling calculations
         modeling_data.sort_values(by=["team", "game_date"], inplace=True)
 
@@ -415,7 +411,8 @@ def clean_past_team_ratings():
         prediction_data = modeling_data.copy()
 
         # Identify numerical columns for rolling calculations
-        num_columns = modeling_data.columns[5:19]
+        num_columns = modeling_data.select_dtypes(include=['int64', 'float64']).columns.tolist()
+
 
         # Assign season values
         for df in [modeling_data, prediction_data]:
@@ -542,7 +539,6 @@ def clean_current_team_ratings(game_data):
         print(f"Processing current team ratings for season {season}...")
 
         # Standardize column names
-        game_data.rename(columns={"game date": "game_date"}, inplace=True)
 
         # Extract unique teams
         teams = game_data["team"].unique()
@@ -589,7 +585,8 @@ def clean_current_team_ratings(game_data):
             )
 
         # Identify numerical features for rolling calculations
-        features_for_rolling = game_data.columns[5:19]
+        features_for_rolling = game_data.select_dtypes(include=['int64', 'float64']).columns.tolist()
+
 
         # Store cleaned team data
         team_dfs = []
