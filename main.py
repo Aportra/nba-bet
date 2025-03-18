@@ -4,11 +4,11 @@ from outcomes import current_outcome
 
 print("Starting scraping of game data")
 
-team_data,player_data = scrape_current_games()
+team_data,player_data,date = scrape_current_games()
 
 print("Cleaning Data")
 
-clean_current_player_data(player_data)
+clean_current_player_data(player_data,date)
 
 clean_current_team_ratings(team_data)
 

@@ -37,7 +37,7 @@ def convert_minutes_to_decimal(min_played):
     return round(minutes + (seconds / 60), 2)
 
 
-def clean_current_player_data(data):
+def clean_current_player_data(data,date):
     """Cleans and processes NBA player data for modeling and prediction.
 
     Args:
@@ -59,11 +59,12 @@ def clean_current_player_data(data):
 
         # Drop missing values and reset index
         data.dropna(inplace=True, ignore_index=True)
-
+        data.rename(columns={'team_abbreviation':'team','player_name':'player'},inplace=True)
+        print("Columns after renaming:", data.columns)  
         # Normalize player names (remove dots and accents)
         data['player'] = data['player'].str.replace('.', '', regex=False)
         data['player'] = data['player'].apply(remove_accents)
-        data.rename(columns={'team_abbreviation':'team','player_name':'player'},inplace=True)
+        data['game_date'] = date
         # Convert time played to decimal format
         data['min'] = data['min'].apply(convert_minutes_to_decimal)
 
@@ -89,7 +90,7 @@ def clean_current_player_data(data):
             SELECT *,
                 ROW_NUMBER() OVER (PARTITION BY player ORDER BY game_date DESC) AS game_rank
             FROM `capstone_data.player_modeling_data_partitioned`
-            WHERE player IN ({','.join([f'"{player}"' for player in players])}) 
+            WHERE player_name IN ({','.join([f'"{player}"' for player in players])}) 
             AND season_start_year = {season}
         )
         SELECT * FROM RankedGames
@@ -101,7 +102,7 @@ def clean_current_player_data(data):
             SELECT *,
                 ROW_NUMBER() OVER (PARTITION BY player ORDER BY game_date DESC) AS game_rank
             FROM `capstone_data.player_prediction_data_partitioned`
-            WHERE player IN ({','.join([f'"{player}"' for player in players])}) 
+            WHERE player_name IN ({','.join([f'"{player}"' for player in players])}) 
             AND season_start_year = {season}
         )
         SELECT * FROM RankedGames

@@ -95,7 +95,7 @@ def past_outcomes():
                 table_schema=table_schema,
             )
 
-past_outcomes()
+
 def current_outcome(data):
     game_data = data
     tables = ["points", "rebounds", "assists", "threes_made"]

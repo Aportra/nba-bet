@@ -16,7 +16,7 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.firefox.options import Options
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import WebDriverWait
-from tqdm import tqdm
+
 
 
 def scrape_current_games():
@@ -53,10 +53,13 @@ def scrape_current_games():
             df = df.drop(columns=[col for col in df.columns if '_rank' in col or col == 'available_flag'])
             df['game_date'] = pd.to_datetime(df['game_date']).dt.date
 
-            team_table_id = f"miscellaneous-projects-444203.capstone_data.{season}_team_ratings"
+            team_table_id = f"capstone_data.{season}_team_ratings"
             table_schema = [{"name": "game_date", "type": "DATE"}]  
             
             df = df[df['game_date'] == scrape_date.date()]
+            
+            date = df['game_date'].iloc[0]
+
             
             if local:
                     pandas_gbq.to_gbq(
@@ -72,7 +75,7 @@ def scrape_current_games():
                     df,
                     project_id="miscellaneous-projects-444203",
                     destination_table=team_table_id,
-                    if_exists="replace",
+                    if_exists="append",
                     credentials=credentials,
                     table_schema=table_schema,)
 
@@ -83,6 +86,7 @@ def scrape_current_games():
             games = []
 
             for game in game_ids:
+                print(game)
                 game_response = utils.establish_requests(f"https://stats.nba.com/stats/boxscoretraditionalv2?GameID={game}&StartPeriod=0&EndPeriod=10")
                 game_response = game_response.json()
                 column = [header.lower() for header in game_response['resultSets'][0]['headers']]
@@ -96,10 +100,10 @@ def scrape_current_games():
                 games.append(game_data)
 
             full_data = pd.concat(games)
-
-            table_id = f"miscellaneous-projects-444203.capstone_data.{url}_team_ratings"
+            full_data['game_date'] = scrape_date.date()
+            table_id = f"capstone_data.{url}"
             table_schema = [{"name": "game_date", "type": "DATE"}]  
-
+            
 
             if len(full_data) > 0:
                 utils.send_email(
@@ -111,8 +115,8 @@ def scrape_current_games():
                     pandas_gbq.to_gbq(
                     full_data,
                     project_id="miscellaneous-projects-444203",
-                    destination_table=table_id,
-                    if_exists="replace",
+                    destination_table='capstone_data.2024-2025_uncleaned',
+                    if_exists="append",
                     table_schema=table_schema,
                     )
 
@@ -120,13 +124,13 @@ def scrape_current_games():
                     pandas_gbq.to_gbq(
                         full_data,
                         project_id="miscellaneous-projects-444203",
-                        destination_table=table_id,
-                        if_exists="replace",
+                        destination_table='capstone_data.2024-2025_uncleaned',
+                        if_exists="append",
                         credentials=credentials,
                         table_schema=table_schema,)
                 print("Scraping successful.")
 
-                return full_data, df
+                return df,full_data,date
         
         else:
             utils.send_email(
@@ -150,8 +154,11 @@ def scrape_current_games():
 
         utils.send_email(
             subject="NBA SCRAPING: SCRIPT CRASHED",
-            body=error_message,
+            body=f'{error_message} retrying',
         )
+
+        time.sleep(10)
+        scrape_current_games()
 
 
 
@@ -194,7 +201,8 @@ def scrape_past_games():
             df = pd.DataFrame(rows,columns=headers)
             df = df.drop(columns=['available_flag'])
             df['game_date'] = pd.to_datetime(df['game_date']).dt.date
-             
+
+                         
             team_table_id = f"miscellaneous-projects-444203.capstone_data.{season}"
             table_schema = [{"name": "game_date", "type": "DATE"}]  
         
@@ -220,7 +228,7 @@ def scrape_past_games():
 
             games = []
             retries = []
-            for game in tqdm(game_ids,desc='Processing games:'):
+            for game in game_ids:
                 time.sleep(random.uniform(.01,1))
                 game_response = utils.establish_requests(f"https://stats.nba.com/stats/boxscoretraditionalv2?GameID={game}&StartPeriod=0&EndPeriod=10")
 
