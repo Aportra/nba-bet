@@ -9,7 +9,7 @@ from google.oauth2 import service_account
 from datetime import datetime as date
 from selenium.webdriver.firefox.options import Options
 from sklearn.preprocessing import StandardScaler
-import model_utils
+from models import model_utils
 
 import joblib
 import pandas as pd
