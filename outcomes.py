@@ -149,7 +149,7 @@ def current_outcome(data):
         full_data['linear_model_outcome'] = (full_data['result']==full_data[f'recommendation_{cat}_linear_model'])
         full_data['lightgbm_outcome'] = (full_data['result'] == full_data[f'recommendation_{cat}_lightgbm'])
 
-        data_to_upload = full_data[['player',f'{table}',f'{cat}','Over','Under','game_date','result',f'recommendation_{cat}_linear_model',f'recommendation_{cat}_lightgbm']]
+        data_to_upload = full_data[['player',f'{table}',f'{cat}','Over','Under','game_date','result',f'recommendation_{cat}_linear_model',f'recommendation_{cat}_lightgbm','linear_model_outcome','lightgbm_outcome']]
         table_schema = [{"name": "game_date", "type": "DATE"}]
         table_id = f"miscellaneous-projects-444203.capstone_data.{cat}_outcome"
         pandas_gbq.to_gbq(
