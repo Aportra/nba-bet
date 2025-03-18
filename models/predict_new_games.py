@@ -251,9 +251,9 @@ def predict_games(full_data, odds_data):
         data_ordered['pts_per_min_season'] = data_ordered['pts_season'] / data_ordered['min_season']
         data_ordered['pts_per_min_momentum'] = data_ordered['pts_per_min_3gm'] - data_ordered['pts_per_min_season']
 
-        data_ordered['3pm_per_min_3gm'] = data_ordered['3pm_3gm_avg'] / data_ordered['min_3gm_avg']
-        data_ordered['3pm_per_min_season'] = data_ordered['3pm_season'] / data_ordered['min_season']
-        data_ordered['3pm_per_min_momentum'] = data_ordered['3pm_per_min_3gm'] - data_ordered['3pm_per_min_season']
+        data_ordered['fg3m_per_min_3gm'] = data_ordered['fg3m_3gm_avg'] / data_ordered['min_3gm_avg']
+        data_ordered['fg3m_per_min_season'] = data_ordered['fg3m_season'] / data_ordered['min_season']
+        data_ordered['fg3m_per_min_momentum'] = data_ordered['fg3m_per_min_3gm'] - data_ordered['fg3m_per_min_season']
 
         data_ordered['reb_per_min_3gm'] = data_ordered['reb_3gm_avg'] / data_ordered['min_3gm_avg']
         data_ordered['reb_per_min_season'] = data_ordered['reb_season'] / data_ordered['min_season']
