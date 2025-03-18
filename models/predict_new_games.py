@@ -9,13 +9,13 @@ from google.oauth2 import service_account
 from datetime import datetime as date
 from selenium.webdriver.firefox.options import Options
 from sklearn.preprocessing import StandardScaler
-from models import model_utils
+import model_utils
 
 import joblib
 import pandas as pd
 import pandas_gbq
 import time
-
+ 
 
 def clean_player_name(name):
     """Standardizes player names by removing special characters and handling known name variations."""
@@ -209,8 +209,8 @@ def recent_player_data(games):
     print('cleaning names')
     player_data["player"] = player_data["player"].apply(clean_player_name)
 
-    team_data  = team_data.merge(team_data,on='game_id',suffixes=("_team","_opponent"))
-    team_data = team_data[team_data["team_id_team"] != team_data["team_id_opponent"]]
+    team_data  = team_data.merge(team_data,on='game_id',suffixes=("","_opponent"))
+    team_data = team_data[team_data["team_id"] != team_data["team_id_opponent"]]
 
     # Merge datasets while keeping only necessary columns
     print('merging data')
