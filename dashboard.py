@@ -1,20 +1,21 @@
+import streamlit as st
 import pandas as pd
 import pandas_gbq
-import streamlit as st
 from google.oauth2 import service_account
-from datetime import datetime as dt,timedelta
+from datetime import timedelta
+import datetime as dt
 
 # Function to clean player names for consistency
 def clean_player_name(name):
-    """Standardizes player names by removing special characters and handling known name variations."""
-    name = name.lower().strip()  # Convert to lowercase & remove extra spaces
-    name = name.replace(".", "")  # Remove periods
+    name = name.lower().strip().replace(".", "")
     name_corrections = {
         "alexandre sarr": "alex sarr",
         "jimmy butler": "jimmy butler iii",
         "nicolas claxton": "nic claxton",
         "kenyon martin jr": "kj martin",
-        "carlton carrington": "bub carrington"
+        "carlton carrington": "bub carrington",
+        "ron holland ii": "ronald holland ii",
+        "cameron thomas": "cam thomas"
     }
     return name_corrections.get(name, name)
 
@@ -27,42 +28,79 @@ def pull_odds():
         credentials = service_account.Credentials.from_service_account_file('/home/aportra99/scraping_key.json')
         local = False
     except FileNotFoundError:
-        print("File not found, continuing as if on local")
         local = True
         credentials = None
 
     for table in tables:
-        current_day = True
         odds_query = f"""
         SELECT * 
         FROM `capstone_data.{table}_predictions`
         WHERE DATE(Date_Updated) = CURRENT_DATE('America/Los_Angeles')
-
         """
-        if local:
-            odds_data[table] = pd.DataFrame(pandas_gbq.read_gbq(odds_query, project_id='miscellaneous-projects-444203'))
-        else:
-            odds_data[table] = pd.DataFrame(pandas_gbq.read_gbq(odds_query, project_id='miscellaneous-projects-444203', credentials=credentials))
-
+        odds_data[table] = pandas_gbq.read_gbq(odds_query, project_id='miscellaneous-projects-444203', credentials=credentials)
 
         if odds_data[table].empty:
-            current_day = False
             odds_query = f"""
             SELECT * 
             FROM `capstone_data.{table}_predictions`
-            WHERE DATE(Date_Updated) = Date_sub(CURRENT_DATE('America/Los_Angeles'),interval 1 day)
-
+            WHERE DATE(Date_Updated) = DATE_SUB(CURRENT_DATE('America/Los_Angeles'), INTERVAL 1 DAY)
             """
-            if local:
-                odds_data[table] = pd.DataFrame(pandas_gbq.read_gbq(odds_query, project_id='miscellaneous-projects-444203'))
-            else:
-                odds_data[table] = pd.DataFrame(pandas_gbq.read_gbq(odds_query, project_id='miscellaneous-projects-444203', credentials=credentials))
+            odds_data[table] = pandas_gbq.read_gbq(odds_query, project_id='miscellaneous-projects-444203', credentials=credentials)
 
-
-        # Clean player names for consistency
         odds_data[table]['Player'] = odds_data[table]['Player'].apply(clean_player_name)
 
-    return odds_data,current_day
+    return odds_data
+@st.cache_data
+def pull_stats(odds_data):
+    
+    season = dt.date.today().year if dt.date.today().month >= 10 else dt.date.today().year - 1
+    players = set()
+    for table in odds_data:
+        for player in odds_data[table]['Player']:
+            players.add(player)
+
+    query = f"""
+    with player_data as(
+        select 
+            player,
+            team_name,
+            matchup,
+            pp.game_date,
+            pp.min,
+            pp.fgm,
+            pp.fga,
+            pp.fg_pct,
+            `3pm`,
+            pp.fg3a,
+            pp.fg3_pct,
+            pp.ftm,
+            pp.fta,
+            pp.ft_pct,
+            pp.reb,
+            pp.ast,
+            pp.pts,
+            pp.plus_minus,
+            row_number() over(partition by player order by pp.game_date desc) rn
+        from `capstone_data.player_prediction_data_partitioned` pp
+        inner join `capstone_data.team_prediction_data_partitioned` tp
+            on pp.game_id = tp.game_id
+        where pp.season_start_year = {season} and tp.season_start_year = {season} and lower(player) in ({','.join([f'"{player}"' for player in players])})
+        )
+        select * except(rn)
+        from player_data
+        where rn <= 3
+        """
+
+    try:
+        credentials = service_account.Credentials.from_service_account_file('/home/aportra99/scraping_key.json')
+        local = False
+    except FileNotFoundError:
+        local = True
+        credentials = None
+    
+    player_data = pandas_gbq.read_gbq(query, project_id='miscellaneous-projects-444203', credentials=credentials)
+
+    return player_data
 
 @st.cache_data
 def pull_images():
@@ -72,87 +110,157 @@ def pull_images():
     player_images['images'] = player_images['images'].fillna('')
     player_images['images'] = player_images['images'].apply(lambda x: x.replace("h=80", "h=254").replace("w=110", "w=350"))
     player_images['players'] = player_images['players'].apply(clean_player_name)
+    player_images["players_lower"] = player_images["players"].str.lower()
     return player_images
 
-def make_dashboard(player_images, odds_data,current_day):
-    if current_day:
-        today = dt.today().date()
-        st.title(f"NBA Player Betting Odds {today}")
-    else:
-        today = dt.today().date() - timedelta(days=1)
-        st.title(f"NBA Player Betting Odds {today}")
-        st.subheader("Displaying yesterday's values. Today's values have not been updated yet")
-
-    if player_images.empty:
-        st.error("No player images found. Please check your dataset.")
-        return
-
-    # Category filter dropdown
-    category = st.selectbox("Select a category:", ["All", "Points", "Assists", "Rebounds", "Threes Made"])
-
-    # Search bar for players
- 
-
-    # Dynamically populate players based on category selection
+@st.cache_data
+def get_available_players(category, odds_data):
     available_players = set()
+    category_key = category.lower().replace(" ", "_")
+
     if category == "All":
-        # Collect all unique players across all categories
         for table in odds_data:
-            if not odds_data[table].empty:
-                available_players.update(odds_data[table]['Player'].unique())
+            available_players.update(odds_data[table]["Player"].unique())
     else:
-        # Filter based on selected category
-        category_key = category.lower().replace(" ", "_")
-        if category_key in odds_data and not odds_data[category_key].empty:
-            available_players = odds_data[category_key]['Player'].unique()
+        if category_key in odds_data:
+            available_players = odds_data[category_key]["Player"].unique()
 
-    available_players = sorted([player.title() for player in available_players])
-    # Player selection dropdown
-    player_selected = st.selectbox("Search or Select a Player:", [""] + available_players).lower()
+    return sorted(available_players)
 
-    # Prepare for image lookup
-    player_images['players_lower'] = player_images['players'].str.lower()
+@st.cache_data
+def get_player_odds(player_selected, category, odds_data):
+    """Fetch betting odds + model recommendations for a selected player"""
+    category_map = {
+        "Points": "pts",
+        "Rebounds": "reb",
+        "Assists": "ast",
+        "Threes Made": "3pm"
+    }
+    
+    category_key = category_map.get(category, "pts")  # Default to "pts" if category is "All"
+    player_odds = []
 
-    selected_image = None
-    player_name = None
-
-    # Search functionality (exact match using lower case)
- 
-    if player_selected != "None":
-        player_row = player_images.loc[player_images['players'] == player_selected]
-        player_name = player_selected
-        selected_image = player_row['images'].values[0] if len(player_row['images'].values) > 0 else None
-
-    # Display player image
-    if selected_image:
-        st.subheader(f"{player_name.title()}")
-        st.image(selected_image, width=250)
+    if category == "All":
+        # Fetch all categories
+        for (table_name, df), cat in zip(odds_data.items(), ["pts", "reb", "ast", "3pm"]):
+            if player_selected in df["Player"].values:
+                available_columns = [col for col in [
+                    f"{table_name}", "Over", "Under",
+                    f"recommendation_{cat}_linear_model",
+                    f"recommendation_{cat}_lightgbm"
+                ] if col in df.columns]
+                
+                temp_df = df[df["Player"] == player_selected][available_columns].copy()
+                player_odds.append((table_name, temp_df))
     else:
-        st.write("No player found. Please check the name.")
+        # Only fetch the selected category's odds
+        if category_key in odds_data and player_selected in odds_data[category_key]["Player"].values:
+            df = odds_data[category_key]
 
-    # Show betting odds for the selected player
-    if player_name:
-        st.subheader(f"Betting Odds for {player_name.title()}")
+            available_columns = [col for col in [
+                f"{category_key}", "Over", "Under",
+                f"recommendation_{category_key}_linear_model",
+                f"recommendation_{category_key}_lightgbm"
+            ] if col in df.columns]
+            
+            temp_df = df[df["Player"] == player_selected][available_columns].copy()
+            player_odds.append((category_key, temp_df))  #Only return selected category
 
-        # Collect odds across categories and add a category label to each subset
-        player_odds = []
-        for (table_name, df),cat in zip(odds_data.items(),['pts','reb','ast','3pm']):
-            if player_name in df['Player'].values:
-                temp_df = df[df['Player'] == player_name][[f'{table_name}','Over','Under',f'recommendation_{cat}_linear_model',f'recommendation_{cat}_lightgbm']].copy()  # Label the odds with the category
-                player_odds.append((table_name,temp_df))
+    return player_odds
+
+def make_dashboard(player_images, odds_data,player_data):
+    today = dt.date.today()
+    st.title(f"NBA Player Betting Odds {today}")
+
+    if "selected_player" not in st.session_state:
+        st.session_state["selected_player"] = ""
+
+    if "selected_category" not in st.session_state:
+        st.session_state["selected_category"] = "All"
+
+    # Category filter should reset selected player if filtering "All Players"
+    category = st.selectbox("Select a category (affects All Players view only):", ["All", "Points", "Assists", "Rebounds", "Threes Made"])
+    
+    if category != st.session_state["selected_category"]:
+        st.session_state["selected_category"] = category
+        
+        # Reset selected player when filtering in "All Players" mode
+        if not st.session_state["selected_player"]:
+            st.session_state["selected_player"] = ""
+        
+        st.rerun()
+
+    available_players = get_available_players(category, odds_data)
+
+    # Ensure selecting the blank option resets the selected player
+    player_options = [""] + [p.title() for p in available_players]
+    default_index = player_options.index(st.session_state["selected_player"].title()) if st.session_state["selected_player"] in available_players else 0
+
+    player_selected = st.selectbox("Search or Select a Player:", player_options, index=default_index)
+
+    # If blank is selected, reset to "All Players" mode
+    if player_selected == "":
+        if st.session_state["selected_player"] != "":
+            st.session_state["selected_player"] = ""
+            st.rerun()
+    else:
+        player_selected_lower = player_selected.lower()
+        if st.session_state["selected_player"] != player_selected_lower:
+            st.session_state["selected_player"] = player_selected_lower
+            st.rerun()
+
+    if st.session_state["selected_player"]:
+        # Selected Player's Page (Shows All Categories)
+        player_row = player_images.loc[player_images["players_lower"] == st.session_state["selected_player"]]
+        selected_image = player_row["images"].values[0] if not player_row.empty else None
+
+        col1, col2 = st.columns([2, 3])
+
+        with col1:
+            if selected_image:
+                st.image(selected_image, width=300)
+            
+
+        # Always show all categories for the selected player
+        st.subheader(f"Betting Odds for {st.session_state['selected_player'].title()}")
+        player_odds = get_player_odds(st.session_state["selected_player"], "All", odds_data)
 
         if player_odds:
-            # If odds exist in just one category, display that table directly
-            if len(player_odds) == 1:
-                st.dataframe(player_odds[0][1])
-            else:
-                # Display odds for each category separately
-                for table_name,odds in player_odds:
-                    st.markdown(f"**{table_name.capitalize()} Odds**")
-                    st.dataframe(odds.style.hide(axis='index'))
+            for table_name, odds in player_odds:
+                st.markdown(f"**{table_name.capitalize()} Odds**")
+                st.dataframe(odds.style.hide(axis="index"), use_container_width=True)
         else:
             st.write("No odds available for this player today.")
 
+    else:
+        # Category filter applies only to "All Players"
+        if category == 'All':
+            st.subheader(f"All Players")
+        else:
+            st.subheader(f"All Players: {category}")
+        for player in available_players:
+            player_lower = player.lower()
+            player_row = player_images.loc[player_images["players_lower"] == player_lower]
+            player_image = player_row["images"].values[0] if not player_row.empty else None
+
+            with st.container():
+                col1, col2 = st.columns([1, 3])
+
+                with col1:
+                    if player_image:
+                        st.image(player_image, width=200)
+
+                with col2:
+                    if st.button(f"**{player.title()}**", key=f"btn_{player}"):
+                        st.session_state["selected_player"] = player_lower
+                        st.rerun()
+
+                st.markdown("<br><hr><br>", unsafe_allow_html=True)
+
+
+
+# Run the dashboard
 images = pull_images()
-odds_data,current_day = pull_odds()
-make_dashboard(images, odds_data,current_day)
+odds_data = pull_odds()
+player_data = pull_stats(odds_data)
+make_dashboard(images, odds_data,player_data)

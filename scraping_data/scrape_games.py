@@ -287,5 +287,3 @@ def scrape_past_games():
                 credentials=credentials,
                 table_schema=table_schema,)
             
-
-scrape_past_games()
