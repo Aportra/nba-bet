@@ -146,6 +146,8 @@ def current_outcome(data):
 
         full_data['result'] = full_data.apply(lambda row:classify_result(row,table,cat), axis=1)
         
+        full_data['linear_model_outcome'] = (full_data['result']==full_data[f'recommendation_{cat}_linear_model'])
+        full_data['lightgbm_outcome'] = (full_data['result'] == full_data[f'recommendation_{cat}_lightgbm'])
 
         data_to_upload = full_data[['player',f'{table}',f'{cat}','Over','Under','game_date','result',f'recommendation_{cat}_linear_model',f'recommendation_{cat}_lightgbm']]
         table_schema = [{"name": "game_date", "type": "DATE"}]
