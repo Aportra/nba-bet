@@ -8,7 +8,7 @@ from datetime import datetime as dt,timedelta
 
 import pandas as pd
 import pandas_gbq
-import utils as utils
+from scraping_data import utils
 from google.cloud import bigquery
 from google.oauth2 import service_account
 from selenium.common.exceptions import TimeoutException
