@@ -120,7 +120,9 @@ def clean_current_player_data(data):
         )
 
         # Define features for rolling averages
-        features_for_rolling = modeling_data.select_dtypes(include=['int64', 'float64']).columns.tolist()
+        exclude_cols = ["team_id", "game_id", "player_id"]
+        features_for_rolling = [col for col in data.select_dtypes(include=['int64', 'float64']).columns if col not in exclude_cols]
+
 
 
         # Prepare data for modeling and prediction
@@ -252,7 +254,9 @@ def clean_past_player_data():
             modeling_data["min"] = modeling_data["min"].apply(convert_minutes_to_decimal)
 
             # Define rolling features
-            features_for_rolling = modeling_data.select_dtypes(include=['int64', 'float64']).columns.tolist()
+            exclude_cols = ["team_id", "game_id", "player_id"]
+            features_for_rolling = [col for col in modeling_data.select_dtypes(include=['int64', 'float64']).columns if col not in exclude_cols]
+
 
 
             # Sort data for rolling calculations
@@ -411,7 +415,9 @@ def clean_past_team_ratings():
         prediction_data = modeling_data.copy()
 
         # Identify numerical columns for rolling calculations
-        num_columns = modeling_data.select_dtypes(include=['int64', 'float64']).columns.tolist()
+        exclude_cols = ["team_id", "game_id", "player_id"]
+        num_columns = [col for col in modeling_data.select_dtypes(include=['int64', 'float64']).columns if col not in exclude_cols]
+
 
 
         # Assign season values
@@ -585,7 +591,9 @@ def clean_current_team_ratings(game_data):
             )
 
         # Identify numerical features for rolling calculations
-        features_for_rolling = game_data.select_dtypes(include=['int64', 'float64']).columns.tolist()
+        exclude_cols = ["team_id", "game_id", "player_id"]
+        features_for_rolling = [col for col in game_data.select_dtypes(include=['int64', 'float64']).columns if col not in exclude_cols]
+
 
 
         # Store cleaned team data

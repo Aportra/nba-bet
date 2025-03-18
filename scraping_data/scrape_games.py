@@ -101,7 +101,7 @@ def scrape_current_games():
             table_schema = [{"name": "game_date", "type": "DATE"}]  
 
 
-            if full_data:
+            if len(full_data) > 0:
                 utils.send_email(
                     subject=f"NBA SCRAPING: COMPLETED # OF GAMES {len(game_data)}",
                     body=f"{len(game_data)} games scraped as of {scrape_date.date()}",
