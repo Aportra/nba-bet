@@ -50,24 +50,25 @@ def scrape_current_games():
             headers = [header.lower() for header in data['resultSets'][0]['headers']]
             rows = data['resultSets'][0]['rowSet']
             df = pd.DataFrame(rows,columns=headers)
-            df = df.drop(columns=[col for col in df.columns if '_rank' in col or col == 'available_flag'])
+            df = df.drop(columns=['available_flag'])
             df['game_date'] = pd.to_datetime(df['game_date']).dt.date
 
             team_table_id = f"capstone_data.{season}_team_ratings"
-            table_schema = [{"name": "game_date", "type": "DATE"}]  
+            team_table_schema = [{"name": "game_date", "type": "DATE"}]  
             
             df = df[df['game_date'] == scrape_date.date()]
             
             date = df['game_date'].iloc[0]
+            print(df.columns)
 
-            
+            # Upload team data
             if local:
                     pandas_gbq.to_gbq(
                     df,
                     project_id="miscellaneous-projects-444203",
                     destination_table=team_table_id,
                     if_exists="replace",
-                    table_schema=table_schema,
+                    table_schema=team_table_schema,
                 )
 
             else:
@@ -77,7 +78,7 @@ def scrape_current_games():
                     destination_table=team_table_id,
                     if_exists="append",
                     credentials=credentials,
-                    table_schema=table_schema,)
+                    table_schema=team_table_schema,)
 
             game_ids = list(df[df['game_date'] == scrape_date.date()]['game_id'])
 
@@ -100,12 +101,10 @@ def scrape_current_games():
                 games.append(game_data)
 
             full_data = pd.concat(games)
-            full_data['game_date'] = scrape_date.date()
-            table_id = f"capstone_data.{url}"
-            table_schema = [{"name": "game_date", "type": "DATE"}]  
             
 
             if len(full_data) > 0:
+                print(len(full_data))
                 utils.send_email(
                     subject=f"NBA SCRAPING: COMPLETED # OF GAMES {len(game_data)}",
                     body=f"{len(game_data)} games scraped as of {scrape_date.date()}",
@@ -116,8 +115,7 @@ def scrape_current_games():
                     full_data,
                     project_id="miscellaneous-projects-444203",
                     destination_table='capstone_data.2024-2025_uncleaned',
-                    if_exists="append",
-                    table_schema=table_schema,
+                    if_exists="append"
                     )
 
                 else:
@@ -126,8 +124,7 @@ def scrape_current_games():
                         project_id="miscellaneous-projects-444203",
                         destination_table='capstone_data.2024-2025_uncleaned',
                         if_exists="append",
-                        credentials=credentials,
-                        table_schema=table_schema,)
+                        credentials=credentials)
                 print("Scraping successful.")
 
                 return df,full_data,date

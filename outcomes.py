@@ -54,7 +54,7 @@ def past_outcomes():
             )
             SELECT * 
             FROM ranked_predictions
-            WHERE rn = 1"""
+            WHERE rn = 2"""
 
 
         try:
@@ -96,8 +96,10 @@ def past_outcomes():
             )
 
 
-def current_outcome(data):
+def current_outcome(data,date):
     game_data = data
+    game_data['game_date'] = date
+    game_data.rename(columns = {'player_name':'player','fg3m':'3pm'},inplace=True)
     tables = ["points", "rebounds", "assists", "threes_made"]
     categories = ['pts','reb','ast','3pm']
     try:
@@ -116,7 +118,7 @@ def current_outcome(data):
                 SELECT *, 
                     ROW_NUMBER() OVER (PARTITION BY Player, Date_Updated ORDER BY Date_Updated DESC) AS rn
                 FROM `capstone_data.{table}_predictions`
-                where date(Date_Updated) = current_date('America/Los_Angeles')
+                where date(Date_Updated) = date_sub(current_date('America/Los_Angeles'), interval 1 day)
             )
             SELECT * 
             FROM ranked_predictions
@@ -144,12 +146,12 @@ def current_outcome(data):
 
         full_data[f'{table}'] = pd.to_numeric(full_data[f'{table}'])
 
-        full_data['result'] = full_data.apply(lambda row:classify_result(row,table,cat), axis=1)
+        full_data.loc[:,'result'] = full_data.apply(lambda row:classify_result(row,table,cat), axis=1)
         
         full_data['linear_model_outcome'] = (full_data['result']==full_data[f'recommendation_{cat}_linear_model'])
         full_data['lightgbm_outcome'] = (full_data['result'] == full_data[f'recommendation_{cat}_lightgbm'])
 
-        data_to_upload = full_data[['player',f'{table}',f'{cat}','Over','Under','game_date','result',f'recommendation_{cat}_linear_model',f'recommendation_{cat}_lightgbm','linear_model_outcome','lightgbm_outcome']]
+        data_to_upload = full_data[['player',f'{table}',f'{cat}','game_date','result',f'recommendation_{cat}_linear_model',f'recommendation_{cat}_lightgbm']]
         table_schema = [{"name": "game_date", "type": "DATE"}]
         table_id = f"miscellaneous-projects-444203.capstone_data.{cat}_outcome"
         pandas_gbq.to_gbq(
