@@ -84,6 +84,15 @@ def gather_data_to_model():
 
 def scrape_roster(data):
     """Scrapes team rosters for today's games from ESPN."""
+
+
+    # query = """
+    # select distinct team, team_id
+    # from team_prediction_data_partitioned
+    # where season_start_year = 2024 
+    # """
+
+    # https://stats.nba.com/stats/commonteamroster?LeagueID=00&Season=2024-25&TeamID=1610612737
     print("Fetching team rosters...")
 
     driver = model_utils.establish_driver(local=True)
@@ -152,6 +161,8 @@ def recent_player_data(games):
     print("Fetching recent player, team, and opponent data...")
 
     games["player"] = games["player"].apply(clean_player_name)
+    print('games:',len(games['player']))
+    print(games['player'].unique())
     games.rename(columns={"opponent": "matchup"}, inplace=True)
 
     today = date.today()
@@ -169,7 +180,7 @@ def recent_player_data(games):
     existing_players = fetch_bigquery_data(existing_players_query,credentials=credentials)
     existing_players_set = set(existing_players["player"].apply(clean_player_name))
     filtered_players = [player for player in games["player"].unique() if player in existing_players_set]
-
+  
     if not filtered_players:
         print("No valid players found.")
         return None, None
@@ -185,7 +196,7 @@ def recent_player_data(games):
         )
         SELECT *
         FROM RankedGames
-        WHERE game_rank = 1;
+        where game_rank > 4;
     """,
     "team_data": f"""
         WITH RankedGames AS (
@@ -197,7 +208,7 @@ def recent_player_data(games):
         )
         SELECT *
         FROM RankedGames
-        WHERE game_rank = 1;
+        where game_rank > 4;
     """
 }
 
@@ -216,16 +227,37 @@ def recent_player_data(games):
     print('merging data')
     full_data = (
         games
-        .merge(player_data, on="player", how="inner", suffixes=("", "_remove"))
-        .merge(team_data, on="team", how="inner", suffixes=("", "_remove"))
+        .merge(player_data, on="player", how="left", suffixes=("", "_remove"))
+        .merge(team_data, on="team", how="left", suffixes=("", "_remove"))
     )
-
     # Drop duplicate or unnecessary columns
     full_data.drop([col for col in full_data.columns if "_remove" in col], axis=1, inplace=True)
     full_data.drop([col for col in full_data.columns if "_1" in col], axis=1, inplace=True)
+    
+    pd.set_option('display.max_rows', None)  # Show all rows
+    pd.set_option('display.max_columns', None)  # Show all columns
+    pd.set_option('display.expand_frame_repr', False)
 
-    print('data merged')
+    players_to_drop = full_data[full_data.isnull().any(axis=1)]
+    print("🚨 Dropping these players due to NaN values:")
+    print(players_to_drop[['player', 'team']])
+# Save the players being dropped for debugging
+    dropped_players = full_data[full_data.isnull().any(axis=1)][['player', 'team']]
+
+    # Drop NaNs
+    full_data.dropna(inplace=True)
+
+    # Print confirmation of how many rows were dropped
+    print(f"✅ Dropped {len(dropped_players)} players due to NaN values.")
+    print("🚨 List of dropped players:")
+    print(dropped_players)
+
+
+    nan_players = full_data[full_data.isnull().any(axis=1)]
+
+
     odds_data = pull_odds()
+
 
     return full_data, odds_data
 
@@ -241,23 +273,24 @@ def predict_games(full_data, odds_data):
     models = joblib.load('models/models.pkl')
     for key, odds_df in odds_data.items():
         print(f"Processing predictions for {key}...")
-
+        
         # Filter relevant players
         data_ordered = full_data[full_data['player'].isin(odds_df['Player'])].copy()
+
         print(f"Filtered {len(data_ordered)} players for {key} predictions.")
 
         # Calculate per-minute stats for momentum tracking
-        data_ordered['pts_per_min_3gm'] = data_ordered['pts_3gm_avg'] / data_ordered['min_3gm_avg']
-        data_ordered['pts_per_min_season'] = data_ordered['pts_season'] / data_ordered['min_season']
-        data_ordered['pts_per_min_momentum'] = data_ordered['pts_per_min_3gm'] - data_ordered['pts_per_min_season']
+        # data_ordered['pts_per_min_3gm'] = data_ordered['pts_3gm_avg'] / data_ordered['min_3gm_avg']
+        # data_ordered['pts_per_min_season'] = data_ordered['pts_season'] / data_ordered['min_season']
+        # data_ordered['pts_per_min_momentum'] = data_ordered['pts_per_min_3gm'] - data_ordered['pts_per_min_season']
 
-        data_ordered['fg3m_per_min_3gm'] = data_ordered['fg3m_3gm_avg'] / data_ordered['min_3gm_avg']
-        data_ordered['fg3m_per_min_season'] = data_ordered['fg3m_season'] / data_ordered['min_season']
-        data_ordered['fg3m_per_min_momentum'] = data_ordered['fg3m_per_min_3gm'] - data_ordered['fg3m_per_min_season']
+        # data_ordered['fg3m_per_min_3gm'] = data_ordered['fg3m_3gm_avg'] / data_ordered['min_3gm_avg']
+        # data_ordered['fg3m_per_min_season'] = data_ordered['fg3m_season'] / data_ordered['min_season']
+        # data_ordered['fg3m_per_min_momentum'] = data_ordered['fg3m_per_min_3gm'] - data_ordered['fg3m_per_min_season']
 
-        data_ordered['reb_per_min_3gm'] = data_ordered['reb_3gm_avg'] / data_ordered['min_3gm_avg']
-        data_ordered['reb_per_min_season'] = data_ordered['reb_season'] / data_ordered['min_season']
-        data_ordered['reb_per_min_momentum'] = data_ordered['reb_per_min_3gm'] - data_ordered['reb_per_min_season']
+        # data_ordered['reb_per_min_3gm'] = data_ordered['reb_3gm_avg'] / data_ordered['min_3gm_avg']
+        # data_ordered['reb_per_min_season'] = data_ordered['reb_season'] / data_ordered['min_season']
+        # data_ordered['reb_per_min_momentum'] = data_ordered['reb_per_min_3gm'] - data_ordered['reb_per_min_season']
 
         # Ensure chronological order for calculations
         data_ordered.sort_values(by=['player', 'season', 'game_date'], inplace=True)
@@ -294,6 +327,7 @@ def predict_games(full_data, odds_data):
         data_ordered['player'] = data_ordered['player'].apply(clean_player_name)
         odds_df['Player'] = odds_df['Player'].apply(clean_player_name)
 
+
         # Convert betting odds to numeric values
         for col in ['Over', 'Under']:
             odds_df[col] = pd.to_numeric(
@@ -301,6 +335,7 @@ def predict_games(full_data, odds_data):
                 errors='coerce'
             ).fillna(0).astype(int)
 
+        print(data_ordered)
         # Merge predictions with odds data
         for idx, row in odds_df.iterrows():
             player_name = row['Player']
@@ -351,4 +386,3 @@ def run_predictions():
     predict_games(full_data, odds_data)
 
 
-run_predictions()

@@ -33,7 +33,7 @@ def scrape_current_games():
         credentials = None
 
     try:
-        scrape_date = dt.today() - timedelta(1)
+        scrape_date = dt.today()
         url = {
             "2024-2025_uncleaned": "https://stats.nba.com/stats/teamgamelogs?LeagueID=00&Season=2024-25&SeasonType=Regular%20Season"
 
