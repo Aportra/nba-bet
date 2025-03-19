@@ -9,7 +9,7 @@ from google.oauth2 import service_account
 from datetime import datetime as date
 from selenium.webdriver.firefox.options import Options
 from sklearn.preprocessing import StandardScaler
-import model_utils
+from models import model_utils
 
 import joblib
 import pandas as pd
@@ -327,7 +327,7 @@ def predict_games(full_data, odds_data):
 
         # Upload predictions to BigQuery
         table_name = f'miscellaneous-projects-444203.capstone_data.{key}_predictions'
-        pandas_gbq.to_gbq(odds_df, table_name, project_id='miscellaneous-projects-444203', credentials=credentials if not local else None, if_exists='append')
+        # pandas_gbq.to_gbq(odds_df, table_name, project_id='miscellaneous-projects-444203', credentials=credentials if not local else None, if_exists='append')
         print(f"Successfully uploaded {key} predictions.")
 
 
