@@ -1,3 +1,16 @@
+3/18/2025
+Progress:
+Finishing up details with dashboard and receiving feedback from client. 
+
+Problems:
+Had issue with server headless scraping had to switch data source to direct requesting the database. 
+
+Plans:
+This week I will implement the feedback from client and start digital product.
+
+Time:
+I spend 12 hours this week. Most time was spent trying to fix data source issues.
+***********************************************************************************************************************************************************************************************************************************************************
 3/11/2025
 Progress:
 Continung to work on dashboard.Script to run and make predictions has been implemeneted.
