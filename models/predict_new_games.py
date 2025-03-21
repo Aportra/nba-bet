@@ -15,13 +15,17 @@ import joblib
 import pandas as pd
 import pandas_gbq
 import time
- 
+import unicodedata
+import re
 
 def clean_player_name(name):
     """Standardizes player names by removing special characters and handling known name variations."""
     name = name.lower().strip()  # Convert to lowercase & remove extra spaces
     name = name.replace(".", "")  # Remove periods
+    name = unicodedata.normalize('NFKD', name).encode('ascii', 'ignore').decode('utf-8')
 
+    # Remove special characters (apostrophes, dashes, etc.)
+    name = re.sub(r"[^a-z0-9 ]", "", name)  # 
     # Known name changes (add more as needed)
     name_corrections = {
         "alexandre sarr": "alex sarr",
@@ -161,8 +165,6 @@ def recent_player_data(games):
     print("Fetching recent player, team, and opponent data...")
 
     games["player"] = games["player"].apply(clean_player_name)
-    print('games:',len(games['player']))
-    print(games['player'].unique())
     games.rename(columns={"opponent": "matchup"}, inplace=True)
 
     today = date.today()
@@ -177,9 +179,11 @@ def recent_player_data(games):
         credentials = service_account.Credentials.from_service_account_file("/home/aportra99/scraping_key.json")
     except FileNotFoundError:
         credentials=None
+    odds_data = pull_odds()
+
     existing_players = fetch_bigquery_data(existing_players_query,credentials=credentials)
     existing_players_set = set(existing_players["player"].apply(clean_player_name))
-    filtered_players = [player for player in games["player"].unique() if player in existing_players_set]
+    filtered_players = [player for player in existing_players_set]
   
     if not filtered_players:
         print("No valid players found.")
@@ -194,9 +198,9 @@ def recent_player_data(games):
             WHERE LOWER(player) IN ({','.join([f'"{player}"' for player in filtered_players])})
             AND season_start_year = {season}
         )
-        SELECT *
+        SELECT * except(game_rank)
         FROM RankedGames
-        where game_rank > 4;
+        where game_rank < 4;
     """,
     "team_data": f"""
         WITH RankedGames AS (
@@ -206,57 +210,46 @@ def recent_player_data(games):
             WHERE team IN ({','.join([f'"{team}"' for team in games["team"].unique()])}) 
             AND season_start_year = {season}
         )
-        SELECT *
+        SELECT * except(game_rank)
         FROM RankedGames
-        where game_rank > 4;
+        where game_rank < 4;
     """
 }
 
-
+    
     # Fetch player, opponent, and team data
     player_data, team_data = [fetch_bigquery_data(queries[q],credentials=credentials) for q in queries]
     print('queries complete')
     # Standardize player names in player_data
     print('cleaning names')
     player_data["player"] = player_data["player"].apply(clean_player_name)
-
+    
     team_data  = team_data.merge(team_data,on='game_id',suffixes=("","_opponent"))
     team_data = team_data[team_data["team_id"] != team_data["team_id_opponent"]]
-
-    # Merge datasets while keeping only necessary columns
-    print('merging data')
-    full_data = (
-        games
-        .merge(player_data, on="player", how="left", suffixes=("", "_remove"))
-        .merge(team_data, on="team", how="left", suffixes=("", "_remove"))
-    )
-    # Drop duplicate or unnecessary columns
-    full_data.drop([col for col in full_data.columns if "_remove" in col], axis=1, inplace=True)
-    full_data.drop([col for col in full_data.columns if "_1" in col], axis=1, inplace=True)
     
     pd.set_option('display.max_rows', None)  # Show all rows
     pd.set_option('display.max_columns', None)  # Show all columns
     pd.set_option('display.expand_frame_repr', False)
+    # Merge datasets while keeping only necessary columns
+    print('merging data')
+    full_data = (player_data.merge(team_data, on="team_id", how="inner", suffixes=("", "_remove"))
+    )
+    print(len(full_data))
+    print("Columns with NaN after merge:", full_data.isna().sum())
+    # Drop duplicate or unnecessary columns
+
+    print("Columns with NaN after merge after drop:", full_data.isna().sum())
+  
 
     players_to_drop = full_data[full_data.isnull().any(axis=1)]
     print("🚨 Dropping these players due to NaN values:")
     print(players_to_drop[['player', 'team']])
 # Save the players being dropped for debugging
-    dropped_players = full_data[full_data.isnull().any(axis=1)][['player', 'team']]
 
     # Drop NaNs
     full_data.dropna(inplace=True)
 
-    # Print confirmation of how many rows were dropped
-    print(f"✅ Dropped {len(dropped_players)} players due to NaN values.")
-    print("🚨 List of dropped players:")
-    print(dropped_players)
-
-
     nan_players = full_data[full_data.isnull().any(axis=1)]
-
-
-    odds_data = pull_odds()
 
 
     return full_data, odds_data
@@ -269,28 +262,26 @@ def predict_games(full_data, odds_data):
     print('loading models...')
     # Load models
     # models = joblib.load('/home/aportra99/Capstone/models/models.pkl')
-    
+    full_data = full_data
+
+
     models = joblib.load('models/models.pkl')
     for key, odds_df in odds_data.items():
-        print(f"Processing predictions for {key}...")
-        
+  
         # Filter relevant players
         data_ordered = full_data[full_data['player'].isin(odds_df['Player'])].copy()
 
         print(f"Filtered {len(data_ordered)} players for {key} predictions.")
+        # Players in odds_df that are not in full_data
+        players_not_in_full_data = set(odds_df['Player']) - set(full_data['player'])
 
-        # Calculate per-minute stats for momentum tracking
-        # data_ordered['pts_per_min_3gm'] = data_ordered['pts_3gm_avg'] / data_ordered['min_3gm_avg']
-        # data_ordered['pts_per_min_season'] = data_ordered['pts_season'] / data_ordered['min_season']
-        # data_ordered['pts_per_min_momentum'] = data_ordered['pts_per_min_3gm'] - data_ordered['pts_per_min_season']
+        # Players in odds_df that are not in data_ordered
+        players_not_in_data_ordered = set(odds_df['Player']) - set(data_ordered['player'])
 
-        # data_ordered['fg3m_per_min_3gm'] = data_ordered['fg3m_3gm_avg'] / data_ordered['min_3gm_avg']
-        # data_ordered['fg3m_per_min_season'] = data_ordered['fg3m_season'] / data_ordered['min_season']
-        # data_ordered['fg3m_per_min_momentum'] = data_ordered['fg3m_per_min_3gm'] - data_ordered['fg3m_per_min_season']
+        # Display results
+        print("Players in odds_df but not in full_data:", players_not_in_full_data)
+        print("Players in odds_df but not in data_ordered:", players_not_in_data_ordered)
 
-        # data_ordered['reb_per_min_3gm'] = data_ordered['reb_3gm_avg'] / data_ordered['min_3gm_avg']
-        # data_ordered['reb_per_min_season'] = data_ordered['reb_season'] / data_ordered['min_season']
-        # data_ordered['reb_per_min_momentum'] = data_ordered['reb_per_min_3gm'] - data_ordered['reb_per_min_season']
 
         # Ensure chronological order for calculations
         data_ordered.sort_values(by=['player', 'season', 'game_date'], inplace=True)
@@ -323,10 +314,6 @@ def predict_games(full_data, odds_data):
                 else:
                     print(f"Skipping {model_name} for {category}: Missing features")
 
-        # Standardize player names
-        data_ordered['player'] = data_ordered['player'].apply(clean_player_name)
-        odds_df['Player'] = odds_df['Player'].apply(clean_player_name)
-
 
         # Convert betting odds to numeric values
         for col in ['Over', 'Under']:
@@ -335,7 +322,6 @@ def predict_games(full_data, odds_data):
                 errors='coerce'
             ).fillna(0).astype(int)
 
-        print(data_ordered)
         # Merge predictions with odds data
         for idx, row in odds_df.iterrows():
             player_name = row['Player']
@@ -362,7 +348,7 @@ def predict_games(full_data, odds_data):
 
         # Upload predictions to BigQuery
         table_name = f'miscellaneous-projects-444203.capstone_data.{key}_predictions'
-        # pandas_gbq.to_gbq(odds_df, table_name, project_id='miscellaneous-projects-444203', credentials=credentials if not local else None, if_exists='append')
+        pandas_gbq.to_gbq(odds_df, table_name, project_id='miscellaneous-projects-444203', credentials=credentials if not local else None, if_exists='append')
         print(f"Successfully uploaded {key} predictions.")
 
 
@@ -372,10 +358,6 @@ def run_predictions():
 
     data = gather_data_to_model()
     games = scrape_roster(data)
-
-    if games.empty:
-        print("No games found today. Exiting...")
-        return
 
     full_data, odds_data = recent_player_data(games)
 

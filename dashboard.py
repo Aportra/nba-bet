@@ -22,6 +22,7 @@ def clean_player_name(name):
 @st.cache_data
 def pull_odds():
     tables = ['points', 'rebounds', 'assists', 'threes_made']
+    identifiers = ['pts','reb','ast','3pm']
     odds_data = {}
 
     try:
@@ -31,19 +32,19 @@ def pull_odds():
         local = True
         credentials = None
 
-    for table in tables:
+    for table,cat in zip(tables,identifiers):
         odds_query = f"""
-        SELECT * 
+        SELECT distinct * 
         FROM `capstone_data.{table}_predictions`
-        WHERE DATE(Date_Updated) = CURRENT_DATE('America/Los_Angeles')
+        WHERE DATE(Date_Updated) = CURRENT_DATE('America/Los_Angeles') and recommendation_{cat}_linear_model is not null
         """
         odds_data[table] = pandas_gbq.read_gbq(odds_query, project_id='miscellaneous-projects-444203', credentials=credentials)
 
         if odds_data[table].empty:
             odds_query = f"""
-            SELECT * 
+            SELECT distinct * 
             FROM `capstone_data.{table}_predictions`
-            WHERE DATE(Date_Updated) = DATE_SUB(CURRENT_DATE('America/Los_Angeles'), INTERVAL 1 DAY)
+            WHERE DATE(Date_Updated) = DATE_SUB(CURRENT_DATE('America/Los_Angeles'), INTERVAL 1 DAY) and recommendation_{cat}_linear_model is not null
             """
             odds_data[table] = pandas_gbq.read_gbq(odds_query, project_id='miscellaneous-projects-444203', credentials=credentials)
 
@@ -170,7 +171,8 @@ def get_player_odds(player_selected, category, odds_data):
 
 def make_dashboard(player_images, odds_data,player_data):
     today = dt.date.today()
-    st.title(f"NBA Player Betting Odds {today}")
+    st.title(f"NBA Player Betting Odds")
+    st.write(f'{today}')
 
     if "selected_player" not in st.session_state:
         st.session_state["selected_player"] = ""
