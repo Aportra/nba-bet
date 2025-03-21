@@ -314,7 +314,7 @@ def predict_games(full_data, odds_data):
             "assists": "ast",
             "threes_made": "3pm"
         }
-        category = category_mapping.get(key,'pts')
+        category = category_mapping[key]
 
         # Run predictions using trained models
         for model_name, model in models[category].items():
