@@ -24,8 +24,7 @@ def clean_player_name(name):
     name = name.replace(".", "")  # Remove periods
     name = unicodedata.normalize('NFKD', name).encode('ascii', 'ignore').decode('utf-8')
 
-    # Remove special characters (apostrophes, dashes, etc.)
-    name = re.sub(r"[^a-z0-9 ]", "", name)  # 
+    # Remove special characters (apostrophes, dashes, etc.) 
     # Known name changes (add more as needed)
     name_corrections = {
         "alexandre sarr": "alex sarr",
@@ -165,11 +164,10 @@ def recent_player_data(games):
     print("Fetching recent player, team, and opponent data...")
 
     games["player"] = games["player"].apply(clean_player_name)
-    games.rename(columns={"opponent": "matchup"}, inplace=True)
 
     today = date.today()
-    season = today.year if today.month >= 10 else today.year - 1
-
+    season =int(today.year if today.month >= 10 else today.year - 1)
+    print(season)
     existing_players_query = """
     SELECT DISTINCT player 
     FROM `capstone_data.player_prediction_data_partitioned`
@@ -183,8 +181,13 @@ def recent_player_data(games):
 
     existing_players = fetch_bigquery_data(existing_players_query,credentials=credentials)
     existing_players_set = set(existing_players["player"].apply(clean_player_name))
-    filtered_players = [player for player in existing_players_set]
-  
+    # filtered_players = [player for player in existing_players_set]
+    filtered_players = set()
+    for table in odds_data:
+        filtered_players.update(odds_data[table]['Player'].unique())
+
+    print(f'player length:{len(filtered_players)}')
+    print(f'team length: {len(games['team'].unique())}')
     if not filtered_players:
         print("No valid players found.")
         return None, None
@@ -196,11 +199,11 @@ def recent_player_data(games):
                 ROW_NUMBER() OVER (PARTITION BY player ORDER BY game_date DESC) AS game_rank
             FROM `capstone_data.player_prediction_data_partitioned`
             WHERE LOWER(player) IN ({','.join([f'"{player}"' for player in filtered_players])})
-            AND season_start_year = {season}
+            AND season_start_year = 2024
         )
         SELECT * except(game_rank)
         FROM RankedGames
-        where game_rank < 4;
+        where game_rank = 1;
     """,
     "team_data": f"""
         WITH RankedGames AS (
@@ -208,47 +211,55 @@ def recent_player_data(games):
                 ROW_NUMBER() OVER (PARTITION BY team ORDER BY game_date DESC) AS game_rank
             FROM `capstone_data.team_prediction_data_partitioned`
             WHERE team IN ({','.join([f'"{team}"' for team in games["team"].unique()])}) 
-            AND season_start_year = {season}
+            AND season_start_year = 2024
         )
         SELECT * except(game_rank)
         FROM RankedGames
-        where game_rank < 4;
+        where game_rank = 1;
     """
 }
 
     
     # Fetch player, opponent, and team data
     player_data, team_data = [fetch_bigquery_data(queries[q],credentials=credentials) for q in queries]
+
     print('queries complete')
     # Standardize player names in player_data
     print('cleaning names')
     player_data["player"] = player_data["player"].apply(clean_player_name)
-    
-    team_data  = team_data.merge(team_data,on='game_id',suffixes=("","_opponent"))
-    team_data = team_data[team_data["team_id"] != team_data["team_id_opponent"]]
-    
+    len(f'player_data length: {player_data}')
+    len(f'team_data length:{team_data}')
+
+    team_data_1 = team_data.copy()
+
+    team_data_1.rename(columns={'team':'opponent'},inplace=True)
     pd.set_option('display.max_rows', None)  # Show all rows
     pd.set_option('display.max_columns', None)  # Show all columns
     pd.set_option('display.expand_frame_repr', False)
     # Merge datasets while keeping only necessary columns
     print('merging data')
-    full_data = (player_data.merge(team_data, on="team_id", how="inner", suffixes=("", "_remove"))
-    )
-    print(len(full_data))
+    full_data = (player_data.merge(games, on="player", how="left", suffixes=("", "_remove")))
+    full_data = full_data.merge(team_data, on = 'team_id',how = 'left', suffixes = ("","_remove"))
+    full_data = full_data.merge(team_data_1, on= 'opponent', how = 'left',suffixes = ("","_opponent"))
+
+
+
+    print('print full data post merge',len(full_data['player'].unique()))
     print("Columns with NaN after merge:", full_data.isna().sum())
     # Drop duplicate or unnecessary columns
 
     print("Columns with NaN after merge after drop:", full_data.isna().sum())
   
 
-    players_to_drop = full_data[full_data.isnull().any(axis=1)]
-    print("🚨 Dropping these players due to NaN values:")
-    print(players_to_drop[['player', 'team']])
+    # players_to_drop = full_data[full_data.isnull().any(axis=1)]
+    # print("🚨 Dropping these players due to NaN values:")
+    # print(players_to_drop[['player', 'team']])
 # Save the players being dropped for debugging
 
     # Drop NaNs
-    full_data.dropna(inplace=True)
-
+    print(full_data[['to_season','to_3gm_avg']])
+    full_data.dropna(axis=1,inplace=True)
+    
     nan_players = full_data[full_data.isnull().any(axis=1)]
 
 
@@ -263,7 +274,6 @@ def predict_games(full_data, odds_data):
     # Load models
     # models = joblib.load('/home/aportra99/Capstone/models/models.pkl')
     full_data = full_data
-
 
     models = joblib.load('models/models.pkl')
     for key, odds_df in odds_data.items():
@@ -284,8 +294,10 @@ def predict_games(full_data, odds_data):
 
 
         # Ensure chronological order for calculations
-        data_ordered.sort_values(by=['player', 'season', 'game_date'], inplace=True)
+        data_ordered.sort_values(by=['player', 'game_date'], inplace=True)
 
+        latest_rows = data_ordered.groupby('player', as_index=False).tail(1)
+        # print(latest_rows)
         # Load Google Cloud credentials
         try:
             credentials = service_account.Credentials.from_service_account_file('/home/aportra99/scraping_key.json')
@@ -302,17 +314,20 @@ def predict_games(full_data, odds_data):
             "assists": "ast",
             "threes_made": "3pm"
         }
-        category = category_mapping.get(key, "pts")
+        category = category_mapping.get(key,'pts')
 
         # Run predictions using trained models
         for model_name, model in models[category].items():
+            print(category)
+            print(model_name)
             if model_name.lower() not in ["xgboost", "sarimax", "mlp", "random_forest"]:
                 features = [f.strip() for f in model.feature_names_in_]
 
-                if set(features).issubset(data_ordered.columns):
-                    data_ordered[f'{category}_{model_name}'] = model.predict(data_ordered[features])
+                if set(features).issubset(latest_rows.columns):
+                    latest_rows[f'{category}_{model_name}'] = model.predict(latest_rows[features])
                 else:
-                    print(f"Skipping {model_name} for {category}: Missing features")
+                    missing = set(features) - set(latest_rows.columns)
+                    print(f"Skipping {model_name} for {category}: Missing features: {missing}")
 
 
         # Convert betting odds to numeric values
@@ -325,7 +340,7 @@ def predict_games(full_data, odds_data):
         # Merge predictions with odds data
         for idx, row in odds_df.iterrows():
             player_name = row['Player']
-            matching_rows = data_ordered[data_ordered['player'] == player_name]
+            matching_rows = latest_rows[latest_rows['player'] == player_name]
 
             if not matching_rows.empty:
                 for model_name in models[category]:
@@ -334,7 +349,9 @@ def predict_games(full_data, odds_data):
 
                     col_name = f'{category}_{model_name}'
                     if col_name in matching_rows.columns:
+                        print('0',matching_rows[col_name].values[0],matching_rows['game_date'].values[0],matching_rows['player'].values[0])
                         prediction_value = matching_rows[col_name].values[0]
+                        print(col_name)
                         odds_df.at[idx, col_name] = prediction_value
 
                         # Determine betting recommendation
