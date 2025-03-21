@@ -54,7 +54,7 @@ def past_outcomes():
             )
             SELECT * 
             FROM ranked_predictions
-            WHERE rn = 2"""
+            WHERE rn = 1"""
 
 
         try:
@@ -95,6 +95,7 @@ def past_outcomes():
                 table_schema=table_schema,
             )
 
+past_outcomes()
 
 def current_outcome(data,date):
     game_data = data
