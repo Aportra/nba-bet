@@ -51,7 +51,7 @@ def past_outcomes():
                 SELECT *, 
                     ROW_NUMBER() OVER (PARTITION BY Player, date(Date_Updated) ORDER BY Date_Updated DESC) AS rn
                 FROM `capstone_data.{table}_predictions`
-                where {cat}_lightgbm is not null
+                where `{cat}_lightgbm` is not null
             )
             SELECT * 
             FROM ranked_predictions
@@ -96,7 +96,7 @@ def past_outcomes():
                 table_schema=table_schema,
             )
 
-past_outcomes()
+
 
 def current_outcome(data,date):
     game_data = data
@@ -120,7 +120,7 @@ def current_outcome(data,date):
                 SELECT *, 
                     ROW_NUMBER() OVER (PARTITION BY Player, Date_Updated ORDER BY Date_Updated DESC) AS rn
                 FROM `capstone_data.{table}_predictions`
-                where date(Date_Updated) = current_date('America/Los_Angeles') and {cat}_lightgbm is not null
+                where date(Date_Updated) = current_date('America/Los_Angeles') and `{cat}_lightgbm` is not null
             )
             SELECT * 
             FROM ranked_predictions
