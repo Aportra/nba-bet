@@ -275,7 +275,7 @@ def predict_games(full_data, odds_data):
     # models = joblib.load('/home/aportra99/Capstone/models/models.pkl')
     full_data = full_data
 
-    models = joblib.load('models/models.pkl')
+    models = joblib.load('/home/aportra99/Capstone/models/models.pkl')
     for key, odds_df in odds_data.items():
   
         # Filter relevant players
