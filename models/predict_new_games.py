@@ -373,14 +373,26 @@ def run_predictions():
     """Runs the full prediction pipeline from data gathering to model inference."""
     print("Running game predictions...")
 
-    data = gather_data_to_model()
-    games = scrape_roster(data)
+    try:
+        data = gather_data_to_model()
+        games = scrape_roster(data)
 
-    full_data, odds_data = recent_player_data(games)
+        full_data, odds_data = recent_player_data(games)
 
-    if full_data is None or odds_data is None:
-        print("Failed to retrieve necessary data. Exiting...")
-        return
+        if full_data is None or odds_data is None:
+            print("Failed to retrieve necessary data. Exiting...")
+            return
+        
+        model_utils.send_email(
+            subject="Predictions Ran Sucessfully",
+            body=" "
+        )
+        
+    except Exception as e:
+        model_utils.send_email(        
+        subject="Predictions Error",
+        body=f"Error {e}",
+            ) 
 
     predict_games(full_data, odds_data)
 
