@@ -180,7 +180,7 @@ def current_outcome(data,date):
                         SUM(CASE WHEN result = recommendation_{cat}_{model} THEN 1 ELSE 0 END) / COUNT(Player) AS accuracy
                     FROM `capstone_data.{cat}_outcome`
                     WHERE recommendation_{cat}_{model} IS NOT NULL
-                    AND game_date >= DATE_ADD(CURRENT_DATE('America/Los_Angeles'), INTERVAL -6 DAY)
+                    AND game_date >= DATE_ADD(CURRENT_DATE('America/Los_Angeles'), INTERVAL -7 DAY)
                     """
                     df = pandas_gbq.read_gbq(query, project_id=project_id, dialect='standard')
                     results[f"{cat}_{model}"] = df['accuracy'].iloc[0]

@@ -55,7 +55,7 @@ def establish_driver(local=False):
 
     return driver
 
-def establish_requests(url):
+def establish_requests(url,params=False):
     # Headers to mimic a real browser request (prevents bot blocking)
 
     USER_AGENTS = [
@@ -72,10 +72,11 @@ def establish_requests(url):
         "Accept-Encoding": "gzip, deflate, br",
         "Accept-Language": "en-US,en;q=0.9"
     }
-
+    if not params:
     # Send request
-    response = requests.get(url, headers=headers)
-    
+        response = requests.get(url, headers=headers)
+    else:
+       response = requests.get(url, headers=headers,params=params) 
     return response
 
 
