@@ -1,14 +1,8 @@
-from sklearn.linear_model import LinearRegression
-from sklearn.ensemble import RandomForestRegressor
-from sklearn.neural_network._multilayer_perceptron import MLPRegressor
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.by import By
-from selenium import webdriver
 from google.oauth2 import service_account
 from datetime import datetime as date
-from selenium.webdriver.firefox.options import Options
-from sklearn.preprocessing import StandardScaler
 from models import model_utils
 
 import joblib
@@ -16,7 +10,6 @@ import pandas as pd
 import pandas_gbq
 import time
 import unicodedata
-import re
 
 def clean_player_name(name):
     """Standardizes player names by removing special characters and handling known name variations."""
@@ -89,13 +82,6 @@ def scrape_roster(data):
     """Scrapes team rosters for today's games from ESPN."""
 
 
-    # query = """
-    # select distinct team, team_id
-    # from team_prediction_data_partitioned
-    # where season_start_year = 2024 
-    # """
-
-    # https://stats.nba.com/stats/commonteamroster?LeagueID=00&Season=2024-25&TeamID=1610612737
     print("Fetching team rosters...")
 
     driver = model_utils.establish_driver(local=True)

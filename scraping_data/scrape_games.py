@@ -2,20 +2,14 @@
 
 import time
 import random
-import gc
 import traceback
 from datetime import datetime as dt,timedelta
 
 import pandas as pd
 import pandas_gbq
 from scraping_data import utils
-from google.cloud import bigquery
 from google.oauth2 import service_account
-from selenium.common.exceptions import TimeoutException
-from selenium.webdriver.common.by import By
-from selenium.webdriver.firefox.options import Options
 from selenium.webdriver.support import expected_conditions as EC
-from selenium.webdriver.support.ui import WebDriverWait
 
 
 
@@ -234,72 +228,72 @@ def scrape_past_games():
 
             game_ids = list(df['game_id'].unique())
 
-        #     games = []
-        #     retries = []
-        #     for game in game_ids:
-        #         time.sleep(random.uniform(.01,1))
-        #         game_response = utils.establish_requests(f"https://stats.nba.com/stats/boxscoretraditionalv2?GameID={game}&StartPeriod=0&EndPeriod=10")
+            games = []
+            retries = []
+            for game in game_ids:
+                time.sleep(random.uniform(.01,1))
+                game_response = utils.establish_requests(f"https://stats.nba.com/stats/boxscoretraditionalv2?GameID={game}&StartPeriod=0&EndPeriod=10")
 
-        #         if game_response.status_code == 200:
-        #             game_response = game_response.json()
+                if game_response.status_code == 200:
+                    game_response = game_response.json()
     
 
-        #             column = [header.lower() for header in game_response['resultSets'][0]['headers']]
-        #             row_data = game_response['resultSets'][0]['rowSet']
+                    column = [header.lower() for header in game_response['resultSets'][0]['headers']]
+                    row_data = game_response['resultSets'][0]['rowSet']
 
-        #             game_data = pd.DataFrame(row_data,columns=column)
-        #             game_data.drop(columns=['comment','start_position','nickname'],inplace=True)
+                    game_data = pd.DataFrame(row_data,columns=column)
+                    game_data.drop(columns=['comment','start_position','nickname'],inplace=True)
 
-        #             game_data['min'] = game_data['min'].apply(lambda x: ''.join(x.split('.000000')) if isinstance(x, str) and '.000000' in x else x)
-
-
-        #             games.append(game_data)
-
-        #         else:
-        #             retries.append(game)
-
-        #     if len(retries) > 0:
-        #         while retries:
-        #                 retry_id = retries.pop(0) 
-        #                 game_response = utils.establish_requests(f"https://stats.nba.com/stats/boxscoretraditionalv2?GameID={retry_id}&StartPeriod=0&EndPeriod=10")
-        #                 if game_response.status_code == 200:
-        #                     game_response = game_response.json()
-
-        #                     column = [header.lower() for header in game_response['resultSets'][0]['headers']]
-        #                     row_data = game_response['resultSets'][0]['rowSet']
-
-        #                     game_data = pd.DataFrame(row_data,columns=column)
-        #                     game_data.drop(columns=['comment','start_position','nickname'],inplace=True)
-
-        #                     game_data['min'] = game_data['min'].apply(lambda x: ''.join(x.split('.000000')) if isinstance(x, str) and '.000000' in x else x)
+                    game_data['min'] = game_data['min'].apply(lambda x: ''.join(x.split('.000000')) if isinstance(x, str) and '.000000' in x else x)
 
 
-        #                     games.append(game_data)
-        #                 else:
-        #                     retries.append(retry_id)
+                    games.append(game_data)
 
-        #     full_data = pd.concat(games)
+                else:
+                    retries.append(game)
+
+            if len(retries) > 0:
+                while retries:
+                        retry_id = retries.pop(0) 
+                        game_response = utils.establish_requests(f"https://stats.nba.com/stats/boxscoretraditionalv2?GameID={retry_id}&StartPeriod=0&EndPeriod=10")
+                        if game_response.status_code == 200:
+                            game_response = game_response.json()
+
+                            column = [header.lower() for header in game_response['resultSets'][0]['headers']]
+                            row_data = game_response['resultSets'][0]['rowSet']
+
+                            game_data = pd.DataFrame(row_data,columns=column)
+                            game_data.drop(columns=['comment','start_position','nickname'],inplace=True)
+
+                            game_data['min'] = game_data['min'].apply(lambda x: ''.join(x.split('.000000')) if isinstance(x, str) and '.000000' in x else x)
+
+
+                            games.append(game_data)
+                        else:
+                            retries.append(retry_id)
+
+            full_data = pd.concat(games)
 
 
 
-        # table_id = f"miscellaneous-projects-444203.capstone_data.{url}"
-        # table_schema = [{"name": "game_date", "type": "DATE"}]
+        table_id = f"miscellaneous-projects-444203.capstone_data.{url}"
+        table_schema = [{"name": "game_date", "type": "DATE"}]
 
-        # if local:
-        #     pandas_gbq.to_gbq(
-        #         full_data,
-        #         project_id="miscellaneous-projects-444203",
-        #         destination_table=table_id,
-        #         if_exists="replace",
-        #         table_schema=table_schema,
-        #     )
+        if local:
+            pandas_gbq.to_gbq(
+                full_data,
+                project_id="miscellaneous-projects-444203",
+                destination_table=table_id,
+                if_exists="replace",
+                table_schema=table_schema,
+            )
 
-        # else:
-        #     pandas_gbq.to_gbq(
-        #         full_data,
-        #         project_id="miscellaneous-projects-444203",
-        #         destination_table=table_id,
-        #         if_exists="replace",
-        #         credentials=credentials,
-        #         table_schema=table_schema,)
+        else:
+            pandas_gbq.to_gbq(
+                full_data,
+                project_id="miscellaneous-projects-444203",
+                destination_table=table_id,
+                if_exists="replace",
+                credentials=credentials,
+                table_schema=table_schema,)
             

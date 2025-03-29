@@ -51,6 +51,7 @@ def pull_odds():
         odds_data[table]['Player'] = odds_data[table]['Player'].apply(clean_player_name)
 
     return odds_data
+
 @st.cache_data
 def pull_stats(odds_data):
     
@@ -61,36 +62,49 @@ def pull_stats(odds_data):
             players.add(player)
 
     query = f"""
-    with player_data as(
-        select 
+    WITH deduped_data AS (
+        SELECT 
             player,
-            team_name,
+            tp.team_name,
             matchup,
             pp.game_date,
             pp.min,
-            pp.fgm,
-            pp.fga,
-            pp.fg_pct,
-            `3pm`,
-            pp.fg3a,
-            pp.fg3_pct,
-            pp.ftm,
-            pp.fta,
-            pp.ft_pct,
+            pp.pts,
             pp.reb,
             pp.ast,
-            pp.pts,
+            pp.fgm,
+            pp.fga,
+            (pp.fg_pct*100) as `FG %`,
+            `3pm`,
+            pp.fg3a,
+            (pp.fg3_pct*100) as `FG3 %`,
+            pp.ftm,
+            pp.fta,
+            (pp.ft_pct*100) as `FT %`,
             pp.plus_minus,
-            row_number() over(partition by player order by pp.game_date desc) rn
-        from `capstone_data.player_prediction_data_partitioned` pp
-        inner join `capstone_data.team_prediction_data_partitioned` tp
-            on pp.game_id = tp.game_id
-        where pp.season_start_year = {season} and tp.season_start_year = {season} and lower(player) in ({','.join([f'"{player}"' for player in players])})
-        )
-        select * except(rn)
-        from player_data
-        where rn <= 3
-        """
+            pp.game_id,
+            ROW_NUMBER() OVER (PARTITION BY player, pp.game_id ORDER BY pp.game_date DESC) AS rn
+        FROM `capstone_data.player_prediction_data_partitioned` pp
+        INNER JOIN `capstone_data.team_prediction_data_partitioned` tp
+            ON pp.game_id = tp.game_id and pp.team_id = tp.team_id
+        WHERE pp.season_start_year = {season}
+          AND tp.season_start_year = {season}
+          AND LOWER(player) IN ({','.join([f'"{player}"' for player in players])})
+    ),
+    latest_games AS (
+        SELECT *
+        FROM deduped_data
+        WHERE rn = 1
+    ),
+    ranked_games AS (
+        SELECT *,
+               ROW_NUMBER() OVER (PARTITION BY player ORDER BY game_date DESC) AS game_rank
+        FROM latest_games
+    )
+    SELECT * EXCEPT(rn, game_rank, game_id)
+    FROM ranked_games
+    WHERE game_rank <= 3
+    """
 
     try:
         credentials = service_account.Credentials.from_service_account_file('/home/aportra99/scraping_key.json')
@@ -101,6 +115,7 @@ def pull_stats(odds_data):
     
     player_data = pandas_gbq.read_gbq(query, project_id='miscellaneous-projects-444203', credentials=credentials)
 
+    player_data.rename(columns = {'team_name':'Team Name','game_date':'Game Date'},inplace=True)
     return player_data
 
 @st.cache_data
@@ -126,6 +141,7 @@ def get_available_players(category, odds_data):
         if category_key in odds_data:
             available_players = odds_data[category_key]["Player"].unique()
 
+
     return sorted(available_players)
 
 @st.cache_data
@@ -140,7 +156,7 @@ def get_player_odds(player_selected, category, odds_data):
     
     category_key = category_map.get(category, "pts")  # Default to "pts" if category is "All"
     player_odds = []
-
+    
     if category == "All":
         # Fetch all categories
         for (table_name, df), cat in zip(odds_data.items(), ["pts", "reb", "ast", "3pm"]):
@@ -226,11 +242,15 @@ def make_dashboard(player_images, odds_data,player_data):
         # Always show all categories for the selected player
         st.subheader(f"Betting Odds for {st.session_state['selected_player'].title()}")
         player_odds = get_player_odds(st.session_state["selected_player"], "All", odds_data)
+        
 
         if player_odds:
+            player_data.columns = [col.replace("_","").title() for col in player_data.columns]
+            st.dataframe(player_data[player_data['Player'].apply(lambda x:x.lower())==st.session_state['selected_player']],hide_index=True)
             for table_name, odds in player_odds:
                 st.markdown(f"**{table_name.capitalize()} Odds**")
-                st.dataframe(odds.style.hide(axis="index"), use_container_width=True)
+                odds.columns = [col.replace("_", " ").title() for col in odds.columns]
+                st.dataframe(odds,hide_index=True, use_container_width=True)
         else:
             st.write("No odds available for this player today.")
 
