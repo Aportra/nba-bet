@@ -5,6 +5,8 @@ from google.oauth2 import service_account
 from datetime import timedelta
 import datetime as dt
 
+
+st.set_page_config(layout="wide")
 # Function to clean player names for consistency
 def clean_player_name(name):
     name = name.lower().strip().replace(".", "")
@@ -65,6 +67,7 @@ def pull_stats(odds_data):
     WITH deduped_data AS (
         SELECT 
             player,
+            pp.team,
             tp.team_name,
             matchup,
             pp.game_date,
@@ -127,7 +130,15 @@ def pull_images():
     player_images['images'] = player_images['images'].apply(lambda x: x.replace("h=80", "h=254").replace("w=110", "w=350"))
     player_images['players'] = player_images['players'].apply(clean_player_name)
     player_images["players_lower"] = player_images["players"].str.lower()
-    return player_images
+
+
+    team_query = "SELECT * FROM `capstone_data.team_logos`"
+    team_images = pandas_gbq.read_gbq(team_query, project_id='miscellaneous-projects-444203')
+
+    team_images['images'] = team_images['images'].fillna('')
+
+
+    return player_images,team_images
 
 @st.cache_data
 def get_available_players(category, odds_data):
@@ -185,7 +196,7 @@ def get_player_odds(player_selected, category, odds_data):
 
     return player_odds
 
-def make_dashboard(player_images, odds_data,player_data):
+def make_dashboard(player_images,team_images, odds_data,player_data):
     today = dt.date.today()
     st.title(f"NBA Player Betting Odds")
     st.write(f'{today}')
@@ -232,21 +243,30 @@ def make_dashboard(player_images, odds_data,player_data):
         player_row = player_images.loc[player_images["players_lower"] == st.session_state["selected_player"]]
         selected_image = player_row["images"].values[0] if not player_row.empty else None
 
-        col1, col2 = st.columns([2, 3])
+        team = player_data[player_data['player'].apply(lambda x: x.lower()) == st.session_state['selected_player']]['team'].values[0]
+        team_name = player_data[player_data['player'].apply(lambda x: x.lower()) == st.session_state['selected_player']]['Team Name'].values[0]
+        team_selected_image = team_images[team_images['teams'] == team]['images'].values[0]
+
+        col1, col2,col3,col4 = st.columns([2,1,1,1])
 
         with col1:
             if selected_image:
                 st.image(selected_image, width=300)
-            
 
+                st.subheader(f"{st.session_state['selected_player'].title()}")
+        with col4:
+            st.image(team_selected_image,width=200)
+        with col4:
+            st.subheader(f"{team_name}")
         # Always show all categories for the selected player
-        st.subheader(f"Betting Odds for {st.session_state['selected_player'].title()}")
         player_odds = get_player_odds(st.session_state["selected_player"], "All", odds_data)
         
 
         if player_odds:
             player_data.columns = [col.replace("_","").title() for col in player_data.columns]
-            st.dataframe(player_data[player_data['Player'].apply(lambda x:x.lower())==st.session_state['selected_player']],hide_index=True)
+            filtered_player_df = player_data[player_data['Player'].apply(lambda x:x.lower())==st.session_state['selected_player']]
+            filtered_player_df.drop(['Player','Team','Team Name'],axis = 1,inplace=True)
+            st.dataframe(filtered_player_df,hide_index=True)
             for table_name, odds in player_odds:
                 st.markdown(f"**{table_name.capitalize()} Odds**")
                 odds.columns = [col.replace("_", " ").title() for col in odds.columns]
@@ -282,7 +302,7 @@ def make_dashboard(player_images, odds_data,player_data):
 
 
 # Run the dashboard
-images = pull_images()
+images,team_images = pull_images()
 odds_data = pull_odds()
 player_data = pull_stats(odds_data)
-make_dashboard(images, odds_data,player_data)
+make_dashboard(images,team_images, odds_data,player_data)
