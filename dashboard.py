@@ -21,6 +21,19 @@ def clean_player_name(name):
     }
     return name_corrections.get(name, name)
 
+def convert_minute(data):
+    data = str(data).split('.')
+    minutes = data[0]
+    seconds = int(data[1])*60/100
+    if seconds < 1:
+        seconds = int(seconds *10)
+    else:
+        seconds = round(seconds)
+    time = f'{minutes}:{seconds:02}'
+
+
+    return time
+
 @st.cache_data
 def pull_odds():
     tables = ['points', 'rebounds', 'assists', 'threes_made']
@@ -118,7 +131,7 @@ def pull_stats(odds_data):
     
     player_data = pandas_gbq.read_gbq(query, project_id='miscellaneous-projects-444203', credentials=credentials)
 
-    player_data.rename(columns = {'team_name':'Team Name','game_date':'Game Date'},inplace=True)
+    player_data.rename(columns = {'team_name':'Team Name','game_date':'Game Date','plus_minus':'Plus Minus'},inplace=True)
     return player_data
 
 @st.cache_data
@@ -179,6 +192,8 @@ def get_player_odds(player_selected, category, odds_data):
                 ] if col in df.columns]
                 
                 temp_df = df[df["Player"] == player_selected][available_columns].copy()
+                temp_df.rename(columns={'Over':'Under_1','Under':'Over'},inplace=True)
+                temp_df.rename(columns={'Under_1':'Under'},inplace=True)
                 player_odds.append((table_name, temp_df))
     else:
         # Only fetch the selected category's odds
@@ -194,13 +209,21 @@ def get_player_odds(player_selected, category, odds_data):
             temp_df = df[df["Player"] == player_selected][available_columns].copy()
             player_odds.append((category_key, temp_df))  #Only return selected category
 
+    
     return player_odds
 
 def make_dashboard(player_images,team_images, odds_data,player_data):
     today = dt.date.today()
-    st.title(f"NBA Player Betting Odds")
-    st.write(f'{today}')
+    side_col,main_col = st.columns([1,10])
 
+    with side_col:
+        nba_logo = team_images[team_images['teams']=='nba']['images'].values[0]
+        st.image(nba_logo,width=120)
+
+    with main_col:
+        st.title(f"NBA Player Betting Odds")
+        st.write(f'{today}')
+        
     if "selected_player" not in st.session_state:
         st.session_state["selected_player"] = ""
 
@@ -247,25 +270,26 @@ def make_dashboard(player_images,team_images, odds_data,player_data):
         team_name = player_data[player_data['player'].apply(lambda x: x.lower()) == st.session_state['selected_player']]['Team Name'].values[0]
         team_selected_image = team_images[team_images['teams'] == team]['images'].values[0]
 
-        col1, col2,col3,col4 = st.columns([2,1,1,1])
+        col1, col2, = st.columns(2)
 
         with col1:
             if selected_image:
-                st.image(selected_image, width=300)
 
-                st.subheader(f"{st.session_state['selected_player'].title()}")
-        with col4:
-            st.image(team_selected_image,width=200)
-        with col4:
-            st.subheader(f"{team_name}")
+                st.image(team_selected_image,width=77)
+                st.image(selected_image, width=320)
+                st.header(f"{st.session_state['selected_player'].title()} | {team_name}")
+
+                
+
         # Always show all categories for the selected player
         player_odds = get_player_odds(st.session_state["selected_player"], "All", odds_data)
         
 
         if player_odds:
             player_data.columns = [col.replace("_","").title() for col in player_data.columns]
-            filtered_player_df = player_data[player_data['Player'].apply(lambda x:x.lower())==st.session_state['selected_player']]
+            filtered_player_df = player_data[player_data['Player'].apply(lambda x:x.lower())==st.session_state['selected_player']].copy()
             filtered_player_df.drop(['Player','Team','Team Name'],axis = 1,inplace=True)
+            filtered_player_df['Min'] = filtered_player_df['Min'].apply(lambda x: convert_minute(x))
             st.dataframe(filtered_player_df,hide_index=True)
             for table_name, odds in player_odds:
                 st.markdown(f"**{table_name.capitalize()} Odds**")
