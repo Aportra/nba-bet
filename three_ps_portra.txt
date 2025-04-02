@@ -1,3 +1,16 @@
+4/1/2025
+Progress:
+Dashboard and pipeline are hands free and automatic.
+
+Prolems:
+Developing another modeling layer that includes an ensemble model that feeds into a classification output.
+
+Plans:
+I will finish implementing the classification model into production as it has already been trained and showing promise.
+
+Time: I spent 4 hours this week on this.
+
+***********************************************************************************************************************************************************************************************************************************************************
 3/18/2025
 Progress:
 Finishing up details with dashboard and receiving feedback from client. 
