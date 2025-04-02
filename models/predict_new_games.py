@@ -354,6 +354,44 @@ def predict_games(full_data, odds_data):
         pandas_gbq.to_gbq(odds_df, table_name, project_id='miscellaneous-projects-444203', credentials=credentials if not local else None, if_exists='append')
         print(f"Successfully uploaded {key} predictions.")
 
+        return latest_rows,odds_data
+
+#best bets tab added in
+
+def classification(latest_data,odds_data):
+    
+    full_data = latest_data.merge(data,by = 'inner',suffixes = ('','_remove'))
+
+    models = joblib.load('models/classification.pkl')
+
+    try:
+        credentials = service_account.Credentials.from_service_account_file('/home/aportra99/scraping_key.json')
+        local = False
+
+    except FileNotFoundError:
+        print("File not found, running in local mode.")
+        local = True
+        credentials = None
+
+    for cat in ['pts','reb','ast','3pm']:
+        for col in ['Over','Under']:
+            odds_data[cat][col] = pd.to_numeric(
+                odds_data[col].astype(str).str.replace('−', '-', regex=False).str.replace('+', '', regex=False),
+                errors='coerce'
+            ).fillna(0).astype(int)
+
+    for i in models.keys():
+
+        model = models[i]
+
+        features = model.feature_names_in_
+
+        data = full_data[features]
+
+        odds_data[i]['recommendation'] = model.predict(data)
+
+        table_name = f'miscellaneous-projects-444203.capstone_data.{i}_classifications'
+        pandas_gbq.to_gbq(odds_data, table_name, project_id='miscellaneous-projects-444203', credentials=credentials if not local else None, if_exists='append')
 
 def run_predictions():
     """Runs the full prediction pipeline from data gathering to model inference."""
@@ -380,6 +418,8 @@ def run_predictions():
         body=f"Error {e}",
             ) 
 
-    predict_games(full_data, odds_data)
+    lowest_data,data = predict_games(full_data, odds_data)
 
+    classification(lowest_data,data)
 
+    
