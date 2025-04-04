@@ -122,8 +122,8 @@ def current_outcome(data,date):
             WITH ranked_predictions AS (
                     SELECT *, 
                         ROW_NUMBER() OVER (PARTITION BY Player, Date_Updated ORDER BY Date_Updated DESC) AS rn
-                    FROM `capstone_data.{table}_predictions`
-                    where date(Date_Updated) = current_date('America/Los_Angeles') and `{cat}_lightgbm` is not null
+                    FROM `capstone_data.{cat}_classifications`
+                    where date(Date_Updated) = date_sub(current_date('America/Los_Angeles'),interval 1 day) and recommendation != 'No Bet Recommendation'
                 )
                 SELECT * 
                 FROM ranked_predictions
@@ -137,59 +137,58 @@ def current_outcome(data,date):
                 local = False
             except FileNotFoundError:
                 local = True
-            predict_data = pandas_gbq.read_gbq(predict_query, project_id='miscellaneous-projects-444203',credentials=credentials if not local else None)
-            
-            predict_data['Player'] = predict_data['Player'].apply(clean_player_name).copy()
-            predict_data['Date_Updated'] = pd.to_datetime(predict_data['Date_Updated']).dt.date
-            game_data['game_date'] = pd.to_datetime(game_data['game_date']).dt.date
-            predict_data.rename(columns={'Player':'player','Date_Updated':'game_date'},inplace=True)
-            game_data['player'] = game_data['player'].apply(clean_player_name)
+                
+                predict_data = pandas_gbq.read_gbq(predict_query, project_id='miscellaneous-projects-444203',credentials=credentials if not local else None)
+                
+                predict_data['player'] = predict_data['player'].apply(clean_player_name).copy()
+                predict_data['Date_Updated'] = pd.to_datetime(predict_data['Date_Updated']).dt.date
+                game_data['game_date'] = pd.to_datetime(game_data['game_date']).dt.date
+                predict_data.rename(columns={'Date_Updated':'game_date'},inplace=True)
+                game_data['player'] = game_data['player'].apply(clean_player_name)
 
-            game_data = game_data[game_data['player'].isin(predict_data['player'])]
+                game_data = game_data[game_data['player'].isin(predict_data['player'])]
 
-            full_data = game_data.merge(predict_data,on=['player','game_date'])
+                full_data = game_data.merge(predict_data,on=['player','game_date'])
 
-            full_data[f'{table}'] = pd.to_numeric(full_data[f'{table}'])
+                full_data[f'{table}'] = pd.to_numeric(full_data[f'{table}'])
 
-            full_data.loc[:,'result'] = full_data.apply(lambda row:classify_result(row,table,cat), axis=1)
-            
-            full_data['linear_model_outcome'] = (full_data['result']==full_data[f'recommendation_{cat}_linear_model'])
-            full_data['lightgbm_outcome'] = (full_data['result'] == full_data[f'recommendation_{cat}_lightgbm'])
+                full_data.loc[:,'result'] = full_data.apply(lambda row:classify_result(row,table,cat), axis=1)
+                
+                full_data['outcome'] = (full_data['result']==full_data[f'recommendation'])
 
-            data_to_upload = full_data[['player',f'{table}',f'{cat}','game_date','result',f'recommendation_{cat}_linear_model',f'recommendation_{cat}_lightgbm']]
-            table_schema = [{"name": "game_date", "type": "DATE"}]
-            table_id = f"miscellaneous-projects-444203.capstone_data.{cat}_outcome"
-            print(data_to_upload)
-            print("Number of rows:", len(data_to_upload)) 
-            pandas_gbq.to_gbq(
-                    data_to_upload,
-                    project_id="miscellaneous-projects-444203",
-                    destination_table=table_id,
-                    if_exists="append",
-                    credentials=credentials if credentials else None,
-                    table_schema=table_schema,
-                )
-            project_id = 'miscellaneous-projects-444203'
-            categories = ['pts', 'reb', 'ast', '3pm']
-            models = ['linear_model', 'lightgbm']
-            results = {}
-            for cat in categories:
-                for model in models:
+                data_to_upload = full_data[['player',f'{table}',f'{cat}','game_date','result','recommendation','proba']]
+                table_schema = [{"name": "game_date", "type": "DATE"}]
+                table_id = f"miscellaneous-projects-444203.capstone_data.{cat}_cl_outcome"
+                print(data_to_upload)
+                print("Number of rows:", len(data_to_upload)) 
+                pandas_gbq.to_gbq(
+                        data_to_upload,
+                        project_id="miscellaneous-projects-444203",
+                        destination_table=table_id,
+                        if_exists="replace",
+                        credentials=credentials if credentials else None,
+                        table_schema=table_schema,
+                    )
+                project_id = 'miscellaneous-projects-444203'
+                categories = ['pts', 'reb', 'ast', '3pm']
+                results = {}
+                for cat in categories:
                     query = f"""
                     SELECT 
-                        SUM(CASE WHEN result = recommendation_{cat}_{model} THEN 1 ELSE 0 END) / COUNT(Player) AS accuracy
-                    FROM `capstone_data.{cat}_outcome`
-                    WHERE recommendation_{cat}_{model} IS NOT NULL
-                    AND game_date >= DATE_ADD(CURRENT_DATE('America/Los_Angeles'), INTERVAL -7 DAY)
+                        SUM(CASE WHEN result = recommendation THEN 1 ELSE 0 END) / COUNT(Player) AS accuracy
+                    FROM `capstone_data.{cat}_cl_outcome`
+                    where game_date >= DATE_ADD(CURRENT_DATE('America/Los_Angeles'), INTERVAL -7 DAY)
                     """
                     df = pandas_gbq.read_gbq(query, project_id=project_id, dialect='standard')
-                    results[f"{cat}_{model}"] = df['accuracy'].iloc[0]
+                    results[f"{cat}_accuracy"] = df['accuracy'].iloc[0]
 
             for result in results:
+                print(results[result])
                 if results[result] < .524:
+                    print(result)
                     utils.send_email(
-                        subject=f"Warning This Model {result} Underperfoming",
-                        body=f"{result}: {results[result]}"
+                            subject=f"Warning This Model {result} Underperfoming",
+                            body=f"{result}: {results[result]}"
                     )            
 
 
@@ -198,6 +197,7 @@ def current_outcome(data,date):
             body=str([f"{key}: {results[key]}" for key in results])
                 )
     except Exception as e:
+        print(e)
         utils.send_email(
         subject="Outcomes Error",
         body=f"Error {e}")

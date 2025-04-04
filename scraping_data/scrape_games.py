@@ -27,7 +27,7 @@ def scrape_current_games():
         credentials = None
 
     try:
-        scrape_date = dt.today()
+        scrape_date = dt.today() - timedelta(1)
         url = {
             "2024-2025_uncleaned": "https://stats.nba.com/stats/leaguegamelog?LeagueID=00&Season=2024-25&SeasonType=Regular%20Season&PlayerOrTeam=T&Counter=0&Sorter=DATE&Direction=DESC"
 
@@ -130,6 +130,7 @@ def scrape_current_games():
                 return df,full_data,date
         
         else:
+            print('no games')
             utils.send_email(
                 subject="NBA SCRAPING: NO GAMES",
                 body=f"No games found as of {scrape_date.date()}",

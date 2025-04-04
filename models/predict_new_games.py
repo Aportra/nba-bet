@@ -260,7 +260,8 @@ def predict_games(full_data, odds_data):
     # Load models
     # models = joblib.load('/home/aportra99/Capstone/models/models.pkl')
     full_data = full_data
-
+    odds = {}
+    lowest_data = {}
     models = joblib.load('/home/aportra99/Capstone/models/models.pkl')
     for key, odds_df in odds_data.items():
   
@@ -352,46 +353,124 @@ def predict_games(full_data, odds_data):
         # Upload predictions to BigQuery
         table_name = f'miscellaneous-projects-444203.capstone_data.{key}_predictions'
         pandas_gbq.to_gbq(odds_df, table_name, project_id='miscellaneous-projects-444203', credentials=credentials if not local else None, if_exists='append')
+        odds[category] = odds_df
+        lowest_data[category] = latest_rows
         print(f"Successfully uploaded {key} predictions.")
 
-        return latest_rows,odds_data
+    return lowest_data,odds
 
 #best bets tab added in
 
-def classification(latest_data,odds_data):
-    
-    full_data = latest_data.merge(data,by = 'inner',suffixes = ('','_remove'))
+def classification(lowest_data,odds):
+        
+    ensemble = joblib.load('meta_model.pkl')
+    models = joblib.load('classification_models.pkl')
 
-    models = joblib.load('models/classification.pkl')
+    # Display settings
+    pd.set_option('display.max_columns', None)
+    pd.set_option('display.max_colwidth', None)
+    pd.set_option('display.max_rows', None)
 
+    # Auth
     try:
         credentials = service_account.Credentials.from_service_account_file('/home/aportra99/scraping_key.json')
         local = False
-
     except FileNotFoundError:
         print("File not found, running in local mode.")
         local = True
         credentials = None
 
-    for cat in ['pts','reb','ast','3pm']:
-        for col in ['Over','Under']:
-            odds_data[cat][col] = pd.to_numeric(
-                odds_data[col].astype(str).str.replace('−', '-', regex=False).str.replace('+', '', regex=False),
+    categories = ['pts', 'reb', 'ast', '3pm']
+    lines = ['points', 'rebounds', 'assists', 'threes_made']
+
+    # Backup
+    odds_raw = {cat: df.copy() for cat, df in odds.items()}
+
+    for cat, line in zip(categories, lines):
+        print(f"\n=== Category: {cat.upper()} ===")
+
+        # Format odds
+        for col in ['Over', 'Under']:
+            odds[cat][col] = pd.to_numeric(
+                odds[cat][col].astype(str).str.replace('−', '-', regex=False).str.replace('+', '', regex=False),
                 errors='coerce'
             ).fillna(0).astype(int)
 
-    for i in models.keys():
+        odds[cat].rename(columns={'Player': 'player'}, inplace=True)
 
-        model = models[i]
+        # Check required model columns exist
+        linear_col = f'{cat}_linear_model'
+        lightgbm_col = f'{cat}_lightgbm'
 
-        features = model.feature_names_in_
 
-        data = full_data[features]
+        print(f"Columns available for {cat}: {list(odds[cat].columns)}")
+        print(f"Looking for: {linear_col}, {lightgbm_col}")
 
-        odds_data[i]['recommendation'] = model.predict(data)
+        if linear_col not in odds[cat].columns or lightgbm_col not in odds[cat].columns:
+            print(f"Skipping {cat} due to missing model cols.")
+            continue
+        # Ensemble score
+        coef_linear, coef_lightgbm = ensemble[cat].coef_
+        odds[cat][f'{cat}_ensemble'] = (
+            odds[cat][linear_col] * coef_linear +
+            odds[cat][lightgbm_col] * coef_lightgbm
+        )
 
-        table_name = f'miscellaneous-projects-444203.capstone_data.{i}_classifications'
-        pandas_gbq.to_gbq(odds_data, table_name, project_id='miscellaneous-projects-444203', credentials=credentials if not local else None, if_exists='append')
+        # Merge with features
+        all_data = odds[cat].merge(lowest_data[cat], on='player', how='inner')
+        all_data[line] = pd.to_numeric(all_data[line], errors='coerce')
+
+        # Recalc delta
+        all_data[f'{cat}_delta'] = all_data[f'{cat}_ensemble'] - all_data[line]
+
+        #Load model + thresholds
+        model_dict = models[cat]
+        clf = model_dict['model']
+        threshold_over = model_dict['threshold_over']
+        threshold_under = model_dict['threshold_under']
+
+        # Ensure all expected features exist
+        expected_features = list(clf.feature_names_in_)
+        
+        for col in expected_features:
+            if col not in all_data.columns:
+                all_data[col] = 0.0
+
+        # Slice and match expected order
+        filtered_data = all_data[expected_features].astype(float)
+        assert list(filtered_data.columns) == list(clf.feature_names_in_)
+
+        #Predict
+        try:
+            proba = clf.predict_proba(filtered_data.to_numpy())[:, 1]
+        except Exception as e:
+            print(f"❌ Error predicting for {cat}: {e}")
+            continue
+
+        def classify(p): return 'Over' if p > threshold_over else 'Under' if p < threshold_under else 'No Bet Recommendation'
+
+        all_data['proba'] = proba
+        all_data['recommendation'] = all_data['proba'].apply(classify)
+
+        for col in ['recommendation', 'proba']:
+            if col in odds[cat].columns:
+                odds[cat].drop(columns=col, inplace=True)
+
+        # Clean up from all_data
+        merged_predictions = all_data[['player', 'recommendation', 'proba']].drop_duplicates(subset='player')
+
+        # Merge cleanly
+        odds[cat] = odds[cat].merge(merged_predictions, on='player', how='left')
+
+
+        #Optional sanity check
+        if odds[cat].duplicated(subset='player').any():
+            print(f"Duplicates found in {cat} after merge!")
+        odds[cat].drop(columns =[f'{cat}_linear_model',f'{cat}_lightgbm',f'recommendation_{cat}_linear_model',f'recommendation_{cat}_lightgbm',f'{cat}_ensemble'],inplace= True)
+
+        table_name = f'miscellaneous-projects-444203.capstone_data.{cat}_classifications'
+        pandas_gbq.to_gbq(odds[cat], table_name, project_id='miscellaneous-projects-444203', credentials=credentials if not local else None, if_exists='append')
+        
 
 def run_predictions():
     """Runs the full prediction pipeline from data gathering to model inference."""
@@ -418,8 +497,8 @@ def run_predictions():
         body=f"Error {e}",
             ) 
 
-    lowest_data,data = predict_games(full_data, odds_data)
+    lowest_data,odds = predict_games(full_data, odds_data)
 
-    classification(lowest_data,data)
+    classification(lowest_data,odds)
 
     
