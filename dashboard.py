@@ -50,20 +50,20 @@ def pull_odds():
     for table,cat in zip(tables,identifiers):
         odds_query = f"""
         SELECT distinct * 
-        FROM `capstone_data.{table}_predictions`
-        WHERE DATE(Date_Updated) = CURRENT_DATE('America/Los_Angeles') and recommendation_{cat}_linear_model is not null
+        FROM `capstone_data.{cat}_classifications`
+        WHERE DATE(Date_Updated) = CURRENT_DATE('America/Los_Angeles') and recommendation != 'No Bet Recommendation'
         """
         odds_data[table] = pandas_gbq.read_gbq(odds_query, project_id='miscellaneous-projects-444203', credentials=credentials)
 
         if odds_data[table].empty:
             odds_query = f"""
             SELECT distinct * 
-            FROM `capstone_data.{table}_predictions`
+            FROM `capstone_data.{cat}_classifications`
             WHERE DATE(Date_Updated) = DATE_SUB(CURRENT_DATE('America/Los_Angeles'), INTERVAL 1 DAY) and recommendation_{cat}_linear_model is not null
             """
             odds_data[table] = pandas_gbq.read_gbq(odds_query, project_id='miscellaneous-projects-444203', credentials=credentials)
 
-        odds_data[table]['Player'] = odds_data[table]['Player'].apply(clean_player_name)
+        odds_data[table]['player'] = odds_data[table]['player'].apply(clean_player_name)
 
     return odds_data
 
@@ -73,7 +73,7 @@ def pull_stats(odds_data):
     season = dt.date.today().year if dt.date.today().month >= 10 else dt.date.today().year - 1
     players = set()
     for table in odds_data:
-        for player in odds_data[table]['Player']:
+        for player in odds_data[table]['player']:
             players.add(player)
 
     query = f"""
@@ -160,10 +160,10 @@ def get_available_players(category, odds_data):
 
     if category == "All":
         for table in odds_data:
-            available_players.update(odds_data[table]["Player"].unique())
+            available_players.update(odds_data[table]["player"].unique())
     else:
         if category_key in odds_data:
-            available_players = odds_data[category_key]["Player"].unique()
+            available_players = odds_data[category_key]["player"].unique()
 
 
     return sorted(available_players)
@@ -184,20 +184,19 @@ def get_player_odds(player_selected, category, odds_data):
     if category == "All":
         # Fetch all categories
         for (table_name, df), cat in zip(odds_data.items(), ["pts", "reb", "ast", "3pm"]):
-            if player_selected in df["Player"].values:
+            if player_selected in df["player"].values:
                 available_columns = [col for col in [
                     f"{table_name}", "Over", "Under",
-                    f"recommendation_{cat}_linear_model",
-                    f"recommendation_{cat}_lightgbm"
+                    "recommendation"
                 ] if col in df.columns]
                 
-                temp_df = df[df["Player"] == player_selected][available_columns].copy()
+                temp_df = df[df["player"] == player_selected][available_columns].copy()
                 temp_df.rename(columns={'Over':'Under_1','Under':'Over'},inplace=True)
                 temp_df.rename(columns={'Under_1':'Under'},inplace=True)
                 player_odds.append((table_name, temp_df))
     else:
         # Only fetch the selected category's odds
-        if category_key in odds_data and player_selected in odds_data[category_key]["Player"].values:
+        if category_key in odds_data and player_selected in odds_data[category_key]["player"].values:
             df = odds_data[category_key]
 
             available_columns = [col for col in [
@@ -206,7 +205,7 @@ def get_player_odds(player_selected, category, odds_data):
                 f"recommendation_{category_key}_lightgbm"
             ] if col in df.columns]
             
-            temp_df = df[df["Player"] == player_selected][available_columns].copy()
+            temp_df = df[df["player"] == player_selected][available_columns].copy()
             player_odds.append((category_key, temp_df))  #Only return selected category
 
     
@@ -292,7 +291,7 @@ def make_dashboard(player_images,team_images, odds_data,player_data):
             filtered_player_df['Min'] = filtered_player_df['Min'].apply(lambda x: convert_minute(x))
             st.dataframe(filtered_player_df,hide_index=True)
             for table_name, odds in player_odds:
-                st.markdown(f"**{table_name.capitalize()} Odds**")
+                st.markdown(f"**{table_name.replace('_',' ').title()} Odds**")
                 odds.columns = [col.replace("_", " ").title() for col in odds.columns]
                 st.dataframe(odds,hide_index=True, use_container_width=True)
         else:
