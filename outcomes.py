@@ -124,7 +124,7 @@ def current_outcome(data,date):
                     SELECT *, 
                         ROW_NUMBER() OVER (PARTITION BY Player, Date_Updated ORDER BY Date_Updated DESC) AS rn
                     FROM `capstone_data.{cat}_classifications`
-                    where date(Date_Updated) = date_sub(current_date('America/Los_Angeles'),interval 1 day) and recommendation != 'No Bet Recommendation'
+                    where date(Date_Updated) = current_date('America/Los_Angeles') and recommendation != 'No Bet Recommendation'
                 )
                 SELECT * 
                 FROM ranked_predictions
@@ -180,7 +180,7 @@ def current_outcome(data,date):
                 SELECT 
                     SUM(CASE WHEN result = recommendation THEN 1 ELSE 0 END) / COUNT(Player) AS accuracy
                 FROM `capstone_data.{cat}_cl_outcome`
-                where game_date >= DATE_ADD(CURRENT_DATE('America/Los_Angeles'), INTERVAL -7 DAY)
+                where game_date = CURRENT_DATE('America/Los_Angeles')
                 """
                 df = pandas_gbq.read_gbq(query, project_id=project_id, dialect='standard')
                 results[f"{cat}_accuracy"] = df['accuracy'].iloc[0]
@@ -195,12 +195,12 @@ def current_outcome(data,date):
                     )            
 
 
-            # utils.send_email(
-            # subject="Outcome Posted to GBQ",
-            # body=str([f"{key}: {results[key]}" for key in results])
-            #     )
+            utils.send_email(
+            subject="Outcome Posted to GBQ",
+            body=str([f"{key}: {results[key]}" for key in results])
+                )
     except Exception as e:
         print(e)
-        # utils.send_email(
-        # subject="Outcomes Error",
-        # body=f"Error {e}")
+        utils.send_email(
+        subject="Outcomes Error",
+        body=f"Error {e}")
