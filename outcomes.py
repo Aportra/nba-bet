@@ -52,7 +52,7 @@ def past_outcomes():
             WITH ranked_predictions AS (
                 SELECT *, 
                     ROW_NUMBER() OVER (PARTITION BY Player, date(Date_Updated) ORDER BY Date_Updated DESC) AS rn
-                FROM `capstone_data.{cat}_classifications`
+                FROM `capstone_data.{table}_classifications`
                 where recommendation != 'No Bet Recommendation'
             )
             SELECT * 
@@ -87,7 +87,7 @@ def past_outcomes():
         
         full_data = full_data.drop_duplicates(subset=['player','game_date'])
 
-        data_to_upload = full_data[['player',f'{table}',f'{cat}','game_date','result','recommendation','proba']]
+        data_to_upload = full_data[['player',f'{table}',f'{cat}','game_date','result','recommendation','proba',]]
         table_schema = [{"name": "game_date", "type": "DATE"}]
         table_id = f"miscellaneous-projects-444203.capstone_data.{cat}_cl_outcome"
         pandas_gbq.to_gbq(
@@ -195,12 +195,12 @@ def current_outcome(data,date):
                     )            
 
 
-            # utils.send_email(
-            # subject="Outcome Posted to GBQ",
-            # body=str([f"{key}: {results[key]}" for key in results])
-            #     )
+            utils.send_email(
+            subject="Outcome Posted to GBQ",
+            body=str([f"{key}: {results[key]}" for key in results])
+                )
     except Exception as e:
         print(e)
-        # utils.send_email(
-        # subject="Outcomes Error",
-        # body=f"Error {e}")
+        utils.send_email(
+        subject="Outcomes Error",
+        body=f"Error {e}")
