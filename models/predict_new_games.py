@@ -224,7 +224,7 @@ def recent_player_data(games):
     pd.set_option('display.expand_frame_repr', False)
     # Merge datasets while keeping only necessary columns
     print('merging data')
-    full_data = (player_data.merge(games, on="player", how="left", suffixes=("", "_remove")))
+    full_data = (player_data.merge(games, on="player", how="inner", suffixes=("", "_remove")))
     full_data = full_data.merge(team_data, on = 'team_id',how = 'left', suffixes = ("","_remove"))
     full_data = full_data.merge(team_data_1, on= 'opponent', how = 'left',suffixes = ("","_opponent"))
 
@@ -425,9 +425,9 @@ def classification(lowest_data,odds):
 
         #Load model + thresholds
         model_dict = models[cat]
-        clf = model_dict['model']
-        threshold_over = model_dict['threshold_over']
-        threshold_under = model_dict['threshold_under']
+        clf = model_dict['Fitted_Model']
+        threshold_over = model_dict['Over_Threshold']
+        threshold_under = model_dict['Uner_Threshold']
 
         # Ensure all expected features exist
         expected_features = list(clf.feature_names_in_)
@@ -444,7 +444,7 @@ def classification(lowest_data,odds):
         try:
             proba = clf.predict_proba(filtered_data.to_numpy())[:, 1]
         except Exception as e:
-            print(f"❌ Error predicting for {cat}: {e}")
+            print(f"Error predicting for {cat}: {e}")
             continue
 
         def classify(p): return 'Over' if p > threshold_over else 'Under' if p < threshold_under else 'No Bet Recommendation'
