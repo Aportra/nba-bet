@@ -363,8 +363,8 @@ def predict_games(full_data, odds_data):
 
 def classification(lowest_data,odds):
         
-    ensemble = joblib.load('meta_model.pkl')
-    models = joblib.load('classification_models.pkl')
+    ensemble = joblib.load('/home/aportra99/Capstone/models/meta_model.pkl')
+    models = joblib.load('/home/aportra99/Capstone/models/classification_models.pkl')
 
     # Display settings
     pd.set_option('display.max_columns', None)
