@@ -352,6 +352,7 @@ def predict_games(full_data, odds_data):
 
         # Upload predictions to BigQuery
         table_name = f'miscellaneous-projects-444203.capstone_data.{key}_predictions'
+        odds_df.dropna(axis=0,inplace = True)
         pandas_gbq.to_gbq(odds_df, table_name, project_id='miscellaneous-projects-444203', credentials=credentials if not local else None, if_exists='append')
         odds[category] = odds_df
         lowest_data[category] = latest_rows
@@ -427,7 +428,7 @@ def classification(lowest_data,odds):
         model_dict = models[cat]
         clf = model_dict['Fitted_Model']
         threshold_over = model_dict['Over_Threshold']
-        threshold_under = model_dict['Uner_Threshold']
+        threshold_under = model_dict['Under_Threshold']
 
         # Ensure all expected features exist
         expected_features = list(clf.feature_names_in_)
@@ -467,7 +468,9 @@ def classification(lowest_data,odds):
         if odds[cat].duplicated(subset='player').any():
             print(f"Duplicates found in {cat} after merge!")
         odds[cat].drop(columns =[f'{cat}_linear_model',f'{cat}_lightgbm',f'recommendation_{cat}_linear_model',f'recommendation_{cat}_lightgbm',f'{cat}_ensemble'],inplace= True)
-
+        
+        odds[cat].dropna(axis=0,inplace=True)
+        
         table_name = f'miscellaneous-projects-444203.capstone_data.{cat}_classifications'
         pandas_gbq.to_gbq(odds[cat], table_name, project_id='miscellaneous-projects-444203', credentials=credentials if not local else None, if_exists='append')
         
