@@ -10,7 +10,7 @@ def get_matchup():
     credentials = service_account.Credentials.from_service_account_info(st.secrets["gcp_service_account"])
 
     query = """ 
-    select team,date,home,away
+    select team,opponent,date,home,away
     from `capstone_data.schedule`
     where date = current_date('America/Los_Angeles')
     """
