@@ -136,8 +136,14 @@ def pull_stats(odds_data):
 
 @st.cache_data
 def pull_images():
+    try:
+        credentials = service_account.Credentials.from_service_account_info(st.secrets["gcp_service_account"])
+    except Exception as e:
+        st.error("Could not load GCP credentials.")
+        st.exception(e)
+        credentials = None
     query = "SELECT * FROM `capstone_data.player_images`"
-    player_images = pandas_gbq.read_gbq(query, project_id='miscellaneous-projects-444203')
+    player_images = pandas_gbq.read_gbq(query, project_id='miscellaneous-projects-444203',credentials=credentials)
 
     player_images['images'] = player_images['images'].fillna('')
     player_images['images'] = player_images['images'].apply(lambda x: x.replace("h=80", "h=254").replace("w=110", "w=350"))
@@ -145,12 +151,7 @@ def pull_images():
     player_images["players_lower"] = player_images["players"].str.lower()
 
 
-    try:
-        credentials = service_account.Credentials.from_service_account_info(st.secrets["gcp_service_account"])
-    except Exception as e:
-        st.error("Could not load GCP credentials.")
-        st.exception(e)
-        credentials = None
+
 
     team_query = "SELECT * FROM `capstone_data.team_logos`"
     team_images = pandas_gbq.read_gbq(team_query, project_id='miscellaneous-projects-444203',credentials=credentials)
