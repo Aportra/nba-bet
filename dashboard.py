@@ -290,7 +290,7 @@ def make_dashboard(player_images,team_images, odds_data,player_data,matchup_data
         team = player_data[player_data['player'].apply(lambda x: x.lower()) == st.session_state['selected_player']]['team'].values[0]
         team_name = player_data[player_data['player'].apply(lambda x: x.lower()) == st.session_state['selected_player']]['Team Name'].values[0]
         team_selected_image = team_images[team_images['teams'] == team]['images'].values[0]
-        matchup = matchup_data[matchup_data['team']==team]
+        matchup = matchup_data[matchup_data['team']==team].values[0]
 
         if matchup['home'] == 1:
             divider = 'vs'
