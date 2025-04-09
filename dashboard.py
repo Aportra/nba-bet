@@ -5,7 +5,21 @@ from google.oauth2 import service_account
 from datetime import timedelta
 import datetime as dt
 
+def get_matchup():
 
+    credentials = service_account.Credentials.from_service_account_info(st.secrets["gcp_service_account"])
+
+    query = """ 
+    select team,date,home,away
+    from `capstone_data.schedule`
+    where date = current_date('America/Los_Angeles')
+    """
+
+    matchup_data = pandas_gbq.read_gbq(query,project_id='miscellaneous-projects-444203',credentials=credentials)
+
+    return matchup_data
+
+    matchup_data = pandas_gbq.read_gbq()
 st.set_page_config(layout="wide")
 # Function to clean player names for consistency
 def clean_player_name(name):
@@ -59,7 +73,7 @@ def pull_odds():
             odds_query = f"""
             SELECT distinct * 
             FROM `capstone_data.{cat}_classifications`
-            WHERE DATE(Date_Updated) = DATE_SUB(CURRENT_DATE('America/Los_Angeles'), INTERVAL 1 DAY) and recommendation_{cat}_linear_model is not null
+            WHERE DATE(Date_Updated) = DATE_SUB(CURRENT_DATE('America/Los_Angeles'), INTERVAL 1 DAY) is not null
             """
             odds_data[table] = pandas_gbq.read_gbq(odds_query, project_id='miscellaneous-projects-444203', credentials=credentials)
 
@@ -219,7 +233,7 @@ def get_player_odds(player_selected, category, odds_data):
     
     return player_odds
 
-def make_dashboard(player_images,team_images, odds_data,player_data):
+def make_dashboard(player_images,team_images, odds_data,player_data,matchup_data):
     today = dt.date.today()
     side_col,main_col = st.columns([1,10])
 
@@ -276,7 +290,12 @@ def make_dashboard(player_images,team_images, odds_data,player_data):
         team = player_data[player_data['player'].apply(lambda x: x.lower()) == st.session_state['selected_player']]['team'].values[0]
         team_name = player_data[player_data['player'].apply(lambda x: x.lower()) == st.session_state['selected_player']]['Team Name'].values[0]
         team_selected_image = team_images[team_images['teams'] == team]['images'].values[0]
+        matchup = matchup_data[matchup_data['team']==team]
 
+        if matchup['home'] == 1:
+            divider = 'vs'
+        else:
+            divider = '@'
         col1, col2, = st.columns(2)
 
         with col1:
@@ -285,7 +304,7 @@ def make_dashboard(player_images,team_images, odds_data,player_data):
                 st.image(team_selected_image,width=77)
                 st.image(selected_image, width=320)
                 st.header(f"{st.session_state['selected_player'].title()} | {team_name}")
-
+                st.write(f"{matchup['team']}{divider}{matchup['opponent']}")
                 
 
         # Always show all categories for the selected player
@@ -336,4 +355,5 @@ def make_dashboard(player_images,team_images, odds_data,player_data):
 images,team_images = pull_images()
 odds_data = pull_odds()
 player_data = pull_stats(odds_data)
-make_dashboard(images,team_images, odds_data,player_data)
+matchup_data = get_matchup()
+make_dashboard(images,team_images, odds_data,player_data,matchup_data)
