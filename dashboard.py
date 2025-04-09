@@ -145,8 +145,9 @@ def pull_images():
     player_images["players_lower"] = player_images["players"].str.lower()
 
 
+    credentials = service_account.Credentials.from_service_account_info(st.secrets["gcp_service_account"])
     team_query = "SELECT * FROM `capstone_data.team_logos`"
-    team_images = pandas_gbq.read_gbq(team_query, project_id='miscellaneous-projects-444203')
+    team_images = pandas_gbq.read_gbq(team_query, project_id='miscellaneous-projects-444203',credentials=credentials)
 
     team_images['images'] = team_images['images'].fillna('')
 
