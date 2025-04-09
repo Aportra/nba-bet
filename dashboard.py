@@ -290,9 +290,9 @@ def make_dashboard(player_images,team_images, odds_data,player_data,matchup_data
         team = player_data[player_data['player'].apply(lambda x: x.lower()) == st.session_state['selected_player']]['team'].values[0]
         team_name = player_data[player_data['player'].apply(lambda x: x.lower()) == st.session_state['selected_player']]['Team Name'].values[0]
         team_selected_image = team_images[team_images['teams'] == team]['images'].values[0]
-        matchup = matchup_data[matchup_data['team']==team].values[0]
-
-        if matchup['home'] == 1:
+        opponent = matchup_data[matchup_data['team']==team]['opponent'].values[0]
+        home = matchup_data[matchup_data['team']==team]['home'].values[0]
+        if home == 1:
             divider = 'vs'
         else:
             divider = '@'
@@ -304,7 +304,7 @@ def make_dashboard(player_images,team_images, odds_data,player_data,matchup_data
                 st.image(team_selected_image,width=77)
                 st.image(selected_image, width=320)
                 st.header(f"{st.session_state['selected_player'].title()} | {team_name}")
-                st.write(f"{matchup['team']}{divider}{matchup['opponent']}")
+                st.write(f"{team}{divider}{opponent}")
                 
 
         # Always show all categories for the selected player
