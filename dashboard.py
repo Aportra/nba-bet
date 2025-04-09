@@ -304,7 +304,7 @@ def make_dashboard(player_images,team_images, odds_data,player_data,matchup_data
                 st.image(team_selected_image,width=77)
                 st.image(selected_image, width=320)
                 st.header(f"{st.session_state['selected_player'].title()} | {team_name}")
-                st.write(f"{team}{divider}{opponent}")
+                st.write(f"{team} {divider} {opponent}")
                 
 
         # Always show all categories for the selected player
