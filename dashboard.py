@@ -41,8 +41,8 @@ def pull_odds():
     odds_data = {}
 
     try:
-        credentials = service_account.Credentials.from_service_account_file('/home/aportra99/scraping_key.json')
         local = False
+        credentials = service_account.Credentials.from_service_account_info(st.secrets["gcp_service_account"])
     except FileNotFoundError:
         local = True
         credentials = None
@@ -123,7 +123,7 @@ def pull_stats(odds_data):
     """
 
     try:
-        credentials = service_account.Credentials.from_service_account_file('/home/aportra99/scraping_key.json')
+        credentials = service_account.Credentials.from_service_account_info(st.secrets["gcp_service_account"])
         local = False
     except FileNotFoundError:
         local = True
