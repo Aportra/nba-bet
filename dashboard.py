@@ -6,7 +6,7 @@ from datetime import timedelta
 import datetime as dt
 
 def smart_title(name):
-    # Words you want to preserve as all-uppercase
+    # Words to preserve as all-uppercase
     exceptions = {"iii", "ii", "iv"}
     
     return " ".join([
