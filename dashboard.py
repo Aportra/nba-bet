@@ -277,7 +277,7 @@ def make_dashboard(player_images,team_images, odds_data,player_data,matchup_data
 
     # Ensure selecting the blank option resets the selected player
     player_options = [""] + [p.title() for p in available_players]
-    default_index = player_options.index(st.session_state["selected_player"].title()) if st.session_state["selected_player"] in available_players else 0
+    default_index = player_options.index(smart_title(st.session_state["selected_player"])) if st.session_state["selected_player"] in available_players else 0
 
     player_selected = st.selectbox("Search or Select a Player:", player_options, index=default_index)
 
@@ -353,7 +353,7 @@ def make_dashboard(player_images,team_images, odds_data,player_data,matchup_data
                         st.image(player_image, width=200)
 
                 with col2:
-                    if st.button(f"**{player.title()}**", key=f"btn_{player}"):
+                    if st.button(f"**{smart_title(player)}**", key=f"btn_{player}"):
                         st.session_state["selected_player"] = player_lower
                         st.rerun()
 
