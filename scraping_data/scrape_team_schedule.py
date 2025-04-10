@@ -61,7 +61,7 @@ def scrape_team_schedule(nba_teams):
                     divide = divider.text
                     opponent_element = row.find_element(By.XPATH, "./td[2]/div/span[3]/a")
                     opponent_text = opponent_element.text
-                    print(divide)
+   
                     # Determine home/away status
                     if "@" in divide:
                         home, away = 0, 1
@@ -98,8 +98,8 @@ def scrape_team_schedule(nba_teams):
         "HOU": "HOU", "IND": "IND", "LAL": "LAL",  # Lakers
         "LA": "LAC", "MEM": "MEM", "MIA": "MIA", "MIL": "MIL", "MIN": "MIN",
         "NOP": "NOP", "NY": "NYK", "OKC": "OKC", "ORL": "ORL",
-        "PHI": "PHI", "PHX": "PHX", "POR": "POR", "SA": "SAC",
-        "SAS": "SAS", "TOR": "TOR", "UTAH": "UTA", "WSH": "WAS"
+        "PHI": "PHI", "PHX": "PHX", "POR": "POR", "SA": "SAS",
+        "SAC": "SAC", "TOR": "TOR", "UTAH": "UTA", "WSH": "WAS"
     }
 
     # Replace opponent names with correct abbreviations

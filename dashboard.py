@@ -5,6 +5,15 @@ from google.oauth2 import service_account
 from datetime import timedelta
 import datetime as dt
 
+def smart_title(name):
+    # Words you want to preserve as all-uppercase
+    exceptions = {"iii", "ii", "iv", "jr", "sr"}
+    
+    return " ".join([
+        word.upper() if word.lower() in exceptions else word.capitalize()
+        for word in name.split()
+    ])
+
 @st.cache_data
 def get_matchup():
 
@@ -304,7 +313,7 @@ def make_dashboard(player_images,team_images, odds_data,player_data,matchup_data
 
                 st.image(team_selected_image,width=77)
                 st.image(selected_image, width=320)
-                st.header(f"{st.session_state['selected_player'].title()} | {team_name}")
+                st.header(f"{smart_title(st.session_state['selected_player'])} | {team_name}")
                 st.write(f"Next Game: {team} {divider} {opponent}")
                 
 
