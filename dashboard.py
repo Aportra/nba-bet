@@ -5,6 +5,7 @@ from google.oauth2 import service_account
 from datetime import timedelta
 import datetime as dt
 
+@st.cache_data
 def get_matchup():
 
     credentials = service_account.Credentials.from_service_account_info(st.secrets["gcp_service_account"])
@@ -304,7 +305,7 @@ def make_dashboard(player_images,team_images, odds_data,player_data,matchup_data
                 st.image(team_selected_image,width=77)
                 st.image(selected_image, width=320)
                 st.header(f"{st.session_state['selected_player'].title()} | {team_name}")
-                st.write(f"{team} {divider} {opponent}")
+                st.write(f"Next Game: {team} {divider} {opponent}")
                 
 
         # Always show all categories for the selected player

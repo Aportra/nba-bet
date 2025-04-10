@@ -15,7 +15,7 @@ from tqdm import tqdm
 NBA_TEAMS = [
     "ATL", "BOS", "BKN", "CHA", "CHI", "CLE", "DAL", "DEN", "DET", "GSW",
     "HOU", "IND", "LAC", "LAL", "MEM", "MIA", "MIL", "MIN", "NO", "NYK",
-    "OKC", "ORL", "PHI", "PHX", "POR", "SAC", "SAS", "TOR", "UTA", "WAS"
+    "OKC", "ORL", "PHI", "PHX", "POR", "SAC", "SAS", "TOR", "UTAH", "WAS"
 ]
 
 
@@ -26,7 +26,7 @@ def scrape_team_schedule(nba_teams):
         nba_teams (list): List of NBA team abbreviations.
     """
 
-    driver = utils.establish_driver()
+    driver = utils.establish_driver(local=True)
     url_base = "https://www.espn.com/nba/team/schedule/_/name/"
     scrape_date = dt.today()
     all_data = []
@@ -57,12 +57,13 @@ def scrape_team_schedule(nba_teams):
                     converted_date = utils.convert_date(date_text)
 
                     game_played = 0 if converted_date > dt.today().date() else 1
-
+                    divider = row.find_element(By.XPATH,'./td[2]/div/span[1]')
+                    divide = divider.text
                     opponent_element = row.find_element(By.XPATH, "./td[2]/div/span[3]/a")
-                    opponent_text = opponent_element.text.strip()
-
+                    opponent_text = opponent_element.text
+                    print(divide)
                     # Determine home/away status
-                    if "@" in opponent_text:
+                    if "@" in divide:
                         home, away = 0, 1
                     else:
                         home, away = 1, 0
@@ -86,26 +87,26 @@ def scrape_team_schedule(nba_teams):
 
     driver.quit()
 
-    # Convert collected data to a DataFrame
+#     # Convert collected data to a DataFrame
     combined_data = pd.DataFrame(all_data)
     combined_data["date"] = combined_data["date"].astype(str)  # Ensure date column is string for BigQuery
 
     # Mapping of full team names to abbreviations
     team_abbreviations = {
-        "Atlanta": "ATL", "Boston": "BOS", "Brooklyn": "BKN", "Charlotte": "CHA", "Chicago": "CHI",
-        "Cleveland": "CLE", "Dallas": "DAL", "Denver": "DEN", "Detroit": "DET", "Golden State": "GSW",
-        "Houston": "HOU", "Indiana": "IND", "Los Angeles": "LAL",  # Lakers
-        "LA": "LAC", "Memphis": "MEM", "Miami": "MIA", "Milwaukee": "MIL", "Minnesota": "MIN",
-        "New Orleans": "NOP", "New York": "NYK", "Oklahoma City": "OKC", "Orlando": "ORL",
-        "Philadelphia": "PHI", "Phoenix": "PHX", "Portland": "POR", "Sacramento": "SAC",
-        "San Antonio": "SAS", "Toronto": "TOR", "Utah": "UTA", "Washington": "WAS"
+        "ATL": "ATL", "BOS": "BOS", "BKN": "BKN", "CHA": "CHA", "CHI": "CHI",
+        "CLE": "CLE", "DAL": "DAL", "DEN": "DEN", "DET": "DET", "GS": "GSW",
+        "HOU": "HOU", "IND": "IND", "LAL": "LAL",  # Lakers
+        "LA": "LAC", "MEM": "MEM", "MIA": "MIA", "MIL": "MIL", "MIN": "MIN",
+        "NOP": "NOP", "NY": "NYK", "OKC": "OKC", "ORL": "ORL",
+        "PHI": "PHI", "PHX": "PHX", "POR": "POR", "SA": "SAC",
+        "SAS": "SAS", "TOR": "TOR", "UTAH": "UTA", "WSH": "WAS"
     }
 
     # Replace opponent names with correct abbreviations
     combined_data["opponent"] = combined_data["opponent"].replace(team_abbreviations)
 
     # Normalize team abbreviations
-    combined_data["team"] = combined_data["team"].replace({"NO": "NOP", "UTAH": "UTA", "WSH": "WAS"})
+    combined_data["team"] = combined_data["team"].replace({"NO": "NOP", "UTAH": "UTA", "WSH": "WAS","NY":"NYK","GS":"GSW","SA":"SAC","LA":"LAC"})
 
     # Upload to BigQuery
     pandas_gbq.to_gbq(

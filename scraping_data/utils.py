@@ -33,7 +33,7 @@ def establish_driver(local=False):
         webdriver.Chrome: A configured instance of the Chrome WebDriver.
     """
     chrome_options = webdriver.ChromeOptions()  # Correct usage of ChromeOptions
-    chrome_options.add_argument("--headless")  # Run without UI (remove if you need the UI)
+    # chrome_options.add_argument("--headless")  # Run without UI (remove if you need the UI)
     chrome_options.add_argument("--disable-dev-shm-usage")
     chrome_options.add_argument("--disable-gpu")  # Prevents GPU-related crashes
     chrome_options.add_argument("user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/92.0.4515.159 Safari/537.36")
@@ -154,7 +154,8 @@ def convert_date(date_str):
         datetime.date or None: The converted date object or None if invalid.
     """
     try:
-        date_obj = dt.strptime(date_str, "%a, %b %d")
+        # date_obj = dt.strptime(date_str, "%a, %b %d")
+        date_obj = dt.strptime(date_str, "%a, %m/%d")
 
         # Assign correct year based on NBA season start (October)
         assumed_year = 2024 if date_obj.month >= 10 else 2025
