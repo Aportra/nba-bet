@@ -78,7 +78,10 @@ def pull_odds():
         WHERE DATE(Date_Updated) = CURRENT_DATE('America/Los_Angeles') and recommendation != 'No Bet Recommendation'
         """
         odds_data[table] = pandas_gbq.read_gbq(odds_query, project_id='miscellaneous-projects-444203', credentials=credentials)
-
+        
+        odds_data[table].rename(columns={'Date_Updated':'game_date'},inplace=True)
+        odds_data[table]['game_date'] = odds_data[table]['game_date'].dt.date
+        odds_data[table] = odds_data[table].drop_duplicates(subset = ['player','game_date'])
         if odds_data[table].empty:
             odds_query = f"""
             SELECT distinct * 
