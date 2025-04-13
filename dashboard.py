@@ -81,7 +81,7 @@ def pull_odds():
         
         odds_data[table].rename(columns={'Date_Updated':'game_date'},inplace=True)
         odds_data[table]['game_date'] = odds_data[table]['game_date'].dt.date
-        odds_data[table] = odds_data[table].drop_duplicates(subset = ['player','game_date'])
+        odds_data[table].drop_duplicates(subset = ['player','game_date'],inplace = True)
         if odds_data[table].empty:
             odds_query = f"""
             SELECT distinct * 
