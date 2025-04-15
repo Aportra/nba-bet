@@ -246,7 +246,7 @@ def make_dashboard(player_images,team_images, odds_data,player_data,matchup_data
     if date != today and date != max(matchup_data['date']):
         main_time = f'{date}: Showing Past Odds, Current Data Unavailable'
     elif date == max(matchup_data['date']):
-        main_time = f'{date}: Season has ended. Please come back when the playoffs being.'
+        main_time = f'{date}: Season has ended. Please come back when the playoffs begin.'
     else:
         main_time = today
     side_col,main_col = st.columns([1,10])
