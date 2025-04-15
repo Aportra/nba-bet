@@ -22,7 +22,7 @@ def get_matchup(date):
     query = f""" 
     select team,opponent,date,home,away
     from `capstone_data.schedule`
-    where date = {date}
+    where date = '{date}'
     """
 
     matchup_data = pandas_gbq.read_gbq(query,project_id='miscellaneous-projects-444203',credentials=credentials)
