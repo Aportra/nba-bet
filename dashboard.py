@@ -64,12 +64,9 @@ def pull_odds():
     identifiers = ['pts','reb','ast','3pm']
     odds_data = {}
 
-    try:
-        local = False
-        credentials = service_account.Credentials.from_service_account_info(st.secrets["gcp_service_account"])
-    except FileNotFoundError:
-        local = True
-        credentials = None
+
+    credentials = service_account.Credentials.from_service_account_info(st.secrets["gcp_service_account"])
+
 
     for table,cat in zip(tables,identifiers):
         odds_query = f"""
