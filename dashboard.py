@@ -73,22 +73,15 @@ def pull_odds():
 
     for table,cat in zip(tables,identifiers):
         odds_query = f"""
-        SELECT distinct * 
-        FROM `capstone_data.{cat}_classifications`
-        WHERE DATE(Date_Updated) = CURRENT_DATE('America/Los_Angeles') and recommendation != 'No Bet Recommendation'
-        """
+            SELECT distinct * 
+            FROM `capstone_data.{cat}_classifications`
+            WHERE DATE(Date_Updated) = max(date(Date_Updated)) and recommendation != 'No Bet Recommendation'
+            """
         odds_data[table] = pandas_gbq.read_gbq(odds_query, project_id='miscellaneous-projects-444203', credentials=credentials)
         
         odds_data[table].rename(columns={'Date_Updated':'game_date'},inplace=True)
         odds_data[table]['game_date'] = odds_data[table]['game_date'].dt.date
         odds_data[table].drop_duplicates(subset = ['player','game_date'],inplace = True)
-        if odds_data[table].empty:
-            odds_query = f"""
-            SELECT distinct * 
-            FROM `capstone_data.{cat}_classifications`
-            WHERE DATE(Date_Updated) = max(date(Date_Updated)) and 'recommendation is not null
-            """
-            odds_data[table] = pandas_gbq.read_gbq(odds_query, project_id='miscellaneous-projects-444203', credentials=credentials)
 
         odds_data[table]['player'] = odds_data[table]['player'].apply(clean_player_name)
 
