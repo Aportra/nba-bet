@@ -15,14 +15,14 @@ def smart_title(name):
     ])
 
 @st.cache_data
-def get_matchup():
+def get_matchup(date):
 
     credentials = service_account.Credentials.from_service_account_info(st.secrets["gcp_service_account"])
 
-    query = """ 
+    query = f""" 
     select team,opponent,date,home,away
     from `capstone_data.schedule`
-    where date = current_date('America/Los_Angeles')
+    where date = {date}
     """
 
     matchup_data = pandas_gbq.read_gbq(query,project_id='miscellaneous-projects-444203',credentials=credentials)
@@ -86,7 +86,7 @@ def pull_odds():
 
         odds_data[table]['player'] = odds_data[table]['player'].apply(clean_player_name)
 
-    return odds_data
+    return odds_data, odds_data['pts']['game_date'].values[0]
 
 @st.cache_data
 def pull_stats(odds_data):
@@ -241,7 +241,7 @@ def get_player_odds(player_selected, category, odds_data):
     return player_odds
 
 def make_dashboard(player_images,team_images, odds_data,player_data,matchup_data):
-    today = odds_data['pts']['Date_Updated'].values[0]
+    today = odds_data['pts']['game_date'].values[0]
     side_col,main_col = st.columns([1,10])
 
     with side_col:
@@ -360,7 +360,7 @@ def make_dashboard(player_images,team_images, odds_data,player_data,matchup_data
 
 # Run the dashboard
 images,team_images = pull_images()
-odds_data = pull_odds()
+odds_data,date = pull_odds()
 player_data = pull_stats(odds_data)
-matchup_data = get_matchup()
+matchup_data = get_matchup(date)
 make_dashboard(images,team_images, odds_data,player_data,matchup_data)
