@@ -86,7 +86,7 @@ def pull_odds():
 
         odds_data[table]['player'] = odds_data[table]['player'].apply(clean_player_name)
 
-    return odds_data, odds_data['pts']['game_date'].values[0]
+    return odds_data, odds_data['points']['game_date'].values[0]
 
 @st.cache_data
 def pull_stats(odds_data):
@@ -241,7 +241,7 @@ def get_player_odds(player_selected, category, odds_data):
     return player_odds
 
 def make_dashboard(player_images,team_images, odds_data,player_data,matchup_data):
-    today = odds_data['pts']['game_date'].values[0]
+    today = odds_data['points']['game_date'].values[0]
     side_col,main_col = st.columns([1,10])
 
     with side_col:
