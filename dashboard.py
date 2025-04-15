@@ -241,7 +241,12 @@ def get_player_odds(player_selected, category, odds_data):
     return player_odds
 
 def make_dashboard(player_images,team_images, odds_data,player_data,matchup_data):
-    today = odds_data['points']['game_date'].values[0]
+    today = today().date.dt
+    date = odds_data['points']['game_date'].values[0]
+    if date != today:
+        main_time = f'{date}: Showing Past Odds, Current Data Unavailable'
+    else:
+        main_time = today
     side_col,main_col = st.columns([1,10])
 
     with side_col:
@@ -250,7 +255,7 @@ def make_dashboard(player_images,team_images, odds_data,player_data,matchup_data
 
     with main_col:
         st.title(f"NBA Player Betting Odds")
-        st.write(f'{today}')
+        st.write(f'{main_time}')
         
     if "selected_player" not in st.session_state:
         st.session_state["selected_player"] = ""
