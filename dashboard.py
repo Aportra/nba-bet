@@ -86,7 +86,7 @@ def pull_odds():
             odds_query = f"""
             SELECT distinct * 
             FROM `capstone_data.{cat}_classifications`
-            WHERE DATE(Date_Updated) = DATE_SUB(CURRENT_DATE('America/Los_Angeles'), INTERVAL 1 DAY) is not null
+            WHERE DATE(Date_Updated) = max(date(Date_Updated)) and 'recommendation is not null
             """
             odds_data[table] = pandas_gbq.read_gbq(odds_query, project_id='miscellaneous-projects-444203', credentials=credentials)
 
