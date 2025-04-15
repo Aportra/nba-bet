@@ -241,7 +241,7 @@ def get_player_odds(player_selected, category, odds_data):
     return player_odds
 
 def make_dashboard(player_images,team_images, odds_data,player_data,matchup_data):
-    today = dt.date.today()
+    today = odds_data['pts']['Date_Updated'].values[0]
     side_col,main_col = st.columns([1,10])
 
     with side_col:
