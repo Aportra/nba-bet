@@ -243,9 +243,9 @@ def get_player_odds(player_selected, category, odds_data):
 def make_dashboard(player_images,team_images, odds_data,player_data,matchup_data):
     today = dt.date.today()
     date = odds_data['points']['game_date'].values[0]
-    if date != today and date != matchup_data['date'].max.values[0]:
+    if date != today and date != max(matchup_data['date']):
         main_time = f'{date}: Showing Past Odds, Current Data Unavailable'
-    elif date == matchup_data['date'].max().values[0]:
+    elif date == max(matchup_data['date']):
         main_time = f'{date}: Season has ended. Please come back when the playoffs being.'
     else:
         main_time = today
