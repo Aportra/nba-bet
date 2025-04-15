@@ -241,7 +241,7 @@ def get_player_odds(player_selected, category, odds_data):
     return player_odds
 
 def make_dashboard(player_images,team_images, odds_data,player_data,matchup_data):
-    today = today().date.dt
+    today = dt.date.today()
     date = odds_data['points']['game_date'].values[0]
     if date != today:
         main_time = f'{date}: Showing Past Odds, Current Data Unavailable'
