@@ -2,9 +2,9 @@ import streamlit as st
 import pandas as pd
 import pandas_gbq
 from google.oauth2 import service_account
-from scraping_data import utils
 from datetime import timedelta
 import datetime as dt
+import requests
 
 def smart_title(name):
     # Words to preserve as all-uppercase
@@ -146,9 +146,25 @@ def pull_stats(odds_data):
 
     team_key = pandas_gbq.read_gbq(query,  project_id="miscellaneous-projects-444203",credentials=credentials)
 
-    scorecard = utils.establish_requests(url)
-    data = scorecard.json()
+    today = dt.date.today()
+    params = {
+        "GameDate": today,
+        "LeagueID": "00",
+        "DayOffset": "0"
+    }
+    headers = {
+        "User-Agent": "Mozilla/5.0",
+        "Referer": "https://www.nba.com/",
+        "Origin": "https://www.nba.com",
+        "Accept": "application/json",
+        "Connection": "keep-alive"
+    }
+
+    # Make the request
+    response = requests.get(url, headers=headers, params=params)
+    data = response.json()
     result_set = data['resultSets'][0]
+
     games_df = pd.DataFrame(result_set['rowSet'], columns=result_set['headers'])
 
         # Merge to get home team names
