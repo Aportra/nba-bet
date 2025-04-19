@@ -9,8 +9,7 @@ import pandas as pd
 import pandas_gbq
 from scraping_data import utils
 from google.oauth2 import service_account
-from selenium.webdriver.support import expected_conditions as EC
-
+from nba_api import boxscoretraditionalv3
 
 
 def scrape_current_games():
@@ -26,12 +25,25 @@ def scrape_current_games():
         local = True
         credentials = None
 
+    query ="""
+        select *
+        from `capstone_data.schedule`
+        """
+    schedule = pandas_gbq.read_gbq(query,credentials=credentials)
+
     try:
         scrape_date = dt.today() 
-        url = {
-            "2024-2025_uncleaned": "https://stats.nba.com/stats/leaguegamelog?LeagueID=00&Season=2024-25&SeasonType=Regular%20Season&PlayerOrTeam=T&Counter=0&Sorter=DATE&Direction=DESC"
 
-        }
+        if scrape_date <= max(schedule['date']):
+            url = {
+                "2024-2025_uncleaned": "https://stats.nba.com/stats/leaguegamelog?LeagueID=00&Season=2024-25&SeasonType=Regular%20Season&PlayerOrTeam=T&Counter=0&Sorter=DATE&Direction=DESC"
+
+            }
+        else:
+            url = {
+                "2024-2025_uncleaned": "https://stats.nba.com/stats/leaguegamelog?LeagueID=00&Season=2024-25&SeasonType=Playoffs&PlayerOrTeam=T&Counter=0&Sorter=DATE&Direction=DESC"
+
+            } 
 
         response = utils.establish_requests(url["2024-2025_uncleaned"])
         year = scrape_date.year if scrape_date.month >= 10 else scrape_date.year - 1
@@ -67,7 +79,7 @@ def scrape_current_games():
                     df,
                     project_id="miscellaneous-projects-444203",
                     destination_table=team_table_id,
-                    if_exists="replace",
+                    if_exists="append",
                     table_schema=team_table_schema,
                 )
 
@@ -88,20 +100,72 @@ def scrape_current_games():
 
             for game in game_ids:
                 print(game)
-                game_response = utils.establish_requests(f"https://stats.nba.com/stats/boxscoretraditionalv2?GameID={game}&StartPeriod=0&EndPeriod=10")
+                game_response = utils.establish_requests(f"https://stats.nba.com/stats/boxscoretraditionalv3?GameID={game}&StartPeriod=0&EndPeriod=10")
                 game_response = game_response.json()
-                column = [header.lower() for header in game_response['resultSets'][0]['headers']]
-                row_data = game_response['resultSets'][0]['rowSet']
 
-                game_data = pd.DataFrame(row_data,columns=column)
-                game_data.drop(columns=['comment','start_position','nickname'],inplace=True)
+                # Home team players
+                home_players = game_response['boxScoreTraditional']['homeTeam']['players']
+                home_df = pd.json_normalize(home_players)
+
+                # Away team players
+                away_players = game_response['boxScoreTraditional']['awayTeam']['players']
+                away_df = pd.json_normalize(away_players)
+
+                # Add context
+                home_df['team'] = game_response['boxScoreTraditional']['homeTeam']['teamTricode']
+                away_df['team'] = game_response['boxScoreTraditional']['awayTeam']['teamTricode']
+
+                # Combine
+                game_data = pd.concat([home_df, away_df], ignore_index=True) 
+
+                
+                rename_map = {
+                    'personId': 'player_id',
+                    'statistics.minutes': 'min',
+                    'statistics.fieldGoalsMade': 'fgm',
+                    'statistics.fieldGoalsAttempted': 'fga',
+                    'statistics.fieldGoalsPercentage': 'fg_pct',
+                    'statistics.threePointersMade': 'fg3m',
+                    'statistics.threePointersAttempted': 'fg3a',
+                    'statistics.threePointersPercentage': 'fg3_pct',
+                    'statistics.freeThrowsMade': 'ftm',
+                    'statistics.freeThrowsAttempted': 'fta',
+                    'statistics.freeThrowsPercentage': 'ft_pct',
+                    'statistics.reboundsOffensive': 'oreb',
+                    'statistics.reboundsDefensive': 'dreb',
+                    'statistics.reboundsTotal': 'reb',
+                    'statistics.assists': 'ast',
+                    'statistics.steals': 'stl',
+                    'statistics.blocks': 'blk',
+                    'statistics.turnovers': 'to',
+                    'statistics.foulsPersonal': 'pf',
+                    'statistics.points': 'pts',
+                    'statistics.plusMinusPoints': 'plus_minus',
+                    'team': 'team_abbreviation'
+                }
+
+                game_data.rename(columns=rename_map,inplace=True)
 
                 game_data['min'] = game_data['min'].apply(lambda x: ''.join(x.split('.000000')) if isinstance(x, str) and '.000000' in x else x)
-                
+
+
+                game_data['player_name'] = game_data.apply(lambda row: f"{row['firstName']} {row['familyName']}", axis=1)
+                game_data['game_id'] = game
+                game_data.rename(columns={''})
+
                 games.append(game_data)
 
             full_data = pd.concat(games)
-            
+            # Your desired columns
+            desired_columns = [
+                'game_id', 'team_abbreviation', 'player_id', 'player_name', 'min',
+                'fgm', 'fga', 'fg_pct', 'fg3m', 'fg3a', 'fg3_pct',
+                'ftm', 'fta', 'ft_pct', 'oreb', 'dreb', 'reb',
+                'ast', 'stl', 'blk', 'to', 'pf', 'pts', 'plus_minus'
+            ]
+
+            # Drop all other columns
+            full_data = full_data[[col for col in desired_columns if col in full_data.columns]]          
 
             if len(full_data) > 0:
                 print(len(full_data))
@@ -168,10 +232,6 @@ def scrape_past_games():
         multi_threading (bool): Whether to use multi-threading for scraping.
         max_workers (int): Number of workers to use for multi-threading.
     """
-    # urls = {
-    #     f"{i}-{i+1}_uncleaned": f"https://stats.nba.com/stats/leaguegamelogs?LeagueID=00&Season={i}-{str(i-2000+1)}&SeasonType=Regular%20Season"
-    #     for i in range(2017, 2025)
-    # }
 
     urls = {
         f"{i}-{i+1}_uncleaned": f"https://stats.nba.com/stats/leaguegamelog?LeagueID=00&Season={i}-{str(i-2000+1)}&SeasonType=Regular%20Season&PlayerOrTeam=T&Counter=0&Sorter=DATE&Direction=DESC"
@@ -233,21 +293,58 @@ def scrape_past_games():
             retries = []
             for game in game_ids:
                 time.sleep(random.uniform(.01,1))
-                game_response = utils.establish_requests(f"https://stats.nba.com/stats/boxscoretraditionalv2?GameID={game}&StartPeriod=0&EndPeriod=10")
+                game_response = utils.establish_requests(f"https://stats.nba.com/stats/boxscoretraditionalv3?GameID={game}&StartPeriod=0&EndPeriod=10")
 
                 if game_response.status_code == 200:
                     game_response = game_response.json()
-    
+                    
 
-                    column = [header.lower() for header in game_response['resultSets'][0]['headers']]
-                    row_data = game_response['resultSets'][0]['rowSet']
+                    # Home team players
+                    home_players = game_response['boxScoreTraditional']['homeTeam']['players']
+                    home_df = pd.json_normalize(home_players)
 
-                    game_data = pd.DataFrame(row_data,columns=column)
-                    game_data.drop(columns=['comment','start_position','nickname'],inplace=True)
+                    # Away team players
+                    away_players = game_response['boxScoreTraditional']['awayTeam']['players']
+                    away_df = pd.json_normalize(away_players)
+
+                    # Add context
+                    home_df['team'] = game_response['boxScoreTraditional']['homeTeam']['teamTricode']
+                    away_df['team'] = game_response['boxScoreTraditional']['awayTeam']['teamTricode']
+
+                    # Combine
+                    game_data = pd.concat([home_df, away_df], ignore_index=True) 
+
+                    
+                    rename_map = {
+                        'personId': 'player_id',
+                        'statistics.minutes': 'min',
+                        'statistics.fieldGoalsMade': 'fgm',
+                        'statistics.fieldGoalsAttempted': 'fga',
+                        'statistics.fieldGoalsPercentage': 'fg_pct',
+                        'statistics.threePointersMade': 'fg3m',
+                        'statistics.threePointersAttempted': 'fg3a',
+                        'statistics.threePointersPercentage': 'fg3_pct',
+                        'statistics.freeThrowsMade': 'ftm',
+                        'statistics.freeThrowsAttempted': 'fta',
+                        'statistics.freeThrowsPercentage': 'ft_pct',
+                        'statistics.reboundsOffensive': 'oreb',
+                        'statistics.reboundsDefensive': 'dreb',
+                        'statistics.reboundsTotal': 'reb',
+                        'statistics.assists': 'ast',
+                        'statistics.steals': 'stl',
+                        'statistics.blocks': 'blk',
+                        'statistics.turnovers': 'to',
+                        'statistics.foulsPersonal': 'pf',
+                        'statistics.points': 'pts',
+                        'statistics.plusMinusPoints': 'plus_minus',
+                        'team': 'team_abbreviation'
+                    }
+
+                    game_data.rename(columns=rename_map,inplace=True)
 
                     game_data['min'] = game_data['min'].apply(lambda x: ''.join(x.split('.000000')) if isinstance(x, str) and '.000000' in x else x)
-
-
+                    game_data['player_name'] = game_data.apply(lambda row: f"{row['firstName']} {row['familyName']}", axis=1)
+                    game_data['game_id'] = game
                     games.append(game_data)
 
                 else:
@@ -256,7 +353,7 @@ def scrape_past_games():
             if len(retries) > 0:
                 while retries:
                         retry_id = retries.pop(0) 
-                        game_response = utils.establish_requests(f"https://stats.nba.com/stats/boxscoretraditionalv2?GameID={retry_id}&StartPeriod=0&EndPeriod=10")
+                        game_response = utils.establish_requests(f"https://stats.nba.com/stats/boxscoretraditionalv3?GameID={retry_id}&StartPeriod=0&EndPeriod=10")
                         if game_response.status_code == 200:
                             game_response = game_response.json()
 
@@ -275,7 +372,15 @@ def scrape_past_games():
 
             full_data = pd.concat(games)
 
+            desired_columns = [
+                'game_id', 'team_abbreviation', 'player_id', 'player_name', 'min',
+                'fgm', 'fga', 'fg_pct', 'fg3m', 'fg3a', 'fg3_pct',
+                'ftm', 'fta', 'ft_pct', 'oreb', 'dreb', 'reb',
+                'ast', 'stl', 'blk', 'to', 'pf', 'pts', 'plus_minus'
+            ]
 
+            # Drop all other columns
+            full_data = full_data[[col for col in desired_columns if col in full_data.columns]]
 
         table_id = f"miscellaneous-projects-444203.capstone_data.{url}"
         table_schema = [{"name": "game_date", "type": "DATE"}]

@@ -20,7 +20,6 @@ NBA-Prediction-Project/
 │── scraping_data/          # Collects NBA player, team, and odds data  
 │   ├── scrape_games.py  
 │   ├── scrape_odds.py  
-│   ├── scrape_team_data.py  
 │   ├── scrape_team_schedule.py  
 │   ├── utils.py  
 │── cleaning_data/          # Cleans and prepares data for modeling  
@@ -28,11 +27,13 @@ NBA-Prediction-Project/
 │── models/                 # Builds models and predicts game outcomes  
 │   ├── building_models.ipynb  
 │   ├── model_utils.py  
-│   ├── predict_new_games.py  
-│   ├── models.pkl          # Saved machine learning models  
-│── dashboard/              # Visualizes predictions in Streamlit  
-│   ├── dashboard.py  
-│── main.py                 # Runs the full pipeline  
+│   ├── predict_new_games.py
+|   ├── models.pkl            # Saved machine learning models  
+|   ├── classification_models.pkl 
+│   ├── meta_models.pkl          
+│── main.py                  # Runs the full data pipeline  
+│── run_predictions.py       # Scrapes odds and generates predictions
+│──  dashboard.py           # Visualizes predictions in Streamlit  
 │── README.md               # Project documentation  
 ```
 
@@ -43,12 +44,11 @@ NBA-Prediction-Project/
 ### 1. Scraping Data (`scraping_data/`)
 **Purpose:** Collect real-time and historical data on NBA players, teams, and odds.
 
-- `scrape_games.py` - Scrapes box score data from NBA.com
-- `scrape_team_data.py` - Collects team stats and ratings
+- `scrape_games.py` - Scrapes box score data and team stats from NBA.com
 - `scrape_team_schedule.py` - Scrapes team schedules
 - `scrape_odds.py` - Extracts Over/Under betting lines from DraftKings
 
-**Tools used:** Selenium, BeautifulSoup, Google BigQuery
+**Tools used:** Selenium, BeautifulSoup, Requests, Google BigQuery
 
 ---
 
@@ -84,14 +84,12 @@ NBA-Prediction-Project/
 ### 4. Making Predictions (`predict_new_games.py`)
 **Purpose:** Predict player statistics for upcoming games and compare them to betting odds.
 
-- Loads trained models (`models.pkl`)
+- Loads trained models (`models.pkl`,`meta_model.pkl`,`classification_models.pkl`)
 - Predicts points, rebounds, assists, and three-pointers for each player
-- Compares predictions with Over/Under lines
+- Feeds predictions into meta_model
+- Meta model, and both regressions model then fed into classifcation_models
+- Classification model then generates an Over or Under prediction
 - Recommends "Over" or "Under" for each player
-
-**Key logic:**
-- If the predicted value is greater than the sportsbook line, the system recommends "Over"
-- If the predicted value is less than the sportsbook line, the system recommends "Under"
 
 ---
 
@@ -100,7 +98,8 @@ NBA-Prediction-Project/
 
 Utilizes Streamlit to present:
 - Player headshots
-- Predicted statistics
+- Team logos
+- Past 3 games statistics
 - Sportsbook odds
 - Over/Under recommendations
 
@@ -113,12 +112,17 @@ Utilizes Streamlit to present:
 pip install -r requirements.txt
 ```
 
-### 2. Run the Full Pipeline
+### 2. Run the Full Data Pipeline
 ```
 python main.py
 ```
 
-### 3. Launch the Dashboard
+### 3. Pull todays odds and generate predictions
+```
+python run_predictions.py
+```
+
+### 4. Launch the Dashboard
 ```
 streamlit run dashboard.py
 ```
@@ -126,9 +130,9 @@ streamlit run dashboard.py
 ---
 
 ## Future Improvements
-- Enhance feature engineering, including team synergy, opponent strength, and fatigue factor
+- Enhance feature engineering, including team synergy, opponent strength, game context and fatigue factor
 - Improve models by incorporating XGBoost and deep learning approaches
-- Automate deployment with scheduled daily runs and alert notifications for top picks
+
 
 ---
 

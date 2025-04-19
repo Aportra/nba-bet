@@ -225,7 +225,7 @@ def recent_player_data(games):
     # Merge datasets while keeping only necessary columns
     print('merging data')
     full_data = (player_data.merge(games, on="player", how="inner", suffixes=("", "_remove")))
-    full_data = full_data.merge(team_data, on = 'team_id',how = 'left', suffixes = ("","_remove"))
+    full_data = full_data.merge(team_data, on = 'team',how = 'left', suffixes = ("","_remove"))
     full_data = full_data.merge(team_data_1, on= 'opponent', how = 'left',suffixes = ("","_opponent"))
 
 
