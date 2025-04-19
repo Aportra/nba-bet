@@ -123,7 +123,7 @@ def pull_stats(odds_data):
             ROW_NUMBER() OVER (PARTITION BY player, pp.game_id ORDER BY pp.game_date DESC) AS rn
         FROM `capstone_data.player_prediction_data_partitioned` pp
         INNER JOIN `capstone_data.team_prediction_data_partitioned` tp
-            ON pp.game_id = tp.game_id and pp.team_id = tp.team_id
+            ON pp.game_id = tp.game_id and pp.team = tp.team
         WHERE pp.season_start_year = {season}
           AND tp.season_start_year = {season}
           AND LOWER(player) IN ({','.join([f'"{player}"' for player in players])})
