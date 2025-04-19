@@ -5,7 +5,6 @@ import time
 import random
 import smtplib
 import signal
-import psutil
 import pandas as pd
 import chromedriver_autoinstaller
 import requests
@@ -80,14 +79,7 @@ def establish_requests(url,params=False):
     return response
 
 
-def terminate_firefox_processes():
-    """Forcefully terminates lingering Firefox & Geckodriver processes."""
-    for process in psutil.process_iter(attrs=["pid", "name"]):
-        try:
-            if process.info["name"].lower() in ("firefox-bin", "geckodriver", "firefox.exe"):
-                os.kill(process.info["pid"], signal.SIGTERM)  # Terminate process
-        except (psutil.NoSuchProcess, psutil.AccessDenied, psutil.ZombieProcess):
-            pass
+
 
 
 def select_all_option(driver):
