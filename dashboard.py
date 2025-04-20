@@ -321,7 +321,7 @@ def make_dashboard(player_images,team_images, odds_data,player_data,games):
         if player_odds:
             player_data.columns = [col.replace("_","").title() for col in player_data.columns]
             filtered_player_df = player_data[player_data['Player'].apply(lambda x:x.lower())==st.session_state['selected_player']].copy()
-            filtered_player_df.drop(['Player','Team','Team Name'],axis = 1,inplace=True)
+            filtered_player_df.drop(['Player','Team','Team Name','Teamid'],axis = 1,inplace=True)
             filtered_player_df['Min'] = filtered_player_df['Min'].apply(lambda x: convert_minute(x))
             st.dataframe(filtered_player_df,hide_index=True)
             for table_name, odds in player_odds:
