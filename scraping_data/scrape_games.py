@@ -30,7 +30,7 @@ def scrape_current_games():
     try:
         scrape_date = dt.today()-timedelta(1) 
 
-        game_date = date(2025, 4, 13)
+        game_date = dt(2025, 4, 13)
         formatted = game_date.strftime("%Y-%m-%d")
 
         if scrape_date <= formatted:
