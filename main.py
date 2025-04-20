@@ -8,9 +8,9 @@ team_data,player_data,date = scrape_current_games()
 
 print("Cleaning Data")
 
-# clean_current_player_data(player_data,date)
+clean_current_player_data(player_data,date)
 
-# clean_current_team_ratings(team_data)
+clean_current_team_ratings(team_data)
 
-current_outcome(player_data,date)
+# current_outcome(player_data,date)
 
