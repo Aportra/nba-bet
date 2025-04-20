@@ -140,7 +140,7 @@ def pull_stats(odds_data):
     
     games_query = f""" 
     select team,opponent,home
-    from `capstone_data.team_prediction_data_partitioned`
+    from `capstone_data.schedule`
     where date(GAME_DATE_EST) = Current_date('America/Los_Angeles')
     """
 
