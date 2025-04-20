@@ -105,7 +105,7 @@ def pull_stats(odds_data):
             (pp.ft_pct*100) as `FT %`,
             pp.plus_minus,
             pp.game_id,
-            tp.team_id
+            tp.team_id,
             ROW_NUMBER() OVER (PARTITION BY player, pp.game_id ORDER BY pp.game_date DESC) AS rn
         FROM `capstone_data.player_prediction_data_partitioned` pp
         INNER JOIN `capstone_data.team_prediction_data_partitioned` tp
