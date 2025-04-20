@@ -138,56 +138,19 @@ def pull_stats(odds_data):
     
     url = "https://stats.nba.com/stats/scoreboardv2"
     
-    query = f""" 
-    select distinct team,team_id
+    games_query = f""" 
+    select team,opponent,home
     from `capstone_data.team_prediction_data_partitioned`
     where season_start_year = {season}
     """
 
-    team_key = pandas_gbq.read_gbq(query,  project_id="miscellaneous-projects-444203",credentials=credentials)
+    games = pandas_gbq.read_gbq(games_query, project_id='miscellaneous-projects-444203', credentials=credentials)
 
-    today = dt.date.today()
-    params = {
-        "GameDate": today,
-        "LeagueID": "00",
-        "DayOffset": "0"
-    }
-    headers = {
-        "User-Agent": "Mozilla/5.0",
-        "Referer": "https://www.nba.com/",
-        "Origin": "https://www.nba.com",
-        "Accept": "application/json",
-        "Connection": "keep-alive"
-    }
-
-    # Make the request
-    response = requests.get(url, headers=headers, params=params)
-    data = response.json()
-    result_set = data['resultSets'][0]
-
-    games_df = pd.DataFrame(result_set['rowSet'], columns=result_set['headers'])
-
-        # Merge to get home team names
-    games_with_home = games_df.merge(
-        team_key.rename(columns={'team_id': 'HOME_TEAM_ID', 'team': 'HOME_TEAM'}),
-        on='HOME_TEAM_ID', how='left'
-    )
-
-    # Merge to get visitor team names
-    games_with_both = games_with_home.merge(
-        team_key.rename(columns={'team_id': 'VISITOR_TEAM_ID', 'team': 'VISITOR_TEAM'}),
-        on='VISITOR_TEAM_ID', how='left'
-    )
-
-    # Optional: drop ID columns and reorder
-    games_clean = games_with_both[[
-        'GAME_ID', 'GAME_DATE_EST', 'HOME_TEAM', 'VISITOR_TEAM'
-    ]]
 
     player_data = pandas_gbq.read_gbq(query, project_id='miscellaneous-projects-444203', credentials=credentials)
 
     player_data.rename(columns = {'team_name':'Team Name','game_date':'Game Date','plus_minus':'Plus Minus'},inplace=True)
-    return player_data,games_clean
+    return player_data,games
 
 @st.cache_data
 def pull_images():
@@ -274,7 +237,7 @@ def get_player_odds(player_selected, category, odds_data):
     
     return player_odds
 
-def make_dashboard(player_images,team_images, odds_data,player_data,games_clean):
+def make_dashboard(player_images,team_images, odds_data,player_data,games):
 
     main_time = dt.date.today()
     side_col,main_col = st.columns([1,10])
@@ -333,12 +296,12 @@ def make_dashboard(player_images,team_images, odds_data,player_data,games_clean)
         team_name = player_data[player_data['player'].apply(lambda x: x.lower()) == st.session_state['selected_player']]['Team Name'].values[0]
         team_selected_image = team_images[team_images['teams'] == team]['images'].values[0]
 
-        if team in games_clean['HOME_TEAM'].values:
+        if team in games['HOME_TEAM'].values:
             divider = 'vs'
-            opponent = games_clean[games_clean['HOME_TEAM']==team]['AWAY_TEAM'].values[0]
+            opponent = games[games['team']==team]['opponent'].values[0]
         else:
             divider = '@'
-            opponent = games_clean[games_clean['AWAY_TEAM']==team]['HOME_TEAM'].values[0]
+            opponent = games[games['team']==team]['opponent'].values[0]
 
         col1, col2, = st.columns(2)
 
@@ -398,5 +361,5 @@ def make_dashboard(player_images,team_images, odds_data,player_data,games_clean)
 # Run the dashboard
 images,team_images = pull_images()
 odds_data,date = pull_odds()
-player_data,games_clean = pull_stats(odds_data)
+player_data,games = pull_stats(odds_data)
 make_dashboard(images,team_images, odds_data,player_data,games_clean)

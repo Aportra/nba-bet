@@ -52,9 +52,9 @@ def fetch_bigquery_data(query,credentials):
 def gather_data_to_model():
     """Fetches today's NBA schedule from BigQuery."""
     query = """
-    SELECT team, opponent, date
+    SELECT team, opponent, game_date
     FROM `capstone_data.schedule`
-    WHERE date = CURRENT_DATE('America/Los_Angeles')
+    WHERE date(GAME_DATE_EST) = CURRENT_DATE('America/Los_Angeles')
     """
 
     team_mapping = {"WAS": "WSH", "UTA": "UTAH", "NOP": "NO"}
