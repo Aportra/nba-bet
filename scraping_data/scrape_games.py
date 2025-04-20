@@ -28,7 +28,7 @@ def scrape_current_games():
 
 
     try:
-        scrape_date = dt.today()-timedelta(1) 
+        scrape_date = dt.today()
 
         game_date = dt(2025, 4, 13)
 
