@@ -27,16 +27,16 @@ def process_categories():
         "threes_made": "https://sportsbook.draftkings.com/nba-player-props?category=player-threes&subcategory=threes-o%2Fu",
     }
 
-    try:
-        credentials = service_account.Credentials.from_service_account_file(
-            "/home/aportra99/scraping_key.json"
-        )
-        default_creds = False
-        print("Credentials Loaded.")
-    except FileNotFoundError:
-        default_creds = True
-        credentials = None
-        print("No credentials file found. Using default credentials.")
+    # try:
+    credentials = service_account.Credentials.from_service_account_file(
+        "/home/aportra99/scraping_key.json"
+    )
+    default_creds = False
+    print("Credentials Loaded.")
+    # except FileNotFoundError:
+    #     default_creds = True
+    #     credentials = None
+    #     print("No credentials file found. Using default credentials.")
 
     for category, url in urls.items():
         try:
