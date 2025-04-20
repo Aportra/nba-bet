@@ -141,7 +141,7 @@ def pull_stats(odds_data):
     games_query = f""" 
     select team,opponent,home
     from `capstone_data.schedule`
-    where date(GAME_DATE_EST) = Current_date('America/Los_Angeles')
+    where date(GAME_DATE_EST) = Current_date("America/Los_Angeles")
     """
 
     games = pandas_gbq.read_gbq(games_query, project_id='miscellaneous-projects-444203', credentials=credentials)
