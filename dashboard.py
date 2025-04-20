@@ -362,4 +362,4 @@ def make_dashboard(player_images,team_images, odds_data,player_data,games):
 images,team_images = pull_images()
 odds_data,date = pull_odds()
 player_data,games = pull_stats(odds_data)
-make_dashboard(images,team_images, odds_data,player_data,games_clean)
+make_dashboard(images,team_images, odds_data,player_data,games)
