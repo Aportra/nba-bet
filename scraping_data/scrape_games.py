@@ -149,7 +149,6 @@ def scrape_current_games():
 
                 game_data['player_name'] = game_data.apply(lambda row: f"{row['firstName']} {row['familyName']}", axis=1)
                 game_data['game_id'] = game
-                game_data.rename(columns={''})
 
                 games.append(game_data)
 
