@@ -10,7 +10,6 @@ from dotenv import load_dotenv
 import os
 import smtplib
 import signal
-import psutil
 import chromedriver_autoinstaller
 
 
@@ -46,16 +45,6 @@ def establish_driver(local=False):
 
     return driver
 
-def terminate_firefox_processes(): #Used for memory efficieny
-    """
-    Forcefully terminates all lingering Firefox & Geckodriver processes.
-    """
-    for process in psutil.process_iter(attrs=['pid', 'name']): #gathers all the current active signals
-        try:
-            if process.info['name'].lower() in ('firefox-bin', 'geckodriver','firefox.exe'): 
-                os.kill(process.info['pid'], signal.SIGTERM)  #sends termination signal
-        except (psutil.NoSuchProcess, psutil.AccessDenied, psutil.ZombieProcess):
-            pass
 
 #Select all option only works when at least half screen due to blockage of the all option when not in headerless option
 
