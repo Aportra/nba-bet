@@ -9,7 +9,6 @@ import pandas as pd
 import pandas_gbq
 from scraping_data import utils
 from google.oauth2 import service_account
-from nba_api import boxscoretraditionalv3
 
 
 def scrape_current_games():
@@ -32,7 +31,7 @@ def scrape_current_games():
     schedule = pandas_gbq.read_gbq(query,credentials=credentials)
 
     try:
-        scrape_date = dt.today() 
+        scrape_date = dt.today()-timedelta(1) 
 
         if scrape_date <= max(schedule['date']):
             url = {
