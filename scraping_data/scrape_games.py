@@ -30,9 +30,10 @@ def scrape_current_games():
     try:
         scrape_date = dt.today()-timedelta(1) 
 
-        game_date = "2025-04-13"
+        game_date = date(2025, 4, 13)
+        formatted = game_date.strftime("%Y-%m-%d")
 
-        if scrape_date <= game_date:
+        if scrape_date <= formatted:
             url = {
                 "2024-2025_uncleaned": "https://stats.nba.com/stats/leaguegamelog?LeagueID=00&Season=2024-25&SeasonType=Regular%20Season&PlayerOrTeam=T&Counter=0&Sorter=DATE&Direction=DESC"
 
