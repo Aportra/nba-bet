@@ -239,7 +239,7 @@ def get_player_odds(player_selected, category, odds_data):
 
 def make_dashboard(player_images,team_images, odds_data,player_data,games):
 
-    main_time = dt.date.today()
+    main_time = dt.date.today()-timedelta(1)
     side_col,main_col = st.columns([1,10])
 
     with side_col:
