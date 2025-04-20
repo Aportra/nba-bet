@@ -67,7 +67,7 @@ def gather_data_to_model():
         local = True
         credentials = None
 
-    teams_data = fetch_bigquery_data(query,credentials=credentials)
+    teams_data = fetch_bigquery_data(query,project_id="miscellaneous-projects-444203",credentials=credentials)
     if teams_data.empty:
         print("No game data found for today.")
         return pd.DataFrame()
@@ -165,7 +165,7 @@ def recent_player_data(games):
         credentials=None
     odds_data = pull_odds()
 
-    existing_players = fetch_bigquery_data(existing_players_query,credentials=credentials)
+    existing_players = fetch_bigquery_data(existing_players_query,credentials=credentials, project_id="miscellaneous-projects-444203")
     existing_players_set = set(existing_players["player"].apply(clean_player_name))
     # filtered_players = [player for player in existing_players_set]
     filtered_players = set()

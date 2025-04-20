@@ -46,7 +46,7 @@ def get_matchups(local=False):
         FROM `capstone_data.team_prediction_data_partitioned`
         WHERE season_start_year = {season}
     """
-    team_key = pandas_gbq.read_gbq(query, project_id="miscellaneous-projects-444203")
+    team_key = pandas_gbq.read_gbq(query, project_id="miscellaneous-projects-444203",credentials=credentials)
 
     # Parse game data
     result_set = data['resultSets'][0]  # GameHeader
