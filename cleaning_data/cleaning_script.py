@@ -5,6 +5,7 @@ from datetime import datetime as dt
 from google.oauth2 import service_account
 from scraping_data.utils import send_email
 
+import numpy as np
 import pandas as pd
 import pandas_gbq
 import unicodedata
@@ -33,8 +34,11 @@ def convert_minutes_to_decimal(min_played):
     Returns:
         float: Decimal representation of minutes.
     """
-    minutes, seconds = map(int, min_played.split(':'))
-    return round(minutes + (seconds / 60), 2)
+    if not isinstance(min_played, str) or ':' not in min_played:
+        return np.nan  # Or np.nan, or whatever default you want
+    else:
+        minutes, seconds = map(int, min_played.split(':'))
+        return minutes + seconds / 60
 
 
 def clean_current_player_data(data,date):
@@ -46,7 +50,7 @@ def clean_current_player_data(data,date):
     Raises:
         Exception: If data cleaning or processing fails.
     """
-    # try:
+   
         # Load credentials for Google BigQuery
     try:
         credentials = service_account.Credentials.from_service_account_file('/home/aportra99/scraping_key.json')
@@ -58,7 +62,6 @@ def clean_current_player_data(data,date):
         print("Running with default credentials.")
     try:
         # Drop missing values and reset index
-        data.dropna(inplace=True, ignore_index=True)
         data.rename(columns={'team_abbreviation':'team','player_name':'player'},inplace=True)
         print("Columns after renaming:", data.columns)  
         # Normalize player names (remove dots and accents)
@@ -67,7 +70,7 @@ def clean_current_player_data(data,date):
         data['game_date'] = date
         # Convert time played to decimal format
         data['min'] = data['min'].apply(convert_minutes_to_decimal)
-
+        data.dropna(inplace=True, ignore_index=True)
         # Standardize column names to lowercase
         data.rename(columns=str.lower, inplace=True)
 
