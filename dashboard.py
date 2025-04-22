@@ -37,7 +37,7 @@ def convert_minute(data):
     if seconds < 1:
         seconds = int(seconds *10)
     else:
-        seconds = round(seconds,2)
+        seconds = round(seconds)
     time = f'{minutes}:{seconds:02}'
 
 
