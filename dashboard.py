@@ -29,19 +29,16 @@ def clean_player_name(name):
         "cameron thomas": "cam thomas"
     }
     return name_corrections.get(name, name)
-
 def convert_minute(data):
-    data = str(data).split('.')
-    minutes = data[0]
-    seconds = int(data[1])*60/100
-    if seconds < 1:
-        seconds = int(seconds *10)
-    else:
-        seconds = round(seconds)
-    time = f'{minutes}:{seconds:02}'
+    data = float(data)
+    minutes = int(data)
+    seconds = round((data - minutes) * 60)
+    
+    if seconds == 60:
+        minutes += 1
+        seconds = 0
 
-
-    return time
+    return f"{minutes}:{seconds:02}"
 
 @st.cache_data
 def pull_odds():
