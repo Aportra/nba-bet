@@ -57,7 +57,7 @@ def pull_odds():
         odds_query = f"""
             SELECT DISTINCT *
             FROM `capstone_data.{cat}_classifications`
-            WHERE DATE(Date_Updated) = Current_date('America/'Los_Angeles')
+            WHERE DATE(Date_Updated) = Current_date('America/Los_Angeles')
             AND recommendation != 'No Bet Recommendation'
         """
         odds_data[table] = pandas_gbq.read_gbq(odds_query, project_id='miscellaneous-projects-444203', credentials=credentials)
