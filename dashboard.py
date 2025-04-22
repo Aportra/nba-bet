@@ -6,6 +6,12 @@ from datetime import timedelta
 import datetime as dt
 import requests
 
+st.set_page_config(
+    page_title="NBA Pro Picks",
+    page_icon="🏀",  # fallback icon
+    layout="wide"
+)
+
 def smart_title(name):
     # Words to preserve as all-uppercase
     exceptions = {"iii", "ii", "iv"}
