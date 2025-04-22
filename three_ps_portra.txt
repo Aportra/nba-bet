@@ -1,3 +1,15 @@
+4/22/2025
+Progress:
+Added in functionality to dynamically pull in games being played instead of relying on posted schedule at beginning of season which now allows for playoffs to run.
+
+Problems:
+Working on hosting streamlit app on local server for more control. However, not necessary for functionality.
+
+Plans: 
+Continue trying to host on local server. Looking into adding a tab section for "Top Picks" based on the proba so highest or lowest indicating the highest confidence picks.
+
+
+***********************************************************************************************************************************************************************************************************************************************************
 4/7/2025
 Progress:
 Implemented classification model as well as automated the process of retraining and model selection to update .pkls and dashboard implemented to use classification recommendations.
