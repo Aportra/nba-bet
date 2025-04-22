@@ -34,7 +34,7 @@ def convert_minute(data):
     minutes = int(data)
     seconds = round((data - minutes) * 60)
     
-    if seconds == 60:
+    if seconds >= 60:
         minutes += 1
         seconds = 0
 
