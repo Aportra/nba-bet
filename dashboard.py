@@ -29,7 +29,7 @@ def bad_model():
         """
         df = pandas_gbq.read_gbq(query, project_id=project_id,credentials=credentials)
 
-        if df['accuracy'] < .524:
+        if df['accuracy'].values[0] < .524:
             underperfoming_model.append(cat)
 
     return underperfoming_model
