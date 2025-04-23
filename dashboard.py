@@ -25,7 +25,7 @@ def bad_model():
         SELECT 
             SUM(CASE WHEN result = recommendation THEN 1 ELSE 0 END) / COUNT(Player) AS accuracy
         FROM `capstone_data.{cat}_cl_outcome`
-        where game_date = Date_sub(CURRENT_DATE('America/Los_Angeles'),'day',1)
+        where game_date = Date_sub(CURRENT_DATE('America/Los_Angeles'), INTERVAL 1 DAY)
         """
         df = pandas_gbq.read_gbq(query, project_id=project_id,credentials=credentials)
 
