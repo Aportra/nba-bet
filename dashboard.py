@@ -13,7 +13,8 @@ st.set_page_config(
 )
 
 def bad_model():
-
+    credentials = service_account.Credentials.from_service_account_info(st.secrets["gcp_service_account"])
+    
     project_id = 'miscellaneous-projects-444203'
     categories = ['pts', 'reb', 'ast', '3pm']
     
@@ -26,7 +27,7 @@ def bad_model():
         FROM `capstone_data.{cat}_cl_outcome`
         where game_date = Date_sub(CURRENT_DATE('America/Los_Angeles'),'day',1)
         """
-        df = pandas_gbq.read_gbq(query, project_id=project_id, dialect='standard')
+        df = pandas_gbq.read_gbq(query, project_id=project_id, dialect='standard',credentials=credentials)
 
         if df['accuracy'] < .524:
             underperfoming_model.append(cat)
