@@ -12,27 +12,6 @@ st.set_page_config(
     layout="wide"
 )
 
-def bad_model():
-    credentials = service_account.Credentials.from_service_account_info(st.secrets["gcp_service_account"])
-    
-    project_id = 'miscellaneous-projects-444203'
-    categories = ['pts', 'reb', 'ast', '3pm']
-    
-    underperfoming_model = []
-
-    for cat in categories:
-        query = f"""
-        SELECT 
-            SUM(CASE WHEN result = recommendation THEN 1 ELSE 0 END) / COUNT(Player) AS accuracy
-        FROM `capstone_data.{cat}_cl_outcome`
-        where game_date = Date_sub(CURRENT_DATE('America/Los_Angeles'), INTERVAL 1 DAY)
-        """
-        df = pandas_gbq.read_gbq(query, project_id=project_id,credentials=credentials)
-
-        if df['accuracy'].values[0] < .524:
-            underperfoming_model.append(cat)
-
-    return underperfoming_model
         
 def smart_title(name):
     # Words to preserve as all-uppercase
@@ -69,7 +48,7 @@ def convert_minute(data):
     return f"{minutes}:{seconds:02}"
 
 @st.cache_data
-def pull_odds(bad_model):
+def pull_odds():
     tables = ['points', 'rebounds', 'assists', 'threes_made']
     identifiers = ['pts','reb','ast','3pm']
     odds_data = {}
@@ -79,22 +58,19 @@ def pull_odds(bad_model):
 
 
     for table,cat in zip(tables,identifiers):
-        if cat in bad_model:
-            continue
-        else:
-            odds_query = f"""
-                SELECT DISTINCT *
-                FROM `capstone_data.{cat}_classifications`
-                WHERE DATE(Date_Updated) = Current_date('America/Los_Angeles')
-                AND recommendation != 'No Bet Recommendation'
-            """
-            odds_data[table] = pandas_gbq.read_gbq(odds_query, project_id='miscellaneous-projects-444203', credentials=credentials)
-            
-            odds_data[table].rename(columns={'Date_Updated':'game_date'},inplace=True)
-            odds_data[table]['game_date'] = odds_data[table]['game_date'].dt.date
-            odds_data[table].drop_duplicates(subset = ['player','game_date'],inplace = True)
+        odds_query = f"""
+            SELECT DISTINCT *
+            FROM `capstone_data.{cat}_classifications`
+            WHERE DATE(Date_Updated) = Current_date('America/Los_Angeles')
+            AND recommendation != 'No Bet Recommendation'
+        """
+        odds_data[table] = pandas_gbq.read_gbq(odds_query, project_id='miscellaneous-projects-444203', credentials=credentials)
+        
+        odds_data[table].rename(columns={'Date_Updated':'game_date'},inplace=True)
+        odds_data[table]['game_date'] = odds_data[table]['game_date'].dt.date
+        odds_data[table].drop_duplicates(subset = ['player','game_date'],inplace = True)
 
-            odds_data[table]['player'] = odds_data[table]['player'].apply(clean_player_name)
+        odds_data[table]['player'] = odds_data[table]['player'].apply(clean_player_name)
 
     return odds_data, odds_data['points']['game_date'].values[0]
 
@@ -384,8 +360,7 @@ def make_dashboard(player_images,team_images, odds_data,player_data,games):
 
 
 # Run the dashboard
-bad_models = bad_model()
 images,team_images = pull_images()
-odds_data,date = pull_odds(bad_model)
+odds_data,date = pull_odds()
 player_data,games = pull_stats(odds_data)
 make_dashboard(images,team_images, odds_data,player_data,games)
