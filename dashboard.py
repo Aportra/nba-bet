@@ -12,6 +12,7 @@ st.set_page_config(
     layout="wide"
 )
 
+        
 def smart_title(name):
     # Words to preserve as all-uppercase
     exceptions = {"iii", "ii", "iv"}
@@ -63,6 +64,7 @@ def pull_odds():
             WHERE DATE(Date_Updated) = Current_date('America/Los_Angeles')
             AND recommendation != 'No Bet Recommendation'
         """
+        
         odds_data[table] = pandas_gbq.read_gbq(odds_query, project_id='miscellaneous-projects-444203', credentials=credentials)
         
         odds_data[table].rename(columns={'Date_Updated':'game_date'},inplace=True)
