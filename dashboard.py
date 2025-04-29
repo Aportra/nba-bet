@@ -249,7 +249,7 @@ def make_dashboard(player_images,team_images, odds_data,player_data,games):
         st.image(nba_logo,width=120)
 
     with main_col:
-        st.title(f"NBA Player Betting Odds")
+        st.title(f"NBA Pro Picks")
         st.write(f'{main_time}')
         
     if "selected_player" not in st.session_state:
