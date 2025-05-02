@@ -8,7 +8,7 @@ import datetime as dt
 import requests
 
 
-image = Image.open("/images/nba_propicks_final_combined.png")
+image = Image.open("/Capstone/images/nba_propicks_final_combined.png")
 
 st.set_page_config(
     page_title="NBA Pro Picks",
@@ -261,7 +261,7 @@ def make_dashboard(player_images,team_images, odds_data,player_data,games):
 
     with side_col:
         nba_logo = team_images[team_images['teams']=='nba']['images'].values[0]
-        st.image(nba_logo,width=120)
+        st.image(image,width=120)
 
     with main_col:
         st.title(f"NBA Pro Picks")
