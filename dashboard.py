@@ -263,7 +263,7 @@ def make_dashboard(player_images,team_images, odds_data,player_data,games):
         nba_logo = team_images[team_images['teams']=='nba']['images'].values[0]
 
     with main_col:
-        st.image(image)
+        st.image(image,width=200)
         st.write(f'{main_time}')
         
     if "selected_player" not in st.session_state:
