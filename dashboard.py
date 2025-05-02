@@ -3,8 +3,12 @@ import pandas as pd
 import pandas_gbq
 from google.oauth2 import service_account
 from datetime import timedelta
+from PIL import Image
 import datetime as dt
 import requests
+
+
+image = Image.open("/images/nba_propicks_final_combined.png")
 
 st.set_page_config(
     page_title="NBA Pro Picks",
