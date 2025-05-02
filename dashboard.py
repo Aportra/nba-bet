@@ -11,7 +11,7 @@ import requests
 image = Image.open("images/main_logo.png")
 
 st.set_page_config(
-    page_title="NBA Pro Picks",
+    page_title="NBA ProPicks",
     page_icon="🏀",  # fallback icon
     layout="wide"
 )
