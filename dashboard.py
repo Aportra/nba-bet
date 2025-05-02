@@ -261,7 +261,7 @@ def make_dashboard(player_images,team_images, odds_data,player_data,games):
 
     with side_col:
         nba_logo = team_images[team_images['teams']=='nba']['images'].values[0]
-        st.image(image,width=150)
+        st.image(image)
 
     with main_col:
         st.title(f"NBA Pro Picks")
