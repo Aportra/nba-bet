@@ -8,7 +8,7 @@ import datetime as dt
 import requests
 
 
-image = Image.open("images/nba_propicks_final_combined.png")
+image = Image.open("images/logo.png")
 
 st.set_page_config(
     page_title="NBA Pro Picks",
