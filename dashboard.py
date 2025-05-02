@@ -23,7 +23,6 @@ if 'first_visit_done' not in st.session_state:
     st.rerun()  # Rerun the app after clearing cache
 
 # Now run your main app logic
-st.write("Expensive computation result:", expensive_computation()) 
 
 def smart_title(name):
     # Words to preserve as all-uppercase
