@@ -257,16 +257,13 @@ def get_player_odds(player_selected, category, odds_data):
 def make_dashboard(player_images,team_images, odds_data,player_data,games):
 
     main_time = dt.date.today()
-    side_col,main_col = st.columns([1,10])
+    side_col,main_col = st.columns([10,1])
 
-    # with side_col:
-    #     nba_logo = team_images[team_images['teams']=='nba']['images'].values[0]
-
-    with main_col:
-        st.markdown("<div style='text-align: left;'>", unsafe_allow_html=True)
+    with side_col:
         st.image(image, width=300)
         st.write(f"{main_time}")
-        st.markdown("</div>", unsafe_allow_html=True)
+    with main_col:
+        nba_logo = team_images[team_images['teams']=='nba']['images'].values[0]
         
     if "selected_player" not in st.session_state:
         st.session_state["selected_player"] = ""
