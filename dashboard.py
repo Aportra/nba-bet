@@ -259,8 +259,8 @@ def make_dashboard(player_images,team_images, odds_data,player_data,games):
     main_time = dt.date.today()
     side_col,main_col = st.columns([1,10])
 
-    with side_col:
-        nba_logo = team_images[team_images['teams']=='nba']['images'].values[0]
+    # with side_col:
+    #     nba_logo = team_images[team_images['teams']=='nba']['images'].values[0]
 
     with main_col:
         st.image(image,width=300)
