@@ -41,7 +41,7 @@ def get_matchups(local=False):
 
     # BigQuery: pull team ID mapping
     season = 2024
-    query = f""" 
+    query = f"""
         SELECT DISTINCT team, team_id
         FROM `capstone_data.team_prediction_data_partitioned`
         WHERE season_start_year = {season}
@@ -85,11 +85,16 @@ def get_matchups(local=False):
     flattened_schedule = pd.concat([home_rows, away_rows], ignore_index=True)
     flattened_schedule.sort_values(by=['GAME_DATE_EST', 'GAME_ID'], inplace=True)
 
+    if flattened_schedule.empty:
+        return None
     # Upload to BigQuery
-    pandas_gbq.to_gbq(
-        flattened_schedule,
-        project_id="miscellaneous-projects-444203",
-        destination_table='capstone_data.schedule',
-        if_exists="append",
-        credentials=credentials
-    )
+    else:
+        pandas_gbq.to_gbq(
+            flattened_schedule,
+            project_id="miscellaneous-projects-444203",
+            destination_table='capstone_data.schedule',
+            if_exists="append",
+            credentials=credentials
+        )
+
+        return flattened_schedule

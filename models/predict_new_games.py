@@ -54,7 +54,7 @@ def gather_data_to_model():
     query = """
     SELECT team, opponent, date(GAME_DATE_EST) as game_date
     FROM `capstone_data.schedule`
-    WHERE date(GAME_DATE_EST) = CURRENT_DATE('America/Los_Angeles')
+    WHERE date(GAME_DATE_EST) = Current_Date('America/Los_Angeles')
     """
 
     team_mapping = {"WAS": "WSH", "UTA": "UTAH", "NOP": "NO"}
@@ -481,6 +481,9 @@ def run_predictions():
 
     try:
         data = gather_data_to_model()
+        if data is None:
+            print("no games today")
+            return
         games = scrape_roster(data)
 
         full_data, odds_data = recent_player_data(games)
@@ -504,4 +507,3 @@ def run_predictions():
 
     classification(lowest_data,odds)
 
-    
