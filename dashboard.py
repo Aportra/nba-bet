@@ -93,7 +93,8 @@ def pull_odds():
 @st.cache_data
 def pull_stats(odds_data):
     
-    season = dt.date.today().year if dt.date.today().month >= 10 else dt.date.today().year - 1
+    # season = dt.date.today().year if dt.date.today().month >= 10 else dt.date.today().year - 1
+    season = 2024
     players = set()
     for table in odds_data:
         for player in odds_data[table]['player']:
@@ -268,8 +269,8 @@ def make_dashboard(player_images,team_images, odds_data,player_data,games):
     if "selected_player" not in st.session_state:
         st.session_state["selected_player"] = ""
 
-    if "selected_category" not in st.session_state:
-        st.session_state["selected_category"] = "All"
+    # if "selected_category" not in st.session_state:
+    #     st.session_state["selected_category"] = "All"
 
     # Category filter should reset selected player if filtering "All Players"
     # category = st.selectbox("Select a category (affects All Players view only):", ["All", "Points", "Assists", "Rebounds", "Threes Made"])
@@ -348,10 +349,10 @@ def make_dashboard(player_images,team_images, odds_data,player_data,games):
 
     else:
         # Category filter applies only to "All Players"
-        if category == 'All':
-            st.subheader(f"All Players")
-        else:
-            st.subheader(f"All Players: {category}")
+        # if category == 'All':
+        #     st.subheader(f"All Players")
+        # else:
+        #     st.subheader(f"All Players: {category}")
         for player in available_players:
             player_lower = player.lower()
             player_row = player_images.loc[player_images["players_lower"] == player_lower]
