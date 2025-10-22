@@ -61,24 +61,26 @@ def establish_requests(url,params=False):
     # Headers to mimic a real browser request (prevents bot blocking)
 
     USER_AGENTS = [
-    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36",
-    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/92.0.4515.107 Safari/537.36",
-    "Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:90.0) Gecko/20100101 Firefox/90.0",
-        ]
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
+        "(KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36",
+        "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 "
+        "(KHTML, like Gecko) Chrome/92.0.4515.107 Safari/537.36",
+        "Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:90.0) Gecko/20100101 Firefox/90.0",
+    ]
+
     headers = {
-        "User-Agent": random.choice(USER_AGENTS),
-        "Referer": "https://www.nba.com/",
-        "Origin": "https://www.nba.com",
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)",
         "Accept": "application/json, text/plain, */*",
-        "Host": "stats.nba.com",
-        "Accept-Encoding": "gzip, deflate, br",
-        "Accept-Language": "en-US,en;q=0.9"
+        "Referer": "https://www.nba.com/stats/",
+        "Origin": "https://www.nba.com"
     }
     if not params:
     # Send request
         response = requests.get(url, headers=headers)
     else:
        response = requests.get(url, headers=headers,params=params) 
+
+    print(response.status_code)
     return response
 
 
@@ -149,11 +151,11 @@ def convert_date(date_str):
         datetime.date or None: The converted date object or None if invalid.
     """
     try:
-        # date_obj = dt.strptime(date_str, "%a, %b %d")
-        date_obj = dt.strptime(date_str, "%a, %m/%d")
+        date_obj = dt.strptime(date_str, "%a, %b %d")
+        # date_obj = dt.strptime(date_str, "%a, %m/%d")
 
         # Assign correct year based on NBA season start (October)
-        assumed_year = 2024 if date_obj.month >= 10 else 2025
+        assumed_year = 2025 if date_obj.month >= 10 else 2026
         date_obj = date_obj.replace(year=assumed_year)
 
         return date_obj.date()

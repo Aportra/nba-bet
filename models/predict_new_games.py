@@ -10,6 +10,10 @@ import pandas as pd
 import pandas_gbq
 import time
 import unicodedata
+import os
+
+current_wd = os.getcwd()
+print(current_wd)
 
 def clean_player_name(name):
     """Standardizes player names by removing special characters and handling known name variations."""
@@ -122,7 +126,7 @@ def scrape_roster(data):
 
 def pull_odds():
     """Fetches the latest player odds from BigQuery."""
-    tables = ["points", "rebounds", "assists", "threes_made"]
+    table = "points"
     odds_data = {}
 
     try:
@@ -133,14 +137,13 @@ def pull_odds():
         local = True
         credentials = None
 
-    for table in tables:
-        odds_query = f"""
-        SELECT * 
-        FROM `capstone_data.player_{table}_odds`
-        WHERE DATE(Date_Updated) = CURRENT_DATE('America/Los_Angeles')
-        """
-        odds_data[table] = fetch_bigquery_data(odds_query,credentials=credentials)
-        odds_data[table]["Player"] = odds_data[table]["Player"].apply(clean_player_name)
+    odds_query = f"""
+    SELECT * 
+    FROM `capstone_data.player_{table}_odds`
+    WHERE DATE(Date_Updated) = CURRENT_DATE('America/Los_Angeles')
+    """
+    odds_data[table] = fetch_bigquery_data(odds_query,credentials=credentials)
+    odds_data[table]["Player"] = odds_data[table]["Player"].apply(clean_player_name)
 
     return odds_data
 
@@ -258,11 +261,11 @@ def predict_games(full_data, odds_data):
     """Predicts NBA player stats using pre-trained models and compares with betting odds."""
     print('loading models...')
     # Load models
-    # models = joblib.load('/home/aportra99/Capstone/models/models.pkl')
+    # models = joblib.load('/home/aportra99/nba-bet/models/models.pkl')
     full_data = full_data
     odds = {}
     lowest_data = {}
-    models = joblib.load('/home/aportra99/Capstone/models/models.pkl')
+    models = joblib.load(f'{current_wd}/models/models.pkl')
     for key, odds_df in odds_data.items():
   
         # Filter relevant players
@@ -296,10 +299,10 @@ def predict_games(full_data, odds_data):
 
         # Determine category for prediction
         category_mapping = {
-            "points": "pts",
-            "rebounds": "reb",
-            "assists": "ast",
-            "threes_made": "3pm"
+            "points": "pts"
+            # "rebounds": "reb",
+            # "assists": "ast",
+            # "threes_made": "3pm"
         }
         category = category_mapping[key]
 
@@ -353,6 +356,7 @@ def predict_games(full_data, odds_data):
         # Upload predictions to BigQuery
         table_name = f'miscellaneous-projects-444203.capstone_data.{key}_predictions'
         odds_df.dropna(axis=0,inplace = True)
+        odds_df.drop_duplicates(keep='first',inplace=True)
         pandas_gbq.to_gbq(odds_df, table_name, project_id='miscellaneous-projects-444203', credentials=credentials if not local else None, if_exists='append')
         odds[category] = odds_df
         lowest_data[category] = latest_rows
@@ -364,8 +368,8 @@ def predict_games(full_data, odds_data):
 
 def classification(lowest_data,odds):
         
-    ensemble = joblib.load('/home/aportra99/Capstone/models/meta_model.pkl')
-    models = joblib.load('/home/aportra99/Capstone/models/classification_models.pkl')
+    ensemble = joblib.load(f'{current_wd}/models/meta_model.pkl')
+    models = joblib.load(f'{current_wd}/models/classification_models.pkl')
 
     # Display settings
     pd.set_option('display.max_columns', None)
@@ -381,8 +385,10 @@ def classification(lowest_data,odds):
         local = True
         credentials = None
 
-    categories = ['pts', 'reb', 'ast', '3pm']
-    lines = ['points', 'rebounds', 'assists', 'threes_made']
+    # categories = ['pts', 'reb', 'ast', '3pm']
+    categories = ['pts']
+    # lines = ['points', 'rebounds', 'assists', 'threes_made']
+    lines = ['points']
 
     # Backup
     odds_raw = {cat: df.copy() for cat, df in odds.items()}
@@ -471,6 +477,7 @@ def classification(lowest_data,odds):
         
         odds[cat].dropna(axis=0,inplace=True)
         
+        odds[cat].drop_duplicates(keep='first',inplace=True)
         table_name = f'miscellaneous-projects-444203.capstone_data.{cat}_classifications'
         pandas_gbq.to_gbq(odds[cat], table_name, project_id='miscellaneous-projects-444203', credentials=credentials if not local else None, if_exists='append')
         

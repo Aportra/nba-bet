@@ -29,21 +29,21 @@ def scrape_current_games():
 
     try:
         scrape_date = dt.today()
-
-        game_date = dt(2025, 4, 13)
+        game_date = dt(2026, 4, 13)
 
         if scrape_date <= game_date:
             url = {
-                "2024-2025_uncleaned": "https://stats.nba.com/stats/leaguegamelog?LeagueID=00&Season=2024-25&SeasonType=Regular%20Season&PlayerOrTeam=T&Counter=0&Sorter=DATE&Direction=DESC"
+                "2025-2026_uncleaned": "https://stats.nba.com/stats/leaguegamelog?LeagueID=00&Season=2025-26&SeasonType=Regular%20Season&PlayerOrTeam=T&Counter=0&Sorter=DATE&Direction=DESC"
 
             }
         else:
             url = {
-                "2024-2025_uncleaned": "https://stats.nba.com/stats/leaguegamelog?LeagueID=00&Season=2024-25&SeasonType=Playoffs&PlayerOrTeam=T&Counter=0&Sorter=DATE&Direction=DESC"
+                "2025-2026_uncleaned": "https://stats.nba.com/stats/leaguegamelog?LeagueID=00&Season=2025-26&SeasonType=Playoffs&PlayerOrTeam=T&Counter=0&Sorter=DATE&Direction=DESC"
 
             } 
 
-        response = utils.establish_requests(url["2024-2025_uncleaned"])
+        response = utils.establish_requests(url["2025-2026_uncleaned"])
+        print(response.status_code)
         year = scrape_date.year if scrape_date.month >= 10 else scrape_date.year - 1
         season = f'{year}-{year+1}'
         time.sleep(5)
@@ -67,8 +67,10 @@ def scrape_current_games():
             team_table_schema = [{"name": "game_date", "type": "DATE"}]  
             
             df = df[df['game_date'] == scrape_date.date()]
+            
+            print(df['game_date'][0])
 
-            date = df['game_date'].iloc[0]
+            date = df['game_date'][0]
 
 
             # Upload team data
@@ -77,7 +79,7 @@ def scrape_current_games():
                     df,
                     project_id="miscellaneous-projects-444203",
                     destination_table=team_table_id,
-                    if_exists="append",
+                    if_exists="replace",
                     table_schema=team_table_schema,
                 )
 
@@ -86,7 +88,7 @@ def scrape_current_games():
                     df,
                     project_id="miscellaneous-projects-444203",
                     destination_table=team_table_id,
-                    if_exists="append",
+                    if_exists="replace",
                     credentials=credentials,
                     table_schema=team_table_schema,)
 
@@ -151,7 +153,8 @@ def scrape_current_games():
                 game_data['game_id'] = game
 
                 games.append(game_data)
-
+                
+                time.sleep(5)
             full_data = pd.concat(games)
             # Your desired columns
             desired_columns = [
@@ -175,16 +178,16 @@ def scrape_current_games():
                     pandas_gbq.to_gbq(
                     full_data,
                     project_id="miscellaneous-projects-444203",
-                    destination_table='capstone_data.2024-2025_uncleaned',
-                    if_exists="append"
+                    destination_table='capstone_data.2025-2026_uncleaned',
+                    if_exists="replace"
                     )
 
                 else:
                     pandas_gbq.to_gbq(
                         full_data,
                         project_id="miscellaneous-projects-444203",
-                        destination_table='capstone_data.2024-2025_uncleaned',
-                        if_exists="append",
+                        destination_table='capstone_data.2025-2026_uncleaned',
+                        if_exists="replace",
                         credentials=credentials)
                 print("Scraping successful.")
 
@@ -234,7 +237,7 @@ def scrape_past_games():
         f"{i}-{i+1}_uncleaned": f"https://stats.nba.com/stats/leaguegamelog?LeagueID=00&Season={i}-{str(i-2000+1)}&SeasonType=Regular%20Season&PlayerOrTeam=T&Counter=0&Sorter=DATE&Direction=DESC"
         for i in range(2015, 2025)
     }
-    seasons = [f'{i}-{i+1}_team_ratings' for i in range(2015,2025)]
+    seasons = [f'{i}-{i+1}_team_ratings' for i in range(2015,2026)]
 
     try:
         credentials = service_account.Credentials.from_service_account_file(

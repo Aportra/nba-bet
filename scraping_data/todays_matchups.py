@@ -1,14 +1,15 @@
 import pandas as pd
 import pandas_gbq
 import datetime as dt
+from datetime import timedelta
 from google.oauth2 import service_account
 import requests
 
 
 def get_matchups(local=False):
     # Set today's date in MM/DD/YYYY format
-    today = dt.date.today().strftime('%m/%d/%Y')
-
+    today = dt.date.today()
+    today = today.strftime('%m/%d/%Y') 
     # Load credentials or set local mode
     try:
         credentials = service_account.Credentials.from_service_account_file(
@@ -28,17 +29,17 @@ def get_matchups(local=False):
         "DayOffset": "0"
     }
     headers = {
-        "User-Agent": "Mozilla/5.0",
-        "Referer": "https://www.nba.com/",
-        "Origin": "https://www.nba.com",
-        "Accept": "application/json",
-        "Connection": "keep-alive"
-    }
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)",
+    "Accept": "application/json, text/plain, */*",
+    "Referer": "https://www.nba.com/stats/",
+    "Origin": "https://www.nba.com"}
 
     # Make the request
     response = requests.get(url, headers=headers, params=params)
+    print(response.status_code)
+    if response.status_code == '200':
+        return
     data = response.json()
-
     # BigQuery: pull team ID mapping
     season = 2024
     query = f"""
@@ -61,11 +62,12 @@ def get_matchups(local=False):
         team_key.rename(columns={'team_id': 'VISITOR_TEAM_ID', 'team': 'VISITOR_TEAM'}),
         on='VISITOR_TEAM_ID', how='left'
     )
-
+    
     # Keep necessary columns
     games_clean = games_with_both[[
         'GAME_ID', 'GAME_DATE_EST', 'HOME_TEAM', 'VISITOR_TEAM'
     ]]
+
 
     # First half: home team perspective
     home_rows = games_clean.rename(columns={
@@ -85,6 +87,7 @@ def get_matchups(local=False):
     flattened_schedule = pd.concat([home_rows, away_rows], ignore_index=True)
     flattened_schedule.sort_values(by=['GAME_DATE_EST', 'GAME_ID'], inplace=True)
 
+    print(flattened_schedule)
     if flattened_schedule.empty:
         return None
     # Upload to BigQuery
