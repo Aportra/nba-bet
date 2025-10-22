@@ -667,12 +667,17 @@ def clean_current_team_ratings(game_data):
             df["season_start_year"] = season
 
         print("Uploading processed data to BigQuery...")
+        
 
+        team_data['trained_on'] = False 
+
+        predict_data['trained_on'] = False
         # Upload data to BigQuery
         destination_tables = {
             "capstone_data.team_modeling_data_partitioned": team_data,
             "capstone_data.team_prediction_data_partitioned": predict_data,
         }
+
 
         for table_name, df in destination_tables.items():
             pandas_gbq.to_gbq(

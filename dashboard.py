@@ -64,8 +64,8 @@ def convert_minute(data):
 
 @st.cache_data
 def pull_odds():
-    tables = ['points', 'rebounds', 'assists', 'threes_made']
-    identifiers = ['pts','reb','ast','3pm']
+    tables = ['points' ]
+    identifiers = ['pts']
     odds_data = {}
 
 
@@ -199,14 +199,14 @@ def pull_images():
 @st.cache_data
 def get_available_players(category, odds_data):
     available_players = set()
-    category_key = category.lower().replace(" ", "_")
+    # category_key = category.lower().replace(" ", "_")
 
-    if category == "All":
-        for table in odds_data:
-            available_players.update(odds_data[table]["player"].unique())
-    else:
-        if category_key in odds_data:
-            available_players = odds_data[category_key]["player"].unique()
+    # if category == "All":
+    #     for table in odds_data:
+    #         available_players.update(odds_data[table]["player"].unique())
+    # else:
+    #     if category_key in odds_data:
+    #         available_players = odds_data[category_key]["player"].unique()
 
 
     return sorted(available_players)
@@ -272,10 +272,10 @@ def make_dashboard(player_images,team_images, odds_data,player_data,games):
         st.session_state["selected_category"] = "All"
 
     # Category filter should reset selected player if filtering "All Players"
-    category = st.selectbox("Select a category (affects All Players view only):", ["All", "Points", "Assists", "Rebounds", "Threes Made"])
+    # category = st.selectbox("Select a category (affects All Players view only):", ["All", "Points", "Assists", "Rebounds", "Threes Made"])
     
-    if category != st.session_state["selected_category"]:
-        st.session_state["selected_category"] = category
+    # if category != st.session_state["selected_category"]:
+    #     st.session_state["selected_category"] = category
         
         # Reset selected player when filtering in "All Players" mode
         if not st.session_state["selected_player"]:
@@ -283,7 +283,7 @@ def make_dashboard(player_images,team_images, odds_data,player_data,games):
         
         st.rerun()
 
-    available_players = get_available_players(category, odds_data)
+    available_players = get_available_players('Points', odds_data)
 
     # Ensure selecting the blank option resets the selected player
     player_options = [""] + [smart_title(p) for p in available_players]
