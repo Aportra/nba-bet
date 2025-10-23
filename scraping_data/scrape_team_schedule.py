@@ -2,7 +2,7 @@
 
 import time
 from datetime import datetime as dt
-
+from datetime import timedelta
 import pandas as pd
 import pandas_gbq
 import utils
@@ -28,7 +28,7 @@ def scrape_team_schedule(nba_teams):
 
     driver = utils.establish_driver(local=True)
     url_base = "https://www.espn.com/nba/team/schedule/_/name/"
-    scrape_date = dt.today()
+    scrape_date = dt.today()-timedelta(1)
     all_data = []
 
     with tqdm(total=len(nba_teams), desc="Processing Teams", ncols=80) as pbar:

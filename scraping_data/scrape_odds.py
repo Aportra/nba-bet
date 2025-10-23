@@ -51,13 +51,12 @@ def gather_odds():
     events = gather_events()
     print(len(events))
     if len(events) > 4:
-        data = process_categories(events[:4])
+        data = process_categories(events)
     else:
         data = process_categories(events)
 
     parsed_json = data[0]['bookmakers'][0]['markets'][0]['outcomes']
     output = {'Player':[],'points':[],'Over':[],'Under':[],'Date_Updated':[]}
-
     for i in range(len(parsed_json)):
         if parsed_json[i]['name'] == 'Over':
             output['Over'].append(parsed_json[i]['price'])

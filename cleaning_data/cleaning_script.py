@@ -11,7 +11,7 @@ import pandas_gbq
 import unicodedata
 
 
-def remove_accents(input_str):
+def remove_accents(input_str): 
     """Removes accents from a given string.
 
     Args:
@@ -20,9 +20,7 @@ def remove_accents(input_str):
     Returns:
         str: String without accents.
     """
-    return ''.join(
-        c for c in unicodedata.normalize('NFKD', input_str) if not unicodedata.combining(c)
-    )
+    return ''.join(c for c in unicodedata.normalize('NFKD', input_str) if not unicodedata.combining(c))
 
 
 def convert_minutes_to_decimal(min_played):

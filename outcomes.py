@@ -37,7 +37,8 @@ def past_outcomes():
         local = False
     except FileNotFoundError:
         local = True
-    today = dt.today().date()
+    today = dt.today() - timedelta(1)
+    today = today.date()
     season = today.year if today.month >= 10 else today.year - 1
     game_query =f"""
         select  *
@@ -70,7 +71,6 @@ def past_outcomes():
             local = True
 
         predict_data = pandas_gbq.read_gbq(predict_query, project_id='miscellaneous-projects-444203',credentials=credentials if not local else None)
-        
         predict_data['player'] = predict_data['player'].apply(clean_player_name)
         predict_data['Date_Updated'] = pd.to_datetime(predict_data['Date_Updated']).dt.date
         game_data['game_date'] = pd.to_datetime(game_data['game_date']).dt.date
@@ -124,13 +124,11 @@ def current_outcome(data,date):
                     SELECT *, 
                         ROW_NUMBER() OVER (PARTITION BY Player, Date_Updated ORDER BY Date_Updated DESC) AS rn
                     FROM `capstone_data.{cat}_classifications`
-                    where date(Date_Updated) = current_date('America/Los_Angeles') and recommendation != 'No Bet Recommendation'
+                    where date(Date_Updated) =current_date('America/Los_Angeles') and recommendation != 'No Bet Recommendation'
                 )
-                SELECT * 
+                SELECT *
                 FROM ranked_predictions
                 WHERE rn = 1"""
-            
-
             try:
                 credentials = service_account.Credentials.from_service_account_file(
                 "/home/aportra99/scraping_key.json"
