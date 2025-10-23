@@ -28,8 +28,8 @@ def classify_result(row,table,cat):
     return "Under" if row[f'{table}'] > row[f'{cat}'] else "Over"
 
 def past_outcomes():
-    tables = ["points", "rebounds", "assists", "threes_made"]
-    categories = ['pts','reb','ast','3pm']
+    tables = ["points"]
+    categories = ['pts']
     try:
         credentials = service_account.Credentials.from_service_account_file(
         "/home/aportra99/scraping_key.json"
@@ -106,8 +106,8 @@ def current_outcome(data,date):
         game_data = data
         game_data['game_date'] = date
         game_data.rename(columns = {'player_name':'player','fg3m':'3pm'},inplace=True)
-        tables = ["points", "rebounds", "assists", "threes_made"]
-        categories = ['pts','reb','ast','3pm']
+        tables = ["points"]
+        categories = ['pts']
         try:
             credentials = service_account.Credentials.from_service_account_file(
             "/home/aportra99/scraping_key.json"
@@ -140,7 +140,7 @@ def current_outcome(data,date):
                 local = True
                 
             predict_data = pandas_gbq.read_gbq(predict_query, project_id='miscellaneous-projects-444203',credentials=credentials if not local else None)
-            
+            print(predict_data)
             predict_data['player'] = predict_data['player'].apply(clean_player_name).copy()
             predict_data['Date_Updated'] = pd.to_datetime(predict_data['Date_Updated']).dt.date
             game_data['game_date'] = pd.to_datetime(game_data['game_date']).dt.date
@@ -173,7 +173,7 @@ def current_outcome(data,date):
                     table_schema=table_schema,
                 )
             project_id = 'miscellaneous-projects-444203'
-            categories = ['pts', 'reb', 'ast', '3pm']
+            categories = ['pts']
             results = {}
             for cat in categories:
                 query = f"""
@@ -204,3 +204,4 @@ def current_outcome(data,date):
         utils.send_email(
         subject="Outcomes Error",
         body=f"Error {e}")
+
