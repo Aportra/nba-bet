@@ -10,6 +10,7 @@ from dotenv import load_dotenv
 import os
 import smtplib
 import signal
+import requests
 import chromedriver_autoinstaller
 
 
@@ -66,33 +67,33 @@ def select_all_option(driver):
     except Exception as e:
         print(f"Error selecting the 'All' option: {e}")
 
-def send_email(subject,body):
-    try:
-        load_dotenv('/home/aportra99/Capstone/.env')
-        print('loaded the .env')
-    except:
-        print('could not load .env')
-    sender_email = os.getenv('SERVER_EMAIL')
-    receiver_email = os.getenv('EMAIL_USERNAME')
-    password = os.getenv('EMAIL_PASSWORD')
-    msg = MIMEMultipart()
-    msg['From'] = sender_email
-    msg['To'] = receiver_email
-    msg['Subject'] = subject
-    
-    msg.attach(MIMEText(body,'plain'))
-
-    try:
-        server = smtplib.SMTP('smtp.gmail.com',587)
-        server.starttls()
-        server.login(sender_email,password)
-        server.send_message(msg)
-    except Exception as e:
-        print(f"failed due to send email: {e}")
-    finally:
-        server.quit()
 
 
+def establish_requests(url,params=False):
+    # Headers to mimic a real browser request (prevents bot blocking)
+
+    USER_AGENTS = [
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
+        "(KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36",
+        "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 "
+        "(KHTML, like Gecko) Chrome/92.0.4515.107 Safari/537.36",
+        "Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:90.0) Gecko/20100101 Firefox/90.0",
+    ]
+
+    headers = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)",
+        "Accept": "application/json, text/plain, */*",
+        "Referer": "https://www.nba.com/stats/",
+        "Origin": "https://www.nba.com"
+    }
+    if not params:
+    # Send request
+        response = requests.get(url, headers=headers)
+    else:
+       response = requests.get(url, headers=headers,params=params) 
+
+    print(response.status_code)
+    return response
 
 
 #Makes it so we are not connecting to driver on import

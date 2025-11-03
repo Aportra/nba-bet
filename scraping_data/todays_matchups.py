@@ -9,7 +9,7 @@ import requests
 def get_matchups(local=False):
     # Set today's date in MM/DD/YYYY format
     today = dt.date.today()
-    today = today.strftime('%m/%d/%Y') 
+    today = today.strftime('%m/%d/%Y')
     # Load credentials or set local mode
     try:
         credentials = service_account.Credentials.from_service_account_file(
@@ -96,7 +96,7 @@ def get_matchups(local=False):
             flattened_schedule,
             project_id="miscellaneous-projects-444203",
             destination_table='capstone_data.schedule',
-            if_exists="append",
+            if_exists="replace",
             credentials=credentials
         )
 

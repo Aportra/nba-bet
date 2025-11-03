@@ -6,5 +6,5 @@ print(matchups)
 if matchups is None:
     print("no games today")
 else:
-    gather_odds()
-    run_predictions()
+    # gather_odds()
+    run_predictions(matchups)

@@ -53,15 +53,19 @@ def fetch_bigquery_data(query,credentials):
         return pd.DataFrame()
 
 
-def gather_data_to_model():
-    """Fetches today's NBA schedule from BigQuery."""
-    query = """
-    SELECT team, opponent, date(GAME_DATE_EST) as game_date
-    FROM `capstone_data.schedule`
-    WHERE date(GAME_DATE_EST) = Current_Date('America/Los_Angeles')
-    """
+def scrape_roster(input_data):
+    """Scrapes team rosters for today's games from ESPN."""
 
-    team_mapping = {"WAS": "WSH", "UTA": "UTAH", "NOP": "NO"}
+    teams = tuple(input_data['team'])
+
+    query = f"""Select
+    distinct
+        team_id,
+        team
+    from `capstone_data.team_prediction_data_partitioned`
+    where team in {teams}"""
+    
+    print(query)
 
     try:
         credentials = service_account.Credentials.from_service_account_file("/home/aportra99/scraping_key.json")
@@ -72,56 +76,40 @@ def gather_data_to_model():
         credentials = None
 
     teams_data = fetch_bigquery_data(query,credentials=credentials)
-    if teams_data.empty:
-        print("No game data found for today.")
-        return pd.DataFrame()
+    print(teams_data.columns)
+    team_dict = {teams_data['team_id'][i]: teams_data['team'][i] for i in range(len(teams_data['team_id']))}
+    opponent_dict = {input_data['team'][i]:input_data['opponent'][i] for i in range(len(input_data['team']))}
+    full_dicts = []
 
-    teams_data["team"] = teams_data["team"].replace(team_mapping)
-    teams_data["opponent"] = teams_data["opponent"].replace(team_mapping)
+    print(opponent_dict.keys())
+    for i in range(len(teams_data['team_id'])):
+        url = f"https://stats.nba.com/stats/commonteamroster?LeagueID=&Season=2025-26&TeamID={teams_data['team_id'][i]}"
+        req = model_utils.establish_requests(url)
+        result = req.json()['resultSets'][0]
+        headers = [result['headers'][i].lower() for i in range(len(result['headers']))]
+        cols = {result['headers'][x].lower():[] for x in range(len(result['headers']))}
+        data = req.json()['resultSets'][0]['rowSet']
+        cols['team'] = []
+        cols['opponent'] = []
 
-    return teams_data
+        for i in range(len(data)):
+            for y in range(len(data[i])):
+                print(headers[y])
+                if headers[y] == 'teamid':
+                    cols['team'].append(team_dict[data[i][y]])
+                    cols['opponent'].append(opponent_dict[team_dict[data[i][y]]])
+                    cols[headers[y]].append(data[i][y])
+                else:
+                    cols[headers[y]].append(data[i][y])
+        full_dicts.append(cols)
 
+    final_dict = {key: [] for key in full_dicts[0].keys()}
 
-def scrape_roster(data):
-    """Scrapes team rosters for today's games from ESPN."""
+    for i in range(len(full_dicts)):
+        final_dict.update(full_dicts[i])
+    df = pd.DataFrame(final_dict)
 
-
-    print("Fetching team rosters...")
-
-    driver = model_utils.establish_driver(local=True)
-
-    teams, players, opponents = [], [], []
-
-    for team, opp in zip(data["team"], data["opponent"]):
-        url = f"https://www.espn.com/nba/team/roster/_/name/{team}/"
-        driver.get(url)
-        time.sleep(5)
-        driver.implicitly_wait(10)
-        WebDriverWait(driver, 300).until(
-            EC.presence_of_all_elements_located(
-                (By.XPATH, '//tbody[@class="Table__TBODY"]/tr')
-            )
-        )
-        try:
-            rows = driver.find_elements(By.XPATH, "//tbody[@class='Table__TBODY']/tr")
-            for row in rows:
-                name_element = row.find_element(By.XPATH, ".//td[2]/div/a")
-                players.append(name_element.text)
-                teams.append(team)
-                opponents.append(opp)
-        except Exception as e:
-            print(f"Error scraping {team} roster: {e}")
-
-    print("Quitting WebDriver...")  # Debugging print
-    driver.quit()
-    print("WebDriver successfully quit.")
-
-    # Standardize team names
-    team_mapping = {"WSH": "WAS", "UTAH": "UTA", "NO": "NOP"}
-    teams = [team_mapping.get(team, team) for team in teams]
-    opponents = [team_mapping.get(team, team) for team in opponents]
-
-    return pd.DataFrame({"player": players, "team": teams, "opponent": opponents})
+    return df
 
 
 def pull_odds():
@@ -138,7 +126,7 @@ def pull_odds():
         credentials = None
 
     odds_query = f"""
-    SELECT * 
+    SELECT *
     FROM `capstone_data.player_{table}_odds`
     WHERE DATE(Date_Updated) = CURRENT_DATE('America/Los_Angeles')
     """
@@ -207,6 +195,7 @@ def recent_player_data(games):
         where game_rank = 1;
     """
 }
+    print(queries['player_data'])
 
     
     # Fetch player, opponent, and team data
@@ -482,35 +471,30 @@ def classification(lowest_data,odds):
         pandas_gbq.to_gbq(odds[cat], table_name, project_id='miscellaneous-projects-444203', credentials=credentials if not local else None, if_exists='append')
         
 
-def run_predictions():
+def run_predictions(matchups):
     """Runs the full prediction pipeline from data gathering to model inference."""
     print("Running game predictions...")
 
     try:
-        data = gather_data_to_model()
-        if data is None:
-            print("no games today")
-            return
-        games = scrape_roster(data)
+        games = scrape_roster(matchups)
 
         full_data, odds_data = recent_player_data(games)
 
+        lowest_data, odds = predict_games(full_data, odds_data)
+
+        classification(lowest_data, odds)
         if full_data is None or odds_data is None:
             print("Failed to retrieve necessary data. Exiting...")
             return
-        
         model_utils.send_email(
             subject="Predictions Ran Sucessfully",
             body=" "
         )
-        
     except Exception as e:
         model_utils.send_email(        
         subject="Predictions Error",
         body=f"Error {e}",
             ) 
 
-    lowest_data,odds = predict_games(full_data, odds_data)
 
-    classification(lowest_data,odds)
 
