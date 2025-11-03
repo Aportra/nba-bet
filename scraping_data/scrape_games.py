@@ -79,7 +79,7 @@ def scrape_current_games():
                     df,
                     project_id="miscellaneous-projects-444203",
                     destination_table=team_table_id,
-                    if_exists="replace",
+                    if_exists="append",
                     table_schema=team_table_schema,
                 )
 
@@ -88,7 +88,7 @@ def scrape_current_games():
                     df,
                     project_id="miscellaneous-projects-444203",
                     destination_table=team_table_id,
-                    if_exists="replace",
+                    if_exists="append",
                     credentials=credentials,
                     table_schema=team_table_schema,)
 

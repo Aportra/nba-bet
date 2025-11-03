@@ -65,7 +65,6 @@ def scrape_roster(input_data):
     from `capstone_data.team_prediction_data_partitioned`
     where team in {teams}"""
     
-    print(query)
 
     try:
         credentials = service_account.Credentials.from_service_account_file("/home/aportra99/scraping_key.json")
@@ -76,12 +75,10 @@ def scrape_roster(input_data):
         credentials = None
 
     teams_data = fetch_bigquery_data(query,credentials=credentials)
-    print(teams_data.columns)
     team_dict = {teams_data['team_id'][i]: teams_data['team'][i] for i in range(len(teams_data['team_id']))}
     opponent_dict = {input_data['team'][i]:input_data['opponent'][i] for i in range(len(input_data['team']))}
     full_dicts = []
 
-    print(opponent_dict.keys())
     for i in range(len(teams_data['team_id'])):
         url = f"https://stats.nba.com/stats/commonteamroster?LeagueID=&Season=2025-26&TeamID={teams_data['team_id'][i]}"
         req = model_utils.establish_requests(url)
@@ -195,7 +192,6 @@ def recent_player_data(games):
         where game_rank = 1;
     """
 }
-    print(queries['player_data'])
 
     
     # Fetch player, opponent, and team data

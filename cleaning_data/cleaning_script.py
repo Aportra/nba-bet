@@ -667,9 +667,6 @@ def clean_current_team_ratings(game_data):
         print("Uploading processed data to BigQuery...")
         
 
-        team_data['trained_on'] = False 
-
-        predict_data['trained_on'] = False
         # Upload data to BigQuery
         destination_tables = {
             "capstone_data.team_modeling_data_partitioned": team_data,
@@ -695,6 +692,7 @@ def clean_current_team_ratings(game_data):
         )
 
     except Exception as e:
+        print(f'data failed {e}')
         send_email(
             subject="NBA TEAM DATA Cleaning Failed",
             body=f"Error: {e}"
