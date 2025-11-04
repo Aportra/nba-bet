@@ -8,9 +8,12 @@ from datetime import timedelta,timezone
 import requests
 import pandas as pd
 import pandas_gbq
+import os
 from google.oauth2 import service_account
 
-with open('scraping_data/config.yaml', mode='r') as file:
+current_wd = os.getcwd()
+
+with open(f'{current_wd}/config.yaml', mode='r') as file:
     config = yaml.safe_load(file)
 
     api_key = config['api']
@@ -67,10 +70,12 @@ def gather_odds():
             output['Date_Updated'].append(pd.to_datetime(dt.today()))
 
     df = pd.DataFrame(output)
-
+    
     pandas_gbq.to_gbq(
         df,
         project_id="miscellaneous-projects-444203",
         destination_table="miscellaneous-projects-444203.capstone_data.player_points_odds",
         if_exists="append"
     )
+
+    return df
