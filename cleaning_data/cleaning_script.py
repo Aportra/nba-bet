@@ -11,7 +11,7 @@ import pandas_gbq
 import unicodedata
 
 
-def remove_accents(input_str): 
+def remove_accents(input_str):
     """Removes accents from a given string.
 
     Args:
@@ -75,7 +75,7 @@ def clean_current_player_data(data,date):
         # Identify current season
         today = dt.today().date()
         season = today.year if today.month >= 10 else today.year - 1
-
+        print(season)
         # Generate season format for each row
         data['season'] = data['game_date'].apply(
             lambda x: f"{x.year}-{x.year + 1}" if x.month >= 10 else f"{x.year - 1}-{x.year}"
@@ -91,10 +91,10 @@ def clean_current_player_data(data,date):
             SELECT *,
                 ROW_NUMBER() OVER (PARTITION BY player ORDER BY game_date DESC) AS game_rank
             FROM `capstone_data.player_modeling_data_partitioned`
-            WHERE player IN ({','.join([f'"{player}"' for player in players])}) 
-            AND season_start_year = {season}
+            WHERE player IN ({','.join([f'"{player}"' for player in players])})
         )
         SELECT * FROM RankedGames
+        where game_rank <= 5
         ORDER BY player, game_date DESC;
         """
 
@@ -103,10 +103,10 @@ def clean_current_player_data(data,date):
             SELECT *,
                 ROW_NUMBER() OVER (PARTITION BY player ORDER BY game_date DESC) AS game_rank
             FROM `capstone_data.player_prediction_data_partitioned`
-            WHERE player IN ({','.join([f'"{player}"' for player in players])}) 
-            AND season_start_year = {season}
+            WHERE player IN ({','.join([f'"{player}"' for player in players])})
         )
         SELECT * FROM RankedGames
+        where game_rank <= 5
         ORDER BY player, game_date DESC;
         """
 
@@ -115,7 +115,7 @@ def clean_current_player_data(data,date):
         # Fetch past modeling and prediction data from BigQuery
         modeling_data = pandas_gbq.read_gbq(
             modeling_query, project_id='miscellaneous-projects-444203', credentials=credentials
-        ) 
+        )
 
         predict_data = pandas_gbq.read_gbq(
             prediction_query, project_id='miscellaneous-projects-444203', credentials=credentials
@@ -166,12 +166,8 @@ def clean_current_player_data(data,date):
                 model_df[f'{feature}_momentum'] = model_df[f'{feature}_season'] - model_df[f'{feature}_3gm_avg']
                 prediction_data[f'{feature}_momentum'] = prediction_data[f'{feature}_season'] - prediction_data[f'{feature}_3gm_avg']
 
-            model_df.dropna(inplace=True, ignore_index=True)
-            prediction_data.dropna(inplace=True, ignore_index=True)
-            
             model_df.rename(columns={'fg3m':'3pm'},inplace = True)
             prediction_data.rename(columns={'fg3m':'3pm'},inplace = True)
-            
             model_dfs.append(model_df)
             prediction_dfs.append(prediction_data)
 
@@ -195,6 +191,14 @@ def clean_current_player_data(data,date):
         model_data['season_start_year'] = season
         predict_data['season_start_year'] = season
 
+        (model_data.drop_duplicates(subset=['game_id', 'player_id'],
+                                    keep='first',
+                                    inplace=True))
+
+        (predict_data.drop_duplicates(subset=['game_id', 'player_id'],
+                                      keep='first',
+                                      inplace=True))
+        print(predict_data)
         # Upload to BigQuery
         if not local:
             for dataset, table in [(model_data, "player_modeling_data_partitioned"), 
@@ -202,7 +206,6 @@ def clean_current_player_data(data,date):
                 pandas_gbq.to_gbq(dataset, destination_table=f'capstone_data.{table}',
                                     project_id='miscellaneous-projects-444203', if_exists='append',
                                     credentials=credentials, table_schema=[{'name': 'game_date', 'type': 'DATE'}])
-        
 
         else:
             for dataset, table in [(model_data, "player_modeling_data_partitioned"), 

@@ -12,6 +12,7 @@ else:
 
     team_data,player_data,date = scrape_current_games()
 
+    print(player_data)
     print("Cleaning Data")
 
     clean_current_player_data(player_data,date)
