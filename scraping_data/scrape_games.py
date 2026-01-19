@@ -64,7 +64,8 @@ def scrape_current_games():
             print(df['game_date'])
 
             team_table_id = f"capstone_data.{season}_team_ratings"
-            team_table_schema = [{"name": "game_date", "type": "DATE"}]  
+            psql_table_id = f"{season}_team_ratings"
+            team_table_schema = [{"name": "game_date", "type": "DATE"}]
             
             df = df[df['game_date'] == scrape_date.date()]
             
@@ -91,7 +92,7 @@ def scrape_current_games():
                     if_exists="append",
                     credentials=credentials,
                     table_schema=team_table_schema,)
-
+            utils.upload_data(df, psql_table_id)
             game_ids = list(df[df['game_date'] == scrape_date.date()]['game_id'])
 
             
@@ -190,8 +191,8 @@ def scrape_current_games():
                         if_exists="replace",
                         credentials=credentials)
                 print("Scraping successful.")
-
-                return df,full_data,date
+                utils.upload_data(full_data, '2025-2026_uncleaned')
+                return df, full_data, date
         
         else:
             print('no games')

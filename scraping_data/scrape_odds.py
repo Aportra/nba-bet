@@ -10,6 +10,7 @@ import pandas as pd
 import pandas_gbq
 import os
 from google.oauth2 import service_account
+import utils
 
 current_wd = os.getcwd()
 
@@ -17,7 +18,6 @@ with open(f'{current_wd}/config.yaml', mode='r') as file:
     config = yaml.safe_load(file)
 
     api_key = config['api']
-
 
 
 def gather_events():
@@ -37,6 +37,7 @@ def gather_events():
 
     return events
 # v4/sports/{sport}/events/{eventId}/odds?apiKey={apiKey}&regions={regions}&markets={markets}&dateFormat={dateFormat}&oddsFormat={oddsFormat}
+
 
 def process_categories(events):
     """Scrapes NBA player prop odds from DraftKings and uploads data to BigQuery."""
@@ -70,12 +71,12 @@ def gather_odds():
             output['Date_Updated'].append(pd.to_datetime(dt.today()))
 
     df = pd.DataFrame(output)
-    
     pandas_gbq.to_gbq(
         df,
         project_id="miscellaneous-projects-444203",
         destination_table="miscellaneous-projects-444203.capstone_data.player_points_odds",
         if_exists="append"
     )
+    utils.upload_data(df, 'player_points_odds')
 
     return df

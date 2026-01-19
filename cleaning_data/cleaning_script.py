@@ -1,9 +1,9 @@
 """Module for cleaning and processing current NBA player data before uploading to BigQuery."""
 
-from google.cloud import bigquery
 from datetime import datetime as dt
 from google.oauth2 import service_account
 from scraping_data.utils import send_email
+from scraping_data.utils import upload_data
 
 import numpy as np
 import pandas as pd
@@ -214,6 +214,9 @@ def clean_current_player_data(data,date):
                                     project_id='miscellaneous-projects-444203', if_exists='append',
                                 table_schema=[{'name': 'game_date', 'type': 'DATE'}])
 
+        for dataset, table in [(model_data, "player_modeling_data_partitioned"), 
+                                (predict_data, "player_prediction_data_partitioned")]:
+                upload_data(dataset, table)
         send_email(subject="NBA PLAYER DATA CLEANED", body="Data successfully uploaded to NBA_Cleaned.")
 
     except Exception as e:
@@ -686,6 +689,8 @@ def clean_current_team_ratings(game_data):
                 credentials=credentials if not local else None,
                 if_exists="append",
             )
+
+            upload_data(df, table_name)
 
         print("Data upload complete.")
 

@@ -10,6 +10,7 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import WebDriverWait
 from tqdm import tqdm
+import utils
 
 
 NBA_TEAMS = [
@@ -116,6 +117,8 @@ def scrape_team_schedule(nba_teams):
         if_exists="replace",
         table_schema=[{"name": "date", "type": "DATE"}]
     )
+
+    utils.upload_data(combined_data, 'schedule')
 
     print("Scraping completed successfully.")
 
