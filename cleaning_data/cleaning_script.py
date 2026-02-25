@@ -61,7 +61,7 @@ def clean_current_player_data(data,date):
     try:
         # Drop missing values and reset index
         data.rename(columns={'team_abbreviation':'team','player_name':'player'},inplace=True)
-        print("Columns after renaming:", data.columns)  
+        print("Columns after renaming:", data.columns)
         # Normalize player names (remove dots and accents)
         data['player'] = data['player'].str.replace('.', '', regex=False)
         data['player'] = data['player'].apply(remove_accents)
@@ -214,14 +214,12 @@ def clean_current_player_data(data,date):
                                     project_id='miscellaneous-projects-444203', if_exists='append',
                                 table_schema=[{'name': 'game_date', 'type': 'DATE'}])
 
-        for dataset, table in [(model_data, "player_modeling_data_partitioned"), 
-                                (predict_data, "player_prediction_data_partitioned")]:
-                upload_data(dataset, table)
         send_email(subject="NBA PLAYER DATA CLEANED", body="Data successfully uploaded to NBA_Cleaned.")
 
+        for d, t in [(model_data, "player_modeling_data_partitioned"), (predict_data, "player_prediction_data_partitioned")]:
+            upload_data(d, t)
     except Exception as e:
-        send_email(subject="NBA PLAYER Cleaning Failed", body=f"Error: {e}")
-
+        print('Error:', e)
 
 
 def clean_past_player_data():
@@ -675,15 +673,15 @@ def clean_current_team_ratings(game_data):
 
         # Upload data to BigQuery
         destination_tables = {
-            "capstone_data.team_modeling_data_partitioned": team_data,
-            "capstone_data.team_prediction_data_partitioned": predict_data,
+            "team_modeling_data_partitioned": team_data,
+            "team_prediction_data_partitioned": predict_data,
         }
 
 
         for table_name, df in destination_tables.items():
             pandas_gbq.to_gbq(
                 df,
-                destination_table=table_name,
+                destination_table=f"capstone_data.{table_name}",
                 project_id="miscellaneous-projects-444203",
                 table_schema=[{"name": "game_date", "type": "DATE"}],
                 credentials=credentials if not local else None,

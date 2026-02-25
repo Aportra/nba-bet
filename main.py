@@ -10,12 +10,12 @@ if matchups is None:
 else:
     print("Starting scraping of game data")
 
-    team_data,player_data,date = scrape_current_games()
+    team_data, player_data, date = scrape_current_games()
 
-    print(player_data)
+    print(date)
     print("Cleaning Data")
 
-    clean_current_player_data(player_data,date)
+    clean_current_player_data(player_data, date)
 
     clean_current_team_ratings(team_data)
 

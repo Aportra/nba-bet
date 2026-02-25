@@ -168,7 +168,8 @@ def convert_date(date_str):
 
 
 def upload_data(data, table_name):
-
+    df = data.copy()
+    print('uploading', table_name)
     with open('/home/aportra99/nba-bet/scraping_data/config.yaml', 'r') as file:
         config_data = yaml.safe_load(file)
     con = (psycopg2.connect(host=config_data['host'],
@@ -178,22 +179,24 @@ def upload_data(data, table_name):
     cursor = con.cursor()
 
     print('connection succeeded')
-    # data.columns = data.columns.str.replace('%', 'pct')
-    # data.columns = data.columns.str.replace('3', 'three_')
-    # cols = ','.join([f'{i}' for i in data.columns])
-    # buffer = io.StringIO()
-    # data.to_csv(buffer, index=False, header=False)
-    # buffer.seek(0)
+    df.columns = df.columns.str.replace('%', '_pct')
+    df.columns = df.columns.str.replace('3', 'three_')
+    if 'to' in data.columns:
+        df.columns = df.columns.str.replace('to', 'turnovers')
+    cols = ','.join([f'{i}' for i in df.columns])
+    buffer = io.StringIO()
+    df.to_csv(buffer, index=False, header=False)
+    buffer.seek(0)
 
-    # cursor.copy_expert(
-    # f"""
-    # copy {table_name}
-    # ({cols})
-    # from stdin with (format csv)
-    #     """, buffer
-    # )
+    cursor.copy_expert(
+    f"""
+    copy "{table_name}"
+    ({cols})
+    from stdin with (format csv)
+        """, buffer
+    )
 
-    # con.commit()
+    con.commit()
 
 
 if __name__ == "__main__":

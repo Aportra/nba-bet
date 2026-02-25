@@ -40,7 +40,7 @@ def scrape_current_games():
             url = {
                 "2025-2026_uncleaned": "https://stats.nba.com/stats/leaguegamelog?LeagueID=00&Season=2025-26&SeasonType=Playoffs&PlayerOrTeam=T&Counter=0&Sorter=DATE&Direction=DESC"
 
-            } 
+            }
 
         response = utils.establish_requests(url["2025-2026_uncleaned"])
         print(response.status_code)
@@ -53,9 +53,7 @@ def scrape_current_games():
             data = response.json()
 
             headers = [header.lower() for header in data['resultSets'][0]['headers']]
-        
             rows = data['resultSets'][0]['rowSet']
-            
             df = pd.DataFrame(rows,columns=headers)
             print(df)
             df = df.drop(columns=['video_available'])
@@ -66,12 +64,10 @@ def scrape_current_games():
             team_table_id = f"capstone_data.{season}_team_ratings"
             psql_table_id = f"{season}_team_ratings"
             team_table_schema = [{"name": "game_date", "type": "DATE"}]
-            
             df = df[df['game_date'] == scrape_date.date()]
-            
-            print(df['game_date'][0])
 
-            date = df['game_date'][0]
+            print(df)
+            date = list(df['game_date'])[0]
 
 
             # Upload team data
@@ -95,7 +91,6 @@ def scrape_current_games():
             utils.upload_data(df, psql_table_id)
             game_ids = list(df[df['game_date'] == scrape_date.date()]['game_id'])
 
-            
 
             games = []
 
@@ -154,7 +149,6 @@ def scrape_current_games():
                 game_data['game_id'] = game
 
                 games.append(game_data)
-                
                 time.sleep(5)
             full_data = pd.concat(games)
             # Your desired columns
@@ -166,8 +160,8 @@ def scrape_current_games():
             ]
 
             # Drop all other columns
-            full_data = full_data[[col for col in desired_columns if col in full_data.columns]]          
-
+            full_data = full_data[[col for col in desired_columns if col in full_data.columns]]
+            psql_data = full_data.copy()
             if len(full_data) > 0:
                 print(len(full_data))
                 utils.send_email(
@@ -177,10 +171,10 @@ def scrape_current_games():
 
                 if local:
                     pandas_gbq.to_gbq(
-                    full_data,
-                    project_id="miscellaneous-projects-444203",
-                    destination_table='capstone_data.2025-2026_uncleaned',
-                    if_exists="replace"
+                        full_data,
+                        project_id="miscellaneous-projects-444203",
+                        destination_table='capstone_data.2025-2026_uncleaned',
+                        if_exists="replace"
                     )
 
                 else:
@@ -191,9 +185,8 @@ def scrape_current_games():
                         if_exists="replace",
                         credentials=credentials)
                 print("Scraping successful.")
-                utils.upload_data(full_data, '2025-2026_uncleaned')
+                utils.upload_data(psql_data, '2025-2026_uncleaned')
                 return df, full_data, date
-        
         else:
             print('no games')
             utils.send_email(

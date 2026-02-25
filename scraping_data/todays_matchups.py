@@ -8,7 +8,8 @@ import requests
 
 def get_matchups(local=False):
     # Set today's date in MM/DD/YYYY format
-    today = dt.date.today()
+    # today = dt.date.today()
+    today = dt.date(2026, 1, 20)
     today = today.strftime('%m/%d/%Y')
     # Load credentials or set local mode
     try:
