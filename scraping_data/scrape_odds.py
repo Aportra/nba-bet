@@ -52,6 +52,7 @@ def process_categories(events):
 
 
 def gather_odds():
+    psql = utils.psql()
     events = gather_events()
     print(len(events))
     if len(events) > 4:
@@ -77,6 +78,7 @@ def gather_odds():
         destination_table="miscellaneous-projects-444203.capstone_data.player_points_odds",
         if_exists="append"
     )
-    utils.upload_data(df, 'player_points_odds')
+    psql.upload_data(df, 'player_points_odds')
+    psql.close()
 
     return df

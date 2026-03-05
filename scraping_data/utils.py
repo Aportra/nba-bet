@@ -1,7 +1,7 @@
 """Selenium Utility Module for Web Scraping and Automation."""
 
-import psycopg2
 import yaml
+from io import stringio
 import io
 import os
 import time
@@ -198,6 +198,78 @@ def upload_data(data, table_name):
 
     con.commit()
 
+
+
+class psql:
+    def __init__(self):
+        with open('config.yaml', 'r') as file:
+            config = yaml.safe_load(file)
+
+        try:
+            print("database connection successful")
+            self.connect = (psycopg2.connect(database=config['db'],
+                                             user=config['user'],
+                                             password=config['password'],
+                                             host=config['host']))
+        except psycopg2.operationalerror:
+            print("database connection failed")
+            return none
+
+    def create_table(self, table, table_name):
+        cur = self.connect.cursor()
+        if cur is none:
+            return
+
+        dtype_converter = {
+            "int64": "bigint",
+            "int32": "integer",
+            "float64": "double precision",
+            "float32": "real",
+            "bool": "boolean",
+            "boolean": "boolean",
+            "object": "text",
+            "string": "text",
+            "datetime64[ns]": "timestamp",
+            "datetime64[ns, utc]": "timestamptz",
+        }
+        d = ([(col, dtype_converter[str(table[col].dtype)])
+             for col in list(table.columns)])
+
+        cols = ',\n'.join([f'\t{col} {typ}' for col, typ in d])
+
+        query = f"""
+        create table {table_name}(
+        {cols}
+        );
+        """
+        cur.execute(query)
+        self.connect.commit()
+
+        cur.close()
+
+    def upload_data(self, table, table_name):
+        cur = self.connect.cursor()
+        if cur is none:
+            return
+
+        buffer = stringio()
+
+        table.to_csv(buffer, index=false, header=false)
+
+        buffer.seek(0)
+
+        cols = ',\n'.join([f'\t{col}' for col in table.columns])
+
+        cur.copy_expert(
+                f"""copy {table_name}
+                ({cols})
+                from stdin with (format csv)""", buffer)
+
+        self.connect.commit()
+
+    def close(self):
+
+        self.connect.close()
 
 if __name__ == "__main__":
     driver = establish_driver()

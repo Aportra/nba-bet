@@ -24,8 +24,7 @@ def scrape_current_games():
         local = True
         credentials = None
 
-    
-
+    psql = utils.psql()
 
     try:
         scrape_date = dt.today()
@@ -88,7 +87,7 @@ def scrape_current_games():
                     if_exists="append",
                     credentials=credentials,
                     table_schema=team_table_schema,)
-            utils.upload_data(df, psql_table_id)
+            psql.upload_data(df, psql_table_id)
             game_ids = list(df[df['game_date'] == scrape_date.date()]['game_id'])
 
 
@@ -185,7 +184,7 @@ def scrape_current_games():
                         if_exists="replace",
                         credentials=credentials)
                 print("Scraping successful.")
-                utils.upload_data(psql_data, '2025-2026_uncleaned')
+                psql.upload_data(psql_data, '2025-2026_uncleaned')
                 return df, full_data, date
         else:
             print('no games')
