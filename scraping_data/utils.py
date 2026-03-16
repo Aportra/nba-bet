@@ -12,6 +12,7 @@ import pandas as pd
 import chromedriver_autoinstaller
 import requests
 import tempfile
+import psycopg2
 from datetime import datetime as dt
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from email.mime.text import MIMEText
@@ -199,9 +200,10 @@ def upload_data(data, table_name):
     con.commit()
 
 
-
 class psql:
     def __init__(self):
+        base_dir = os.path.dirname(os.path.abspath(__file__))
+        config = os.path.join(base_dir, 'config.yaml')
         with open('config.yaml', 'r') as file:
             config = yaml.safe_load(file)
 
@@ -213,11 +215,11 @@ class psql:
                                              host=config['host']))
         except psycopg2.operationalerror:
             print("database connection failed")
-            return none
+            return None
 
     def create_table(self, table, table_name):
         cur = self.connect.cursor()
-        if cur is none:
+        if cur is None:
             return
 
         dtype_converter = {
@@ -249,12 +251,12 @@ class psql:
 
     def upload_data(self, table, table_name):
         cur = self.connect.cursor()
-        if cur is none:
+        if cur is None:
             return
 
         buffer = stringio()
 
-        table.to_csv(buffer, index=false, header=false)
+        table.to_csv(buffer, index=False, header=False)
 
         buffer.seek(0)
 
