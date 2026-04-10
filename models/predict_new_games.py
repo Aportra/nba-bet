@@ -15,26 +15,6 @@ import os
 current_wd = os.getcwd()
 print(current_wd)
 
-def clean_player_name(name):
-    """Standardizes player names by removing special characters and handling known name variations."""
-    name = name.lower().strip()  # Convert to lowercase & remove extra spaces
-    name = name.replace(".", "")  # Remove periods
-    name = unicodedata.normalize('NFKD', name).encode('ascii', 'ignore').decode('utf-8')
-
-    # Remove special characters (apostrophes, dashes, etc.) 
-    # Known name changes (add more as needed)
-    name_corrections = {
-        "alexandre sarr": "alex sarr",
-        "jimmy butler": "jimmy butler iii",
-        "nicolas claxton": "nic claxton",
-        "kenyon martin jr": "kj martin",
-        "carlton carrington": "bub carrington",
-        "ron holland ii": "ronald holland ii",
-        'cameron thomas':'cam thomas'
-    }
-
-    # Apply corrections if the name exists in the dictionary
-    return name_corrections.get(name, name)  # Default to original name if no correction found
 
 
 def fetch_bigquery_data(query,credentials):
@@ -130,11 +110,10 @@ def recent_player_data(odds_data,games):
     if not filtered_players:
         print("No valid players found.")
         return None, None
-    
     queries = {
-    "player_data": f"""
+        "player_data": f"""
         WITH RankedGames AS (
-            SELECT *, 
+            SELECT *,
                 ROW_NUMBER() OVER (PARTITION BY player ORDER BY game_date DESC) AS game_rank
             FROM `capstone_data.player_prediction_data_partitioned`
             WHERE LOWER(player) IN {filtered_players}
@@ -144,12 +123,12 @@ def recent_player_data(odds_data,games):
         FROM RankedGames
         where game_rank = 1;
     """,
-    "team_data": f"""
+        "team_data": f"""
         WITH RankedGames AS (
-            SELECT *, 
+            SELECT *,
                 ROW_NUMBER() OVER (PARTITION BY team ORDER BY game_date DESC) AS game_rank
             FROM `capstone_data.team_prediction_data_partitioned`
-            WHERE team IN {teams} 
+            WHERE team IN {teams}
             AND season_start_year = 2024
         )
         SELECT * except(game_rank)
@@ -189,15 +168,8 @@ def recent_player_data(odds_data,games):
     # Drop duplicate or unnecessary columns
 
 
-    # players_to_drop = full_data[full_data.isnull().any(axis=1)]
-    # print("🚨 Dropping these players due to NaN values:")
-    # print(players_to_drop[['player', 'team']])
-    # Save the players being dropped for debugging
-
-    # Drop NaNs
     print(full_data[['to_season','to_3gm_avg']])
     full_data.dropna(axis=1,inplace=True)
-    
     print(full_data)
     nan_players = full_data[full_data.isnull().any(axis=1)]
 
@@ -220,7 +192,6 @@ def predict_games(full_data, odds_raw):
     print(current_wd)
     models = joblib.load(f'{current_wd}/models/models.pkl')
     for key, odds_df in odds_data.items():
-  
         # Filter relevant players
         data_ordered = full_data[full_data['player'].isin(odds_df['Player'])].copy()
 
