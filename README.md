@@ -7,7 +7,7 @@ A production-style machine learning system that predicts NBA player point totals
 ## Technical Highlights
 
 - **Stacked ensemble architecture:** Linear Regression and LightGBM base models → weighted meta-model → calibrated classification model with custom Over/Under probability thresholds
-- **Cloud-integrated pipeline:** Data stored and queried from Google BigQuery; predictions written back to BigQuery on each run
+- **Database-integrated pipeline:** Data stored and queried from a locally hosted PostgreSQL server via psycopg2; predictions written back to the database on each run
 - **Real-time data ingestion:** Automated scraping of box scores from NBA.com and live betting lines from DraftKings using Selenium and BeautifulSoup
 - **Feature engineering:** Rolling 3-game averages, season averages, and momentum indicators computed per player; opponent and team-level stats merged at inference time
 
@@ -65,7 +65,7 @@ The ensemble prediction, raw model outputs, and a computed delta (prediction min
 - Opponent and team stats merged at inference time from partitioned BigQuery tables
 
 ### Storage
-All data is stored in Google BigQuery. Predictions and classifications are appended to BigQuery tables on each daily run, enabling historical tracking of model performance.
+All data is stored in a locally hosted PostgreSQL database, queried via psycopg2. Predictions and classifications are appended to the database on each daily run, enabling historical tracking of model performance.
 
 ---
 
@@ -95,7 +95,7 @@ python run_predictions.py
 streamlit run dashboard.py
 ```
 
-> **Note:** Requires Google Cloud service account credentials with BigQuery access.
+> **Note:** Requires a locally running PostgreSQL instance. Update connection settings in `utils.py` before running.
 
 ---
 
@@ -104,7 +104,7 @@ streamlit run dashboard.py
 | Category | Tools |
 |---|---|
 | Data Collection | Selenium, BeautifulSoup, Requests |
-| Storage | Google BigQuery, pandas-gbq |
+| Storage | PostgreSQL, psycopg2 |
 | Modeling | scikit-learn, LightGBM, joblib |
 | Dashboard | Streamlit |
 | Language | Python 3 |
