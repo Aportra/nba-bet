@@ -1,141 +1,110 @@
-# NBA Player Performance Prediction and Betting Recommendation System
+# NBA Player Points Prediction — End-to-End ML Pipeline
 
-## Overview
-This project automates the process of scraping, cleaning, modeling, and predicting NBA player performances to provide betting recommendations based on Over/Under odds.
-
-The pipeline involves:
-1. Scraping NBA game data
-2. Cleaning and structuring the data for modeling
-3. Building predictive models (Linear Regression, LightGBM, etc.)
-4. Comparing predictions against sportsbook Over/Under odds
-5. Providing betting recommendations (Over/Under)
-6. Displaying results in a Streamlit dashboard
+A production-style machine learning system that predicts NBA player point totals and generates Over/Under betting recommendations against live DraftKings lines. The pipeline runs daily, pulling live data, generating predictions with a stacked ensemble model, and surfacing results through a Streamlit dashboard.
 
 ---
 
-## Project Structure
+## Technical Highlights
+
+- **Stacked ensemble architecture:** Linear Regression and LightGBM base models → weighted meta-model → calibrated classification model with custom Over/Under probability thresholds
+- **Cloud-integrated pipeline:** Data stored and queried from Google BigQuery; predictions written back to BigQuery on each run
+- **Real-time data ingestion:** Automated scraping of box scores from NBA.com and live betting lines from DraftKings using Selenium and BeautifulSoup
+- **Feature engineering:** Rolling 3-game averages, season averages, and momentum indicators computed per player; opponent and team-level stats merged at inference time
+
+---
+
+## Architecture
 
 ```
 NBA-Prediction-Project/
-│── scraping_data/          # Collects NBA player, team, and odds data  
-│   ├── scrape_games.py  
-│   ├── scrape_odds.py  
-│   ├── scrape_team_schedule.py  
-│   ├── utils.py  
-│── cleaning_data/          # Cleans and prepares data for modeling  
-│   ├── cleaning_script.py  
-│── models/                 # Builds models and predicts game outcomes  
-│   ├── building_models.ipynb  
-│   ├── model_utils.py  
-│   ├── predict_new_games.py
-|   ├── models.pkl            # Saved machine learning models  
-|   ├── classification_models.pkl 
-│   ├── meta_models.pkl          
-│── main.py                  # Runs the full data pipeline  
-│── run_predictions.py       # Scrapes odds and generates predictions
-│──  dashboard.py           # Visualizes predictions in Streamlit  
-│── README.md               # Project documentation  
+├── scrape_games.py           # Box scores and team stats from NBA.com
+├── scrape_odds.py            # Live Over/Under lines from DraftKings
+├── scrape_team_schedule.py   # Today's matchups and rosters
+├── utils.py                  # Shared scraping utilities
+├── cleaning_script.py        # Feature engineering and data prep
+├── building_models.ipynb     # Model training and evaluation
+├── model_utils.py            # Training helpers
+├── predict_new_games.py      # Inference pipeline (roster → features → prediction)
+├── main.py                   # Full historical data pipeline
+├── run_predictions.py        # Daily: scrape odds → predict → upload to BigQuery
+├── dashboard.py              # Streamlit dashboard
+└── models/
+    ├── models.pkl             # Base regression models (Linear, LightGBM)
+    ├── meta_model.pkl         # Weighted ensemble of base models
+    └── classification_models.pkl  # Over/Under classifier with tuned thresholds
 ```
 
 ---
 
-## Pipeline Workflow
+## Modeling Pipeline
 
-### 1. Scraping Data (`scraping_data/`)
-**Purpose:** Collect real-time and historical data on NBA players, teams, and odds.
+Predictions are generated in three stages:
 
-- `scrape_games.py` - Scrapes box score data and team stats from NBA.com
-- `scrape_team_schedule.py` - Scrapes team schedules
-- `scrape_odds.py` - Extracts Over/Under betting lines from DraftKings
+**1. Base Regression Models**
+Linear Regression and LightGBM independently predict a player's point total using player-level, team-level, and opponent-level features from BigQuery.
 
-**Tools used:** Selenium, BeautifulSoup, Requests, Google BigQuery
+**2. Meta-Model**
+A weighted ensemble combines the two base model predictions into a single point estimate. Weights are learned during training to minimize prediction error.
 
----
-
-### 2. Cleaning and Feature Engineering (`cleaning_data/`)
-**Purpose:** Process raw data into structured datasets for modeling.
-
-- `cleaning_script.py`  
-  - Removes missing or incorrect values  
-  - Converts time-based stats into usable formats  
-  - Calculates rolling averages and momentum indicators (three-game average, season average)  
-
-**Key transformations:**
-- Player statistics rolling averages (last three games)
-- Seasonal averages
-- Momentum metrics (change in performance trends)
+**3. Classification Model**
+The ensemble prediction, raw model outputs, and a computed delta (prediction minus betting line) are fed into a calibrated classifier. Custom probability thresholds for Over and Under allow the model to abstain when confidence is low, outputting one of: `Over`, `Under`, or `No Bet Recommendation`.
 
 ---
 
-### 3. Building and Training Models (`models/`)
-**Purpose:** Train machine learning models to predict player performance.
+## Data Pipeline
 
-- `building_models.ipynb` - Trains models such as Linear Regression, LightGBM, and RandomForest
-- `model_utils.py` - Helper functions for model training
-- `models.pkl` - Pre-trained models for fast inference
+### Scraping
+- `scrape_games.py` — pulls historical and current-season box scores from NBA.com's stats API using authenticated requests
+- `scrape_odds.py` — extracts player point lines from DraftKings via Selenium
+- `scrape_team_schedule.py` — identifies today's matchups and fetches current rosters from the NBA stats API
 
-**Models Used:**
-- Linear Regression - Simple, interpretable baseline model
-- LightGBM - Efficient gradient boosting for structured data
-- RandomForest - Captures non-linear relationships
+### Feature Engineering (`cleaning_script.py`)
+- Rolling 3-game player averages (points, rebounds, assists, turnovers, etc.)
+- Season-to-date averages
+- Momentum indicators (recent trend vs. season baseline)
+- Opponent and team stats merged at inference time from partitioned BigQuery tables
 
----
-
-### 4. Making Predictions (`predict_new_games.py`)
-**Purpose:** Predict player statistics for upcoming games and compare them to betting odds.
-
-- Loads trained models (`models.pkl`,`meta_model.pkl`,`classification_models.pkl`)
-- Predicts points, rebounds, assists, and three-pointers for each player
-- Feeds predictions into meta_model
-- Meta model, and both regressions model then fed into classifcation_models
-- Classification model then generates an Over or Under prediction
-- Recommends "Over" or "Under" for each player
+### Storage
+All data is stored in Google BigQuery. Predictions and classifications are appended to BigQuery tables on each daily run, enabling historical tracking of model performance.
 
 ---
 
-### 5. Dashboard Visualization (`dashboard.py`)
-**Purpose:** Display predictions and betting recommendations in a user-friendly dashboard.
+## Dashboard
 
-Utilizes Streamlit to present:
-- Player headshots
-- Team logos
-- Past 3 games statistics
-- Sportsbook odds
-- Over/Under recommendations
+The Streamlit dashboard (`dashboard.py`) displays:
+- Today's player matchups with team logos and headshots
+- Last 3 games of player stats
+- Live DraftKings betting line
+- Model recommendation (Over / Under / No Bet) with confidence probability
 
 ---
 
-## How to Run the Project
+## How to Run
 
-### 1. Install Dependencies
-```
+```bash
+# Install dependencies
 pip install -r requirements.txt
-```
 
-### 2. Run the Full Data Pipeline
-```
+# Run the full historical data pipeline (scrape + clean + store)
 python main.py
-```
 
-### 3. Pull todays odds and generate predictions
-```
+# Daily run: pull today's odds and generate predictions
 python run_predictions.py
-```
 
-### 4. Launch the Dashboard
-```
+# Launch the dashboard
 streamlit run dashboard.py
 ```
 
----
-
-## Future Improvements
-- Enhance feature engineering, including team synergy, opponent strength, game context and fatigue factor
-- Improve models by incorporating XGBoost and deep learning approaches
-
+> **Note:** Requires Google Cloud service account credentials with BigQuery access.
 
 ---
 
-## Conclusion
-This project automates NBA player performance prediction and betting recommendations, combining web scraping, data engineering, machine learning, and visualization into a streamlined workflow.
+## Stack
 
+| Category | Tools |
+|---|---|
+| Data Collection | Selenium, BeautifulSoup, Requests |
+| Storage | Google BigQuery, pandas-gbq |
+| Modeling | scikit-learn, LightGBM, joblib |
+| Dashboard | Streamlit |
+| Language | Python 3 |
