@@ -1,112 +1,28 @@
-from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver.support import expected_conditions as EC
-from selenium.webdriver.common.by import By
 from google.oauth2 import service_account
 from datetime import datetime as date
 from models import model_utils
-
 import joblib
 import pandas as pd
-import pandas_gbq
-import time
-import unicodedata
 import os
 
 current_wd = os.getcwd()
 print(current_wd)
+#Connect to PSQL
+conn = model_utils.psql()
 
 
-
-def fetch_bigquery_data(query,credentials):
-    """Fetches data from BigQuery."""
-    print(f"Fetching data from BigQuery: {query[:50]}...") 
-    try:
-        return pd.DataFrame(
-            pandas_gbq.read_gbq(
-                query, 
-                project_id="miscellaneous-projects-444203",
-                credentials=credentials
-            )
-        )
-    except Exception as e:
-        print(f"BigQuery Error: {e}")
-        return pd.DataFrame()
-
-
-def scrape_roster(input_data):
-    """Scrapes team rosters for today's games from ESPN."""
-
-    teams = tuple(input_data['team'])
-
-    query = f"""Select
-    distinct
-        team_id,
-        team
-    from `capstone_data.team_prediction_data_partitioned`
-    where team in {teams}"""
-    
-
-    try:
-        credentials = service_account.Credentials.from_service_account_file("/home/aportra99/scraping_key.json")
-        local = False
-    except FileNotFoundError:
-        print("File not found, continuing as if on local.")
-        local = True
-        credentials = None
-
-    teams_data = fetch_bigquery_data(query,credentials=credentials)
-    team_dict = {teams_data['team_id'][i]: teams_data['team'][i] for i in range(len(teams_data['team_id']))}
-    opponent_dict = {input_data['team'][i]:input_data['opponent'][i] for i in range(len(input_data['team']))}
-    full_dicts = []
-
-    for i in range(len(teams_data['team_id'])):
-        url = f"https://stats.nba.com/stats/commonteamroster?LeagueID=&Season=2025-26&TeamID={teams_data['team_id'][i]}"
-        req = model_utils.establish_requests(url)
-        result = req.json()['resultSets'][0]
-        headers = [result['headers'][i].lower() for i in range(len(result['headers']))]
-        cols = {result['headers'][x].lower():[] for x in range(len(result['headers']))}
-        data = req.json()['resultSets'][0]['rowSet']
-        cols['team'] = []
-        cols['opponent'] = []
-
-        for i in range(len(data)):
-            for y in range(len(data[i])):
-                if headers[y] == 'teamid':
-                    cols['team'].append(team_dict[data[i][y]])
-                    cols['opponent'].append(opponent_dict[team_dict[data[i][y]]])
-                    cols[headers[y]].append(data[i][y])
-                else:
-                    cols[headers[y]].append(data[i][y])
-            full_dicts.append(cols)
-
-    final_dict = {key: [] for key in full_dicts[0].keys()}
-
-    for i in range(len(full_dicts)):
-        for key in full_dicts[i].keys():
-            for y in range(len(full_dicts[i][key])):
-                final_dict[key].append(full_dicts[i][key][y])
-    df = pd.DataFrame(final_dict)
-
-    print(df)
-
-    return df
-
-def recent_player_data(odds_data,games):
+def recent_player_data(odds_data, games):
     """Fetches recent player, team, and opponent data from BigQuery."""
     print("Fetching recent player, team, and opponent data...")
 
     today = date.today()
     season =int(today.year if today.month >= 10 else today.year - 1)
-    try:
-        credentials = service_account.Credentials.from_service_account_file("/home/aportra99/scraping_key.json")
-    except FileNotFoundError:
-        credentials=None
 
-    filtered_players = tuple(games['player'].apply(lambda x: x.lower()))
-    teams = tuple(games['team'])
+    filtered_players = tuple(games['player_id'])
+    teams = tuple(set(games['team_id']))
 
     print(f'player length:{len(filtered_players)}')
-    print(f'team length: {len(games['team'].unique())}')
+    print(f'team length: {len(teams)}')
     if not filtered_players:
         print("No valid players found.")
         return None, None
@@ -115,11 +31,11 @@ def recent_player_data(odds_data,games):
         WITH RankedGames AS (
             SELECT *,
                 ROW_NUMBER() OVER (PARTITION BY player ORDER BY game_date DESC) AS game_rank
-            FROM `capstone_data.player_prediction_data_partitioned`
-            WHERE LOWER(player) IN {filtered_players}
-            AND season_start_year = 2024
+            FROM player_prediction_data_partitioned
+            WHERE player_id IN {filtered_players}
+            AND season_start_year = '{season}'
         )
-        SELECT * except(game_rank)
+        SELECT *
         FROM RankedGames
         where game_rank = 1;
     """,
@@ -127,18 +43,17 @@ def recent_player_data(odds_data,games):
         WITH RankedGames AS (
             SELECT *,
                 ROW_NUMBER() OVER (PARTITION BY team ORDER BY game_date DESC) AS game_rank
-            FROM `capstone_data.team_prediction_data_partitioned`
-            WHERE team IN {teams}
-            AND season_start_year = 2024
+            FROM team_prediction_data_partitioned
+            WHERE team_id IN {teams}
+            AND season_start_year = '{season}'
         )
-        SELECT * except(game_rank)
+        SELECT *
         FROM RankedGames
         where game_rank = 1;
-    """
-}
+    """}
 
     # Fetch player, opponent, and team data
-    player_data, team_data = [fetch_bigquery_data(queries[q],credentials=credentials) for q in queries]
+    player_data, team_data = [conn.query(queries[q]) for q in queries]
 
     print('queries complete')
     # Standardize player names in player_data
@@ -148,7 +63,7 @@ def recent_player_data(odds_data,games):
 
     team_data_1 = team_data.copy()
 
-    team_data_1.rename(columns={'team':'opponent'},inplace=True)
+    team_data_1.rename(columns={'team_id':'opponent'},inplace=True)
 
     # print(player_data)
     # print(team_data)
@@ -158,25 +73,18 @@ def recent_player_data(odds_data,games):
     pd.set_option('display.max_columns', None)  # Show all columns
     pd.set_option('display.expand_frame_repr', False)
     # Merge datasets while keeping only necessary columns
-    full_data = (player_data.merge(games, on="player_id", how="inner", suffixes=("", "_remove")))
-    full_data = full_data.merge(team_data, on = 'team',how = 'left', suffixes = ("","_remove"))
+    full_data = (player_data.merge(games, on="player_id", how="inner",
+                 suffixes=("", "_remove")))
+    full_data = full_data.merge(team_data, on = 'team_id', how = 'left',
+                suffixes = ("", "_remove"))
     full_data = full_data.merge(team_data_1, on= 'opponent', how = 'left',suffixes = ("","_opponent"))
 
-
-
-    print('print full data post merge',len(full_data['player'].unique()))
+    print('print full data post merge', len(full_data['player'].unique()))
     # Drop duplicate or unnecessary columns
 
-
-    print(full_data[['to_season','to_3gm_avg']])
-    full_data.dropna(axis=1,inplace=True)
-    print(full_data)
-    nan_players = full_data[full_data.isnull().any(axis=1)]
-
-
+    full_data.dropna(axis=1, inplace=True)
+    print(full_data['player'])
     return full_data, odds_data
-
-
 
 
 def predict_games(full_data, odds_raw):
@@ -223,9 +131,6 @@ def predict_games(full_data, odds_raw):
         # Determine category for prediction
         category_mapping = {
             "points": "pts"
-            # "rebounds": "reb",
-            # "assists": "ast",
-            # "threes_made": "3pm"
         }
         category = category_mapping[key]
 
@@ -249,7 +154,6 @@ def predict_games(full_data, odds_raw):
                 odds_df[col].astype(str).str.replace('−', '-', regex=False).str.replace('+', '', regex=False),
                 errors='coerce'
             ).fillna(0).astype(int)
-        
         # Merge predictions with odds data
         for idx, row in odds_df.iterrows():
             player_name = row['Player']
@@ -276,41 +180,30 @@ def predict_games(full_data, odds_raw):
             else:
                 print(f"Warning: No match found for {player_name} in category {category}")
 
-        # Upload predictions to BigQuery
-        table_name = f'miscellaneous-projects-444203.capstone_data.{key}_predictions'
-        odds_df.dropna(axis=0,inplace = True)
-        odds_df.drop_duplicates(keep='first',inplace=True)
-        pandas_gbq.to_gbq(odds_df, table_name, project_id='miscellaneous-projects-444203', credentials=credentials if not local else None, if_exists='append')
+        # Upload predictions to PSQL
+        table_name = f'{key}_predictions'
+        odds_df.dropna(axis=0, inplace = True)
+        odds_df.drop_duplicates(keep='first', inplace=True)
+        conn.upload_data(odds_df, table_name)
         odds[category] = odds_df
         lowest_data[category] = latest_rows
         print(f"Successfully uploaded {key} predictions.")
 
-    return lowest_data,odds
+    return lowest_data, odds
 
 #best bets tab added in
 
 def classification(lowest_data,odds):
         
-    ensemble = joblib.load(f'{current_wd}/nba-bet/models/meta_model.pkl')
-    models = joblib.load(f'{current_wd}/nba-bet/models/classification_models.pkl')
+    ensemble = joblib.load(f'{current_wd}/models/meta_model.pkl')
+    models = joblib.load(f'{current_wd}/models/classification_models.pkl')
 
     # Display settings
     pd.set_option('display.max_columns', None)
     pd.set_option('display.max_colwidth', None)
     pd.set_option('display.max_rows', None)
 
-    # Auth
-    try:
-        credentials = service_account.Credentials.from_service_account_file('/home/aportra99/scraping_key.json')
-        local = False
-    except FileNotFoundError:
-        print("File not found, running in local mode.")
-        local = True
-        credentials = None
-
-    # categories = ['pts', 'reb', 'ast', '3pm']
     categories = ['pts']
-    # lines = ['points', 'rebounds', 'assists', 'threes_made']
     lines = ['points']
 
     # Backup
@@ -397,22 +290,19 @@ def classification(lowest_data,odds):
         if odds[cat].duplicated(subset='player').any():
             print(f"Duplicates found in {cat} after merge!")
         odds[cat].drop(columns =[f'{cat}_linear_model',f'{cat}_lightgbm',f'recommendation_{cat}_linear_model',f'recommendation_{cat}_lightgbm',f'{cat}_ensemble'],inplace= True)
-        
         odds[cat].dropna(axis=0,inplace=True)
-        
         odds[cat].drop_duplicates(keep='first',inplace=True)
-        table_name = f'miscellaneous-projects-444203.capstone_data.{cat}_classifications'
-        pandas_gbq.to_gbq(odds[cat], table_name, project_id='miscellaneous-projects-444203', credentials=credentials if not local else None, if_exists='append')
-        
+        table_name = f'{cat}_classifications'
+        conn.upload_data(odds[cat], table_name)
 
-def run_predictions(odds_data,matchups):
+
+def run_predictions(odds_data, matchups):
     """Runs the full prediction pipeline from data gathering to model inference."""
     print("Running game predictions...")
 
     try:
-        games = scrape_roster(matchups)
 
-        full_data,odds = recent_player_data(odds_data,games)
+        full_data, odds = recent_player_data(odds_data, matchups)
 
         lowest_data, odds = predict_games(full_data, odds_data)
 
@@ -421,5 +311,7 @@ def run_predictions(odds_data,matchups):
             print("Failed to retrieve necessary data. Exiting...")
             return
     except Exception as e:
-        print(e) 
+        print(e)
+
+    conn.close()
 
