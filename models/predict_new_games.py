@@ -31,7 +31,7 @@ def recent_player_data(odds_data, games):
         WITH RankedGames AS (
             SELECT *,
                 ROW_NUMBER() OVER (PARTITION BY player ORDER BY game_date DESC) AS game_rank
-            FROM player_prediction_data_partitioned
+            FROM clean_player_data
             WHERE player_id IN {filtered_players}
             AND season_start_year = '{season}'
         )
@@ -43,7 +43,7 @@ def recent_player_data(odds_data, games):
         WITH RankedGames AS (
             SELECT *,
                 ROW_NUMBER() OVER (PARTITION BY team ORDER BY game_date DESC) AS game_rank
-            FROM team_prediction_data_partitioned
+            FROM clean_team_data
             WHERE team_id IN {teams}
             AND season_start_year = '{season}'
         )
