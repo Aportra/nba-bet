@@ -291,8 +291,8 @@ def predict_games(full_data, odds_raw):
 
 def classification(lowest_data,odds):
         
-    ensemble = joblib.load(f'{current_wd}/models/meta_model.pkl')
-    models = joblib.load(f'{current_wd}/models/classification_models.pkl')
+    ensemble = joblib.load(f'{current_wd}/nba-bet/models/meta_model.pkl')
+    models = joblib.load(f'{current_wd}/nba-bet/models/classification_models.pkl')
 
     # Display settings
     pd.set_option('display.max_columns', None)
