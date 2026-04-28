@@ -1,76 +1,23 @@
 """Selenium Utility Module for Web Scraping and Automation."""
 
 import yaml
-from io import stringio
+from io import StringIO
 import io
 import os
-import time
-import random
 import smtplib
-import signal
 import pandas as pd
-import chromedriver_autoinstaller
 import requests
-import tempfile
 import psycopg2
 from datetime import datetime as dt
-from concurrent.futures import ThreadPoolExecutor, as_completed
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from dotenv import load_dotenv
-from selenium import webdriver
-from selenium.webdriver.chrome.service import Service
-from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver.support import expected_conditions as EC
-from selenium.webdriver.common.by import By
 from bs4 import BeautifulSoup
 from tqdm import tqdm
 
 
-def establish_driver(local=False):
-    """Establishes a Selenium WebDriver for Chrome.
-
-    Args:
-        local (bool): If True, runs WebDriver locally. Otherwise, uses a remote setup.
-
-    Returns:
-        webdriver.Chrome: A configured instance of the Chrome WebDriver.
-    """
-    chrome_options = webdriver.ChromeOptions()  # Correct usage of ChromeOptions
-    chrome_options.add_argument("--headless=new")  # Run without UI (remove if you need the UI)
-    chrome_options.add_argument("--disable-dev-shm-usage")
-    chrome_options.add_argument("--disable-gpu")  # Prevents GPU-related crashes
-    chrome_options.add_argument("user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/92.0.4515.159 Safari/537.36")
-
-    temp_profile = tempfile.mkdtemp()
-    chrome_options.add_argument(f"--user-data-dir={temp_profile}")
-    if not local:
-        # If not local, install chromedriver and set up the service for remote use
-        chrome_path = chromedriver_autoinstaller.install()
-        service = Service(chrome_path)
-        chrome_options.binary_location = "/usr/bin/google-chrome-stable"  # Path to Chrome binary if using a custom installation
-        driver = webdriver.Chrome(service=service, options=chrome_options)
-    else:
-        # If local, use the automatically installed chromedriver
-        chrome_path = chromedriver_autoinstaller.install()
-        service = Service(chrome_path)
-        driver = webdriver.Chrome(service=service, options=chrome_options)
-    
-    # Set the window size for the Chrome browser (optional)
-    driver.set_window_size(2560, 1440)
-
-    return driver
-
 def establish_requests(url,params=False):
     # Headers to mimic a real browser request (prevents bot blocking)
-
-    USER_AGENTS = [
-        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
-        "(KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36",
-        "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 "
-        "(KHTML, like Gecko) Chrome/92.0.4515.107 Safari/537.36",
-        "Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:90.0) Gecko/20100101 Firefox/90.0",
-    ]
 
     headers = {
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)",
@@ -79,37 +26,14 @@ def establish_requests(url,params=False):
         "Origin": "https://www.nba.com"
     }
     if not params:
-    # Send request
+        # Send request
         response = requests.get(url, headers=headers)
     else:
-       response = requests.get(url, headers=headers,params=params) 
+        response = requests.get(url, headers=headers, params=params)
 
     print(response.status_code)
     return response
 
-
-
-
-
-def select_all_option(driver):
-    """Selects the 'All' option in a dropdown menu on a webpage."""
-    try:
-        dropdown = WebDriverWait(driver, 10).until(
-            EC.element_to_be_clickable(
-                (By.XPATH, "/html/body/div[1]/div[2]/div[2]/div[3]/section[2]/div/div[2]/div[2]/div[1]/div[3]/div/label")
-            )
-        )
-        driver.execute_script("arguments[0].click();", dropdown)
-
-        all_option = WebDriverWait(driver, 10).until(
-            EC.element_to_be_clickable(
-                (By.XPATH, "/html/body/div[1]/div[2]/div[2]/div[3]/section[2]/div/div[2]/div[2]/div[1]/div[3]/div/label/div/select/option[1]")
-            )
-        )
-        all_option.click()
-        print("Successfully selected the 'All' option.")
-    except Exception as e:
-        print(f"Error selecting the 'All' option: {e}")
 
 def send_email(subject, body):
     """Sends an email notification.
@@ -202,14 +126,17 @@ def upload_data(data, table_name):
 
 class psql:
     def __init__(self):
+        os.chdir('..')
         base_dir = os.path.dirname(os.path.abspath(__file__))
+        print(base_dir)
         config = os.path.join(base_dir, 'config.yaml')
+        print(config)
         with open('config.yaml', 'r') as file:
             config = yaml.safe_load(file)
 
         try:
             print("database connection successful")
-            self.connect = (psycopg2.connect(database=config['db'],
+            self.connect = (psycopg2.connect(database=config['database'],
                                              user=config['user'],
                                              password=config['password'],
                                              host=config['host']))
@@ -254,7 +181,7 @@ class psql:
         if cur is None:
             return
 
-        buffer = stringio()
+        buffer = StringIO()
 
         table.to_csv(buffer, index=False, header=False)
 
@@ -269,12 +196,21 @@ class psql:
 
         self.connect.commit()
 
+    def query(self, query):
+        cur = self.connect.cursor()
+
+        cur.execute(query)
+        columns = [desc[0] for desc in cur.description]
+        data = pd.DataFrame(cur.fetchall(), columns=columns)
+
+        return data
+
     def close(self):
 
         self.connect.close()
 
+
 if __name__ == "__main__":
-    driver = establish_driver()
-    select_all_option(driver)
+    establish_requests
 
 

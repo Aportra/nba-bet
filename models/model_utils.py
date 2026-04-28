@@ -10,14 +10,6 @@ from io import StringIO
 def establish_requests(url, params=False):
     # Headers to mimic a real browser request (prevents bot blocking)
 
-    USER_AGENTS = [
-        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
-        "(KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36",
-        "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 "
-        "(KHTML, like Gecko) Chrome/92.0.4515.107 Safari/537.36",
-        "Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:90.0) Gecko/20100101 Firefox/90.0",
-    ]
-
     headers = {
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)",
         "Accept": "application/json, text/plain, */*",
@@ -25,10 +17,10 @@ def establish_requests(url, params=False):
         "Origin": "https://www.nba.com"
     }
     if not params:
-    # Send request
+        # Send request
         response = requests.get(url, headers=headers)
     else:
-       response = requests.get(url, headers=headers,params=params) 
+        response = requests.get(url, headers=headers, params=params)
 
     print(response.status_code)
     return response
