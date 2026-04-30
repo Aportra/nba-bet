@@ -11,7 +11,6 @@ import psycopg2
 from datetime import datetime as dt
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
-from dotenv import load_dotenv
 from bs4 import BeautifulSoup
 from tqdm import tqdm
 
