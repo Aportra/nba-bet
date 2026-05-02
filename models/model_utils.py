@@ -28,11 +28,7 @@ def establish_requests(url, params=False):
 
 class psql:
     def __init__(self):
-        os.chdir('..')
-        base_dir = os.path.dirname(os.path.abspath(__file__))
-        print(base_dir)
-        config = os.path.join(base_dir, 'config.yaml')
-        print(config)
+        config = os.getcwd()
         with open('config.yaml', 'r') as file:
             config = yaml.safe_load(file)
 

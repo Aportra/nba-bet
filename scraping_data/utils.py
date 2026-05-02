@@ -1,21 +1,18 @@
-"""Selenium Utility Module for Web Scraping and Automation."""
-
 import yaml
 from io import StringIO
 import io
 import os
-import smtplib
 import pandas as pd
 import requests
 import psycopg2
 from datetime import datetime as dt
-from email.mime.text import MIMEText
-from email.mime.multipart import MIMEMultipart
-from bs4 import BeautifulSoup
-from tqdm import tqdm
+
+config = os.getcwd()
+with open('config.yaml', 'r') as file:
+    config = yaml.safe_load(file)
 
 
-def establish_requests(url,params=False):
+def establish_requests(url, params=False):
     # Headers to mimic a real browser request (prevents bot blocking)
 
     headers = {
@@ -34,38 +31,17 @@ def establish_requests(url,params=False):
     return response
 
 
-def send_email(subject, body):
-    """Sends an email notification.
+def send_message(message):
+    ds_url = config['discord_url']
 
-    Args:
-        subject (str): The email subject.
-        body (str): The email body content.
-    """
-    try:
-        load_dotenv('/home/aportra99/Capstone/.env')
-        print('Loaded the .env file.')
-    except FileNotFoundError:
-        print('Could not load .env file.')
+    m = {'content': message, 'username': 'Captain Hook'}
 
-    sender_email = os.getenv('SERVER_EMAIL')
-    receiver_email = os.getenv('EMAIL_USERNAME')
-    password = os.getenv('EMAIL_PASSWORD')
+    response = requests.post(ds_url, m)
 
-    msg = MIMEMultipart()
-    msg['From'] = sender_email
-    msg['To'] = receiver_email
-    msg['Subject'] = subject
-    msg.attach(MIMEText(body, 'plain'))
-
-    try:
-        server = smtplib.SMTP('smtp.gmail.com', 587)
-        server.starttls()
-        server.login(sender_email, password)
-        server.send_message(msg)
-    except Exception as e:
-        print(f"Failed to send email: {e}")
-    finally:
-        server.quit()
+    if response.status_code == 204:
+        print('message sent')
+    else:
+        print('message not sent')
 
 
 def convert_date(date_str):
@@ -94,8 +70,6 @@ def convert_date(date_str):
 def upload_data(data, table_name):
     df = data.copy()
     print('uploading', table_name)
-    with open('/home/aportra99/nba-bet/scraping_data/config.yaml', 'r') as file:
-        config_data = yaml.safe_load(file)
     con = (psycopg2.connect(host=config_data['host'],
                             user=config_data['user'],
                             password=config_data['password'],
@@ -125,13 +99,6 @@ def upload_data(data, table_name):
 
 class psql:
     def __init__(self):
-        os.chdir('..')
-        base_dir = os.path.dirname(os.path.abspath(__file__))
-        print(base_dir)
-        config = os.path.join(base_dir, 'config.yaml')
-        print(config)
-        with open('config.yaml', 'r') as file:
-            config = yaml.safe_load(file)
 
         try:
             print("database connection successful")

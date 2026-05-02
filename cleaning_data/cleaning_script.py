@@ -2,7 +2,7 @@
 
 from datetime import datetime as dt
 from google.oauth2 import service_account
-from scraping_data.utils import send_email
+from scraping_data.utils import send_message
 from scraping_data.utils import upload_data
 from scraping_data.utils import psql
 
@@ -40,7 +40,7 @@ def convert_minutes_to_decimal(min_played):
         return minutes + seconds / 60
 
 
-def clean_current_player_data(data,date):
+def clean_current_player_data(data, date):
     """Cleans and processes NBA player data for modeling and prediction.
 
     Args:
@@ -157,7 +157,9 @@ def clean_current_player_data(data,date):
 
         # send_email(subject="NBA PLAYER DATA CLEANED", body="Data successfully uploaded to NBA_Cleaned.")
         conn.upload_data(predict_data, 'clean_player_data')
+        send_message("player_data cleaned and uploaded")
     except Exception as e:
+        send_message(f"Cleaning Script Crashed: {e}")
         print('Error:', e)
 
 
@@ -578,23 +580,18 @@ def clean_current_team_ratings(game_data):
 
         # Upload data to BigQuery
         destination_tables = {
-            "team_prediction_data_partitioned": predict_data,
+            "clean_team_data": predict_data,
         }
-
 
         for table_name, df in destination_tables.items():
             conn.upload_data(df, table_name)
 
         print("Data upload complete.")
 
-        send_email(
-            subject="NBA TEAM DATA CLEANED",
-            body="Data successfully uploaded to Cleaned_team_ratings."
-        )
+        send_message("NBA Team data cleaned and uploaded")
 
     except Exception as e:
         print(f'data failed {e}')
-        send_email(
-            subject="NBA TEAM DATA Cleaning Failed",
-            body=f"Error: {e}"
+        send_message(
+            f"NBA TEAM DATA Cleaning Failed Error: {e}"
         )

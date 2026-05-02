@@ -5,12 +5,11 @@ import time
 import traceback
 from datetime import datetime as dt
 from datetime import timedelta,timezone
+from scraping_data import utils
 import requests
 import pandas as pd
 import pandas_gbq
 import os
-from google.oauth2 import service_account
-import utils
 
 current_wd = os.getcwd()
 
@@ -22,8 +21,7 @@ with open(f'{current_wd}/config.yaml', mode='r') as file:
 
 def gather_events():
 
-    today = dt.today().replace(
-        hour=7, minute=0, second=0, microsecond=0, tzinfo=timezone.utc
+    today = dt.today().replace( hour=7, minute=0, second=0, microsecond=0, tzinfo=timezone.utc
     )
 
     tomorrow = (dt.today() + timedelta(days=1)).replace(
@@ -80,5 +78,7 @@ def gather_odds():
     )
     psql.upload_data(df, 'player_points_odds')
     psql.close()
+
+    utils.send_message("player odds gathered and uploaded")
 
     return df

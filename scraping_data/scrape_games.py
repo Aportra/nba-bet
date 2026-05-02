@@ -163,10 +163,7 @@ def scrape_current_games():
             psql_data = full_data.copy()
             if len(full_data) > 0:
                 print(len(full_data))
-                utils.send_email(
-                    subject=f"NBA SCRAPING: COMPLETED # OF GAMES {len(game_data)}",
-                    body=f"{len(game_data)} games scraped as of {scrape_date.date()}",
-                )
+                utils.send_message('scraping of new games complete')
 
                 if local:
                     pandas_gbq.to_gbq(
@@ -188,11 +185,7 @@ def scrape_current_games():
                 return df, full_data, date
         else:
             print('no games')
-            utils.send_email(
-                subject="NBA SCRAPING: NO GAMES",
-                body=f"No games found as of {scrape_date.date()}",
-            )
-
+            utils.send_message('no games to scrape')
     except Exception as e:
         error_traceback = traceback.format_exc()
         error_message = f"""
@@ -207,10 +200,7 @@ def scrape_current_games():
         """
         print(error_message)
 
-        utils.send_email(
-            subject="NBA SCRAPING: SCRIPT CRASHED",
-            body=f'{error_message} retrying',
-        )
+        utils.send_message(f'NBA SCRAPING: SCRIPT CRASHED {error_message} retrying')
 
         time.sleep(10)
         scrape_current_games()
