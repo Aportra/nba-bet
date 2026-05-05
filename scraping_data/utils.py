@@ -156,7 +156,7 @@ class psql:
         cols = ',\n'.join([f'\t{col}' for col in table.columns])
 
         cur.copy_expert(
-                f"""copy {table_name}
+            f"""copy "{table_name}"
                 ({cols})
                 from stdin with (format csv)""", buffer)
 
