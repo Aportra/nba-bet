@@ -3,7 +3,6 @@
 from datetime import datetime as dt
 from google.oauth2 import service_account
 from scraping_data.utils import send_message
-from scraping_data.utils import upload_data
 from scraping_data.utils import psql
 
 import numpy as np
