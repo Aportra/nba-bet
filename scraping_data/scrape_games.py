@@ -11,19 +11,10 @@ from scraping_data import utils
 from google.oauth2 import service_account
 
 
-def scrape_current_games():
-    """Scrapes NBA game data and uploads it to BigQuery."""
-    
-    try:
-        credentials = service_account.Credentials.from_service_account_file(
-            "/home/aportra99/scraping_key.json"
-        )
-        local = False
-    except FileNotFoundError:
-        print("File not found. Continuing as if on local.")
-        local = True
-        credentials = None
+num_retries = 0
 
+
+def scrape_current_games(retries):
     psql = utils.psql()
 
     try:
@@ -70,23 +61,6 @@ def scrape_current_games():
 
 
             # Upload team data
-            if local:
-                    pandas_gbq.to_gbq(
-                    df,
-                    project_id="miscellaneous-projects-444203",
-                    destination_table=team_table_id,
-                    if_exists="append",
-                    table_schema=team_table_schema,
-                )
-
-            else:
-                pandas_gbq.to_gbq(
-                    df,
-                    project_id="miscellaneous-projects-444203",
-                    destination_table=team_table_id,
-                    if_exists="append",
-                    credentials=credentials,
-                    table_schema=team_table_schema,)
             psql.upload_data(df, psql_table_id)
             game_ids = list(df[df['game_date'] == scrape_date.date()]['game_id'])
 
@@ -164,24 +138,16 @@ def scrape_current_games():
             if len(full_data) > 0:
                 print(len(full_data))
                 utils.send_message('scraping of new games complete')
-
-                if local:
-                    pandas_gbq.to_gbq(
-                        full_data,
-                        project_id="miscellaneous-projects-444203",
-                        destination_table='capstone_data.2025-2026_uncleaned',
-                        if_exists="replace"
-                    )
-
-                else:
-                    pandas_gbq.to_gbq(
-                        full_data,
-                        project_id="miscellaneous-projects-444203",
-                        destination_table='capstone_data.2025-2026_uncleaned',
-                        if_exists="replace",
-                        credentials=credentials)
                 print("Scraping successful.")
-                psql.upload_data(psql_data, '2025-2026_uncleaned')
+                for i in range(0, 3):
+                    try:
+                        psql.upload_data(psql_data, '2025-2026_uncleaned')
+                        return df, full_data, date
+                    except Exception as e:
+                        utils.send_message(f'NBA SCRAPING:Upload Failed Retry num: {i+1} Error: {e}') 
+                        time.sleep(10)
+                        continue
+                utils.send_message('NBA SCRAPING:Upload Failed Returning Data')
                 return df, full_data, date
         else:
             print('no games')
