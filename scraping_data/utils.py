@@ -148,12 +148,16 @@ class psql:
             return
 
         buffer = StringIO()
+        df = table.copy()
 
+        df.columns = df.columns.str.replace('%', '_pct')
+        df.columns = df.columns.str.replace('3', 'three_')
+        if 'to' in table.columns:
+            df.columns = df.rename(columns={'to': 'turnovers'})
+        cols = ','.join([f'{i}' for i in df.columns])
         table.to_csv(buffer, index=False, header=False)
 
         buffer.seek(0)
-
-        cols = ',\n'.join([f'\t{col}' for col in table.columns])
 
         cur.copy_expert(
             f"""copy "{table_name}"
