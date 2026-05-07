@@ -67,36 +67,6 @@ def convert_date(date_str):
         return None
 
 
-def upload_data(data, table_name):
-    df = data.copy()
-    print('uploading', table_name)
-    con = (psycopg2.connect(host=config_data['host'],
-                            user=config_data['user'],
-                            password=config_data['password'],
-                            database=config_data['database']))
-    cursor = con.cursor()
-
-    print('connection succeeded')
-    df.columns = df.columns.str.replace('%', '_pct')
-    df.columns = df.columns.str.replace('3', 'three_')
-    if 'to' in data.columns:
-        df.columns = df.columns.str.replace('to', 'turnovers')
-    cols = ','.join([f'{i}' for i in df.columns])
-    buffer = io.StringIO()
-    df.to_csv(buffer, index=False, header=False)
-    buffer.seek(0)
-
-    cursor.copy_expert(
-    f"""
-    copy "{table_name}"
-    ({cols})
-    from stdin with (format csv)
-        """, buffer
-    )
-
-    con.commit()
-
-
 class psql:
     def __init__(self):
 
