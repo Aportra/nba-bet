@@ -83,7 +83,7 @@ def clean_current_player_data(data, date):
             SELECT *,
                 ROW_NUMBER() OVER (PARTITION BY player ORDER BY game_date DESC) AS game_rank
             FROM clean_player_data
-            WHERE player IN ({','.join([f'"{player}"' for player in players])})
+            WHERE player IN ({','.join([f"'{player}'" for player in players])})
         )
         SELECT * FROM RankedGames
         where game_rank <= 5
@@ -154,7 +154,6 @@ def clean_current_player_data(data, date):
         print(predict_data)
         # Upload to BigQuery
 
-        # send_email(subject="NBA PLAYER DATA CLEANED", body="Data successfully uploaded to NBA_Cleaned.")
         conn.upload_data(predict_data, 'clean_player_data')
         send_message("player_data cleaned and uploaded")
     except Exception as e:
@@ -472,11 +471,6 @@ def clean_past_team_ratings():
 
     print("Data upload complete.")
 
-    send_email(
-        subject="PAST NBA TEAM RATINGS CLEANED",
-        body="Past team ratings successfully uploaded to BigQuery."
-    )
-
 
 
 def clean_current_team_ratings(game_data):
@@ -510,7 +504,7 @@ def clean_current_team_ratings(game_data):
             SELECT *,
                 ROW_NUMBER() OVER (PARTITION BY team ORDER BY game_date DESC) AS game_rank
             FROM clean_team_data
-            WHERE team IN ({','.join([f'"{team}"' for team in teams])})
+            WHERE team IN ({','.join([f"'{team}'" for team in teams])})
         )
         SELECT * FROM RankedGames
         where game_rank <= 5
@@ -520,7 +514,7 @@ def clean_current_team_ratings(game_data):
         # Retrieve past modeling and prediction data
         print("Fetching past modeling and prediction data...")
 
-        prediction_data = psql.query(prediction_query)
+        prediction_data = conn.query(prediction_query)
         # Assign season values
         for df in [prediction_data]:
             df["season"] = df["game_date"].apply(
