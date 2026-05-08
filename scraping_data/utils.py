@@ -123,7 +123,7 @@ class psql:
         df.columns = df.columns.str.replace('%', '_pct')
         df.columns = df.columns.str.replace('3', 'three_')
         if 'to' in table.columns:
-            df.columns = df.rename(columns={'to': 'turnovers'})
+            df.rename(columns={'to': 'turnovers'}, inplace=True)
         cols = ','.join([f'{i}' for i in df.columns])
         table.to_csv(buffer, index=False, header=False)
 
@@ -135,6 +135,7 @@ class psql:
                 from stdin with (format csv)""", buffer)
 
         self.connect.commit()
+
 
     def query(self, query):
         cur = self.connect.cursor()

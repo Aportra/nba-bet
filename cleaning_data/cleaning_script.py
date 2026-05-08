@@ -112,16 +112,16 @@ def clean_current_player_data(data, date):
 
             for feature in features_for_rolling:
                 # Compute 3-game rolling averages, preventing data leakage
-                if feature == 'fg3m':
-                    feat = '3pm'
+                if feature == 'fgthree_m':
+                    feat = 'fgthree_m'
                     predict_avg = past_predict_data.groupby('player')[feat].rolling(3, min_periods=3).mean()
                 else:
                     predict_avg = past_predict_data.groupby('player')[feature].rolling(3, min_periods=3).mean()
-                prediction_data[f'{feature}_3gm_avg'] = predict_avg.iloc[-1] if not predict_avg.empty else 0
+                prediction_data[f'{feature}_three_gm_avg'] = predict_avg.iloc[-1] if not predict_avg.empty else 0
 
                 # Compute season averages and momentum
-                if feature == 'fg3m':
-                    feat = '3pm'
+                if feature == 'fgthree_m':
+                    feat = 'fgthree_m'
                     predict_season_avg = past_predict_data.groupby(['player', 'season'])[feat].expanding().mean()
 
                 else:
@@ -129,9 +129,8 @@ def clean_current_player_data(data, date):
 
                 prediction_data[f'{feature}_season'] = predict_season_avg.iloc[-1] if not predict_season_avg.empty else 0
 
-                prediction_data[f'{feature}_momentum'] = prediction_data[f'{feature}_season'] - prediction_data[f'{feature}_3gm_avg']
+                prediction_data[f'{feature}_momentum'] = prediction_data[f'{feature}_season'] - prediction_data[f'{feature}_three_gm_avg']
 
-            prediction_data.rename(columns={'fg3m':'3pm'},inplace = True)
             prediction_dfs.append(prediction_data)
 
         print("Rolling features calculated.")
@@ -228,7 +227,7 @@ def clean_current_team_ratings(game_data):
                 # 3-game rolling average (shifted to prevent data leakage)
                 predict_avg = predict_data_for_rolling.groupby("team")[feature].rolling(3, min_periods=3).mean()
 
-                predict_data[f"{feature}_3gm_avg"] = predict_avg.iloc[-1] if not predict_avg.empty else 0
+                predict_data[f"{feature}_three_gm_avg"] = predict_avg.iloc[-1] if not predict_avg.empty else 0
 
                 # Season-long rolling average (shifted to prevent data leakage)
 
@@ -237,7 +236,7 @@ def clean_current_team_ratings(game_data):
                 )
 
                 # Momentum feature
-                predict_data[f"{feature}_momentum"] = predict_data[f"{feature}_season"] - predict_data[f"{feature}_3gm_avg"]
+                predict_data[f"{feature}_momentum"] = predict_data[f"{feature}_season"] - predict_data[f"{feature}_three_gm_avg"]
 
             predict_dfs.append(predict_data)
 

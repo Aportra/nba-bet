@@ -18,7 +18,9 @@ def scrape_current_games(retries):
     psql = utils.psql()
 
     try:
-        scrape_date = dt.today()
+        # scrape_date = dt.today()
+        date_string = "2026-05-07"
+        scrape_date = dt.strptime(date_string, "%Y-%m-%d")
         game_date = dt(2026, 4, 13)
 
         if scrape_date <= game_date:
@@ -132,6 +134,16 @@ def scrape_current_games(retries):
             # Drop all other columns
             full_data = full_data[[col for col in desired_columns if col in full_data.columns]]
             psql_data = full_data.copy()
+
+            full_data.columns = full_data.columns.str.replace('%', '_pct')
+            full_data.columns = full_data.columns.str.replace('3', 'three_')
+            if 'to' in full_data.columns:
+                full_data.rename(columns={'to': 'turnovers'}, inplace=True)
+            df.columns = df.columns.str.replace('%', '_pct')
+            df.columns = df.columns.str.replace('3', 'three_')
+            if 'to' in df.columns:
+                df.rename(columns={'to': 'turnovers'}, inplace=True)
+            print(psql_data)
             if len(full_data) > 0:
                 print(len(full_data))
                 utils.send_message('scraping of new games complete')

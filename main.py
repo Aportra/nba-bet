@@ -19,5 +19,5 @@ else:
 
     clean_current_team_ratings(team_data)
 
-    current_outcome(player_data, date)
+    # current_outcome(player_data, date)
 
