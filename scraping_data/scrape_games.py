@@ -18,9 +18,7 @@ def scrape_current_games(retries):
     psql = utils.psql()
 
     try:
-        # scrape_date = dt.today()
-        date_string = "2026-05-07"
-        scrape_date = dt.strptime(date_string, "%Y-%m-%d")
+        scrape_date = dt.today()
         game_date = dt(2026, 4, 13)
 
         if scrape_date <= game_date:
