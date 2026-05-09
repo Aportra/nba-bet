@@ -137,10 +137,10 @@ class psql:
         self.connect.commit()
 
 
-    def query(self, query):
+    def query(self, query, params = None):
         cur = self.connect.cursor()
 
-        cur.execute(query)
+        cur.execute(query, params)
         columns = [desc[0] for desc in cur.description]
         data = pd.DataFrame(cur.fetchall(), columns=columns)
 

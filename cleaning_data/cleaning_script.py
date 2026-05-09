@@ -83,7 +83,7 @@ def clean_current_player_data(data, date):
             SELECT *,
                 ROW_NUMBER() OVER (PARTITION BY player ORDER BY game_date DESC) AS game_rank
             FROM clean_player_data
-            WHERE player IN ({','.join([f"'{player}'" for player in players])})
+            WHERE player = any(%s)
         )
         SELECT * FROM RankedGames
         where game_rank <= 5
@@ -94,7 +94,7 @@ def clean_current_player_data(data, date):
 
         # Fetch past modeling and prediction data from BigQuery
 
-        predict_data = conn.query(prediction_query)
+        predict_data = conn.query(prediction_query, players)
 
         # Define features for rolling averages
         exclude_cols = ["team_id", "game_id", "player_id"]
@@ -191,7 +191,7 @@ def clean_current_team_ratings(game_data):
             SELECT *,
                 ROW_NUMBER() OVER (PARTITION BY team ORDER BY game_date DESC) AS game_rank
             FROM clean_team_data
-            WHERE team IN ({','.join([f"'{team}'" for team in teams])})
+            WHERE team = any(%s)
         )
         SELECT * FROM RankedGames
         where game_rank <= 5
@@ -201,7 +201,7 @@ def clean_current_team_ratings(game_data):
         # Retrieve past modeling and prediction data
         print("Fetching past modeling and prediction data...")
 
-        prediction_data = conn.query(prediction_query)
+        prediction_data = conn.query(prediction_query, teams)
         # Assign season values
         for df in [prediction_data]:
             df["season"] = df["game_date"].apply(
