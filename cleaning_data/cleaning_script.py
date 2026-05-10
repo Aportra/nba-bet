@@ -73,7 +73,7 @@ def clean_current_player_data(data, date):
         )
 
         # Extract unique player names
-        players = data['player'].unique()
+        players = data['player'].unique().tolist()
         print(f"Processing {len(players)} players.")
 
         # Define SQL queries for fetching past data
@@ -94,7 +94,7 @@ def clean_current_player_data(data, date):
 
         # Fetch past modeling and prediction data from BigQuery
 
-        predict_data = conn.query(prediction_query, players)
+        predict_data = conn.query(prediction_query, (players,))
 
         # Define features for rolling averages
         exclude_cols = ["team_id", "game_id", "player_id"]
@@ -182,7 +182,7 @@ def clean_current_team_ratings(game_data):
         # Standardize column names
         game_data.rename(columns={'team_abbreviation':'team'},inplace=True)
         # Extract unique teams
-        teams = game_data["team"].unique()
+        teams = game_data["team"].unique().tolist()
 
         # SQL queries for past data
 
@@ -201,7 +201,7 @@ def clean_current_team_ratings(game_data):
         # Retrieve past modeling and prediction data
         print("Fetching past modeling and prediction data...")
 
-        prediction_data = conn.query(prediction_query, teams)
+        prediction_data = conn.query(prediction_query, (teams,))
         # Assign season values
         for df in [prediction_data]:
             df["season"] = df["game_date"].apply(
