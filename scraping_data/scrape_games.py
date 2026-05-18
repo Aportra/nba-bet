@@ -59,7 +59,7 @@ def scrape_current_games(retries):
 
 
             # Upload team data
-            psql.upload_data(df, psql_table_id)
+            # psql.upload_data(df, psql_table_id)
             game_ids = list(df[df['game_date'] == scrape_date.date()]['game_id'])
 
 
@@ -148,7 +148,8 @@ def scrape_current_games(retries):
                 print("Scraping successful.")
                 for i in range(0, 3):
                     try:
-                        psql.upload_data(psql_data, '2025-2026_uncleaned')
+                        # psql.upload_data(psql_data, '2025-2026_uncleaned')
+                        utils.send_message(f'NBA SCRAPING:Upload Complete') 
                         return df, full_data, date
                     except Exception as e:
                         utils.send_message(f'NBA SCRAPING:Upload Failed Retry num: {i+1} Error: {e}') 
