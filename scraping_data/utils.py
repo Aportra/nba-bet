@@ -75,7 +75,8 @@ class psql:
             self.connect = (psycopg2.connect(database=config['database'],
                                              user=config['user'],
                                              password=config['password'],
-                                             host=config['host']))
+                                             host=config['host'],
+                                             options="-c statement_timeout=300000"))
         except psycopg2.operationalerror:
             print("database connection failed")
             return None
