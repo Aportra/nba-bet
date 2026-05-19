@@ -1,32 +1,5 @@
 Category: pts
-  Model: linear_model
-    r2: {0.5971087522604048}
-    mse: {32.15235025888656}
   Model: lightgbm
-    r2: {0.6179461690709633}
-    mse: {30.489440162074242}
-
-Category: reb
-  Model: linear_model
-    r2: {0.5268630485567984}
-    mse: {5.745760229036554}
-  Model: lightgbm
-    r2: {0.529872380585861}
-    mse: {5.7092149957044045}
-
-Category: ast
-  Model: linear_model
-    r2: {0.5715422698539254}
-    mse: {3.0297603495889835}
-  Model: lightgbm
-    r2: {0.5724112764399545}
-    mse: {3.02361532870913}
-
-Category: 3pm
-  Model: linear_model
-    r2: {0.3975421543055271}
-    mse: {1.3932462918539563}
-  Model: lightgbm
-    r2: {0.44495490762149215}
-    mse: {1.2835993792672211}
+    r2: {0.763936566417191}
+    mse: {15.872548944854033}
 
