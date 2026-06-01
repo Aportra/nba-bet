@@ -2,23 +2,12 @@ import pandas as pd
 import pandas_gbq
 from datetime import date as dt
 # from datetime import timedelta
-from google.oauth2 import service_account
 import requests
 
 
 def get_matchups(local=False):
     # Set today's date in MM/DD/YYYY format
     today = dt.today()
-    # Load credentials or set local mode
-    try:
-        credentials = service_account.Credentials.from_service_account_file(
-            "/home/aportra99/scraping_key.json"
-        )
-        local = False
-    except FileNotFoundError:
-        print("File not found. Continuing as if on local.")
-        local = True
-        credentials = None
 
     # NBA API endpoint
     url = "https://stats.nba.com/stats/scoreboardv2"
@@ -47,4 +36,4 @@ def get_matchups(local=False):
 
     # Merge team abbreviations
 
-    return games_df 
+    return games_df

@@ -5,7 +5,7 @@ from scraping_data.todays_matchups import get_matchups
 
 matchups = get_matchups()
 
-if matchups is None:
+if matchups.empty:
     print("no games today")
 else:
     print("Starting scraping of game data")
