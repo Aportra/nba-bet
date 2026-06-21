@@ -21,21 +21,29 @@ def scrape_current_games(retries):
         scrape_date = dt.today()
         game_date = dt(2026, 4, 13)
 
-        if scrape_date <= game_date:
+        month = dt.today().month
+        day = dt.today().day
+        if month >= 10:
+            year = dt.today().year
+            season = f'{year}-{year+1}'
+            api_season = f'{year}-{(year+1) % 100}'
+        else:
+            year = dt.today().year
+            season = f'{year-1}-{year}'
+            api_season = f'{year-1}-{(year) % 100}'
+        if month >= 4 and day >= 13:
             url = {
-                "2025-2026_uncleaned": "https://stats.nba.com/stats/leaguegamelog?LeagueID=00&Season=2025-26&SeasonType=Regular%20Season&PlayerOrTeam=T&Counter=0&Sorter=DATE&Direction=DESC"
+                f"{season}_uncleaned": f"https://stats.nba.com/stats/leaguegamelog?LeagueID=00&Season={api_season}&SeasonType=Regular%20Season&PlayerOrTeam=T&Counter=0&Sorter=DATE&Direction=DESC"
 
             }
         else:
             url = {
-                "2025-2026_uncleaned": "https://stats.nba.com/stats/leaguegamelog?LeagueID=00&Season=2025-26&SeasonType=Playoffs&PlayerOrTeam=T&Counter=0&Sorter=DATE&Direction=DESC"
+                f"{season}_uncleaned": f"https://stats.nba.com/stats/leaguegamelog?LeagueID=00&Season={api_season}&SeasonType=Playoffs&PlayerOrTeam=T&Counter=0&Sorter=DATE&Direction=DESC"
 
             }
 
-        response = utils.establish_requests(url["2025-2026_uncleaned"])
+        response = utils.establish_requests(url[f"{season}_uncleaned"])
         print(response.status_code)
-        year = scrape_date.year if scrape_date.month >= 10 else scrape_date.year - 1
-        season = f'{year}-{year+1}'
         time.sleep(5)
 
         if response.status_code == 200:
