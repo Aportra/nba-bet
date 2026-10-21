@@ -1,11 +1,11 @@
 from scraping_data.scrape_games import scrape_current_games
-from cleaning_data.cleaning_script import clean_current_player_data,clean_current_team_ratings
+from cleaning_data.cleaning_script import clean_current_player_data, clean_current_team_ratings
 from outcomes import current_outcome
 from scraping_data.todays_matchups import get_matchups
 
 matchups = get_matchups()
 
-if matchups.empty:
+if len(matchups) == 0:
     print("no games today")
 else:
     print("Starting scraping of game data")

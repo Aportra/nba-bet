@@ -10,7 +10,7 @@ def get_matchups(local=False):
     today = dt.today()
 
     # NBA API endpoint
-    url = "https://stats.nba.com/stats/scoreboardv2"
+    url = "https://stats.nba.com/stats/scoreboardv3"
     params = {
         "GameDate": today,
         "LeagueID": "00",
@@ -25,15 +25,11 @@ def get_matchups(local=False):
     # Make the request
     response = requests.get(url, headers=headers, params=params)
     print(response.status_code)
-    if response.status_code == '200':
-        return
+    print(response)
     data = response.json()
-    # BigQuery: pull team ID mapping
+    # if response.status_code == '200' and :
+    #     return
 
-    # Parse game data
-    result_set = data['resultSets'][0]  # GameHeader
-    games_df = pd.DataFrame(result_set['rowSet'], columns=result_set['headers'])
+    games = [data['scoreboard']['games'][i]['gameId'] for i in range(len(data['scoreboard']['games']))]
 
-    # Merge team abbreviations
-
-    return games_df
+    return games

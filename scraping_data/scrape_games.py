@@ -1,14 +1,12 @@
-"""Module for scraping NBA game data and uploading to BigQuery."""
+"""Module for scraping NBA game data and uploading to PostGres."""
 
 import time
 import random
 import traceback
-from datetime import datetime as dt,timedelta
-
+from datetime import datetime as dt
+from datetime import timedelta
 import pandas as pd
-import pandas_gbq
 from scraping_data import utils
-from google.oauth2 import service_account
 
 
 num_retries = 0
@@ -18,20 +16,23 @@ def scrape_current_games(retries):
     psql = utils.psql()
 
     try:
-        scrape_date = dt.today()
-        game_date = dt(2026, 4, 13)
+        scrape_date = dt.today() + timedelta(days=-1)
 
         month = dt.today().month
-        day = dt.today().day
+
         if month >= 10:
             year = dt.today().year
             season = f'{year}-{year+1}'
             api_season = f'{year}-{(year+1) % 100}'
+            playoff_cutoff = dt(year+1, 4, 13)
         else:
             year = dt.today().year
             season = f'{year-1}-{year}'
             api_season = f'{year-1}-{(year) % 100}'
-        if month >= 4 and day >= 13:
+            playoff_cutoff = dt(year, 4, 13)
+        print(api_season)
+        print(playoff_cutoff)
+        if playoff_cutoff >= scrape_date:
             url = {
                 f"{season}_uncleaned": f"https://stats.nba.com/stats/leaguegamelog?LeagueID=00&Season={api_season}&SeasonType=Regular%20Season&PlayerOrTeam=T&Counter=0&Sorter=DATE&Direction=DESC"
 
@@ -41,6 +42,7 @@ def scrape_current_games(retries):
                 f"{season}_uncleaned": f"https://stats.nba.com/stats/leaguegamelog?LeagueID=00&Season={api_season}&SeasonType=Playoffs&PlayerOrTeam=T&Counter=0&Sorter=DATE&Direction=DESC"
 
             }
+        print(url)
 
         response = utils.establish_requests(url[f"{season}_uncleaned"])
         print(response.status_code)
@@ -58,7 +60,7 @@ def scrape_current_games(retries):
             print(df[['game_date','matchup']])
             df['game_date'] = pd.to_datetime(df['game_date']).dt.date
             print(df['game_date'])
-
+            
             psql_table_id = f"{season}_team_ratings"
             df = df[df['game_date'] == scrape_date.date()]
 
@@ -67,8 +69,8 @@ def scrape_current_games(retries):
 
 
             # Upload team data
-            # psql.upload_data(df, psql_table_id)
-            game_ids = list(df[df['game_date'] == scrape_date.date()]['game_id'])
+            psql.upload_data(df, psql_table_id)
+            game_ids = df[df['game_date'] == scrape_date.date()]['game_id'].unique().to_list()
 
 
             games = []
@@ -156,7 +158,7 @@ def scrape_current_games(retries):
                 print("Scraping successful.")
                 for i in range(0, 3):
                     try:
-                        # psql.upload_data(psql_data, '2025-2026_uncleaned')
+                        psql.upload_data(psql_data, '2026-2027_uncleaned')
                         utils.send_message(f'NBA SCRAPING:Upload Complete') 
                         return df, full_data, date
                     except Exception as e:
@@ -186,6 +188,6 @@ def scrape_current_games(retries):
         time.sleep(10)
         retries += 1
         if retries < 5:
-            scrape_current_games(retries)
+            return scrape_current_games(retries)
 
 
