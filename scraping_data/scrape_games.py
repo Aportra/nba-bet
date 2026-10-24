@@ -12,11 +12,11 @@ from scraping_data import utils
 num_retries = 0
 
 
-def scrape_current_games(retries):
+def scrape_current_games(retries, date, days_back):
     psql = utils.psql()
 
     try:
-        scrape_date = dt.today() + timedelta(days=-1)
+        scrape_date = date
 
         month = dt.today().month
 
@@ -54,24 +54,21 @@ def scrape_current_games(retries):
 
             headers = [header.lower() for header in data['resultSets'][0]['headers']]
             rows = data['resultSets'][0]['rowSet']
-            df = pd.DataFrame(rows,columns=headers)
+            df = pd.DataFrame(rows, columns=headers)
             print(df)
             df = df.drop(columns=['video_available'])
-            print(df[['game_date','matchup']])
+            print(df[['game_date', 'matchup']])
             df['game_date'] = pd.to_datetime(df['game_date']).dt.date
             print(df['game_date'])
-            
             psql_table_id = f"{season}_team_ratings"
             df = df[df['game_date'] == scrape_date.date()]
 
             print(df)
             date = list(df['game_date'])[0]
 
-
             # Upload team data
             psql.upload_data(df, psql_table_id)
             game_ids = df[df['game_date'] == scrape_date.date()]['game_id'].unique().to_list()
-
 
             games = []
 
@@ -133,8 +130,8 @@ def scrape_current_games(retries):
             full_data = pd.concat(games)
             # Your desired columns
             desired_columns = [
-                'game_id', 'team_abbreviation', 'player_id', 'player_name', 'min',
-                'fgm', 'fga', 'fg_pct', 'fg3m', 'fg3a', 'fg3_pct',
+                'game_id', 'team_abbreviation', 'player_id', 'player_name',
+                'min', 'fgm', 'fga', 'fg_pct', 'fg3m', 'fg3a', 'fg3_pct',
                 'ftm', 'fta', 'ft_pct', 'oreb', 'dreb', 'reb',
                 'ast', 'stl', 'blk', 'to', 'pf', 'pts', 'plus_minus'
             ]
@@ -166,7 +163,12 @@ def scrape_current_games(retries):
                         time.sleep(10)
                         continue
                 utils.send_message('NBA SCRAPING:Upload Failed Returning Data')
+            if days_back == 0:
                 return df, full_data, date
+            else:
+                days_back -= 1
+                date = date - timedelta(days=1)
+                scrape_current_games(retries, date, days_back)
         else:
             print('no games')
             utils.send_message('no games to scrape')
@@ -188,6 +190,5 @@ def scrape_current_games(retries):
         time.sleep(10)
         retries += 1
         if retries < 5:
-            return scrape_current_games(retries)
-
+            return scrape_current_games(retries, date, 0)
 
