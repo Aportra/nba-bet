@@ -68,7 +68,7 @@ def scrape_current_games(retries, run_date, days_back):
             date = list(df['game_date'])[0]
 
             # Upload team data
-            # psql.upload_data(df, psql_table_id)
+            psql.upload_data(df, psql_table_id)
             game_ids = df[df['game_date'] == scrape_date.date()]['game_id'].unique().tolist()
 
             games = []
@@ -157,7 +157,7 @@ def scrape_current_games(retries, run_date, days_back):
                 print("Scraping successful.")
                 for i in range(0, 3):
                     try:
-                        # psql.upload_data(psql_data, '2025-2026_uncleaned')
+                        psql.upload_data(psql_data, '2025-2026_uncleaned')
                         utils.send_message(f'NBA SCRAPING:Upload Complete') 
                         print(run_date)
                         if days_back != 0:
