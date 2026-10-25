@@ -7,16 +7,17 @@ from datetime import datetime as dt
 from datetime import timedelta
 import pandas as pd
 from scraping_data import utils
+from cleaning_data.cleaning_script import clean_current_player_data, clean_current_team_ratings
 
 
 num_retries = 0
 
 
-def scrape_current_games(retries, date, days_back):
+def scrape_current_games(retries, run_date, days_back):
     psql = utils.psql()
 
     try:
-        scrape_date = date
+        scrape_date = run_date
 
         month = dt.today().month
 
@@ -60,15 +61,15 @@ def scrape_current_games(retries, date, days_back):
             print(df[['game_date', 'matchup']])
             df['game_date'] = pd.to_datetime(df['game_date']).dt.date
             print(df['game_date'])
-            psql_table_id = f"{season}_team_ratings"
+            psql_table_id = f"2025-2026_team_ratings"
             df = df[df['game_date'] == scrape_date.date()]
 
             print(df)
             date = list(df['game_date'])[0]
 
             # Upload team data
-            psql.upload_data(df, psql_table_id)
-            game_ids = df[df['game_date'] == scrape_date.date()]['game_id'].unique().to_list()
+            # psql.upload_data(df, psql_table_id)
+            game_ids = df[df['game_date'] == scrape_date.date()]['game_id'].unique().tolist()
 
             games = []
 
@@ -149,26 +150,29 @@ def scrape_current_games(retries, date, days_back):
             if 'to' in df.columns:
                 df.rename(columns={'to': 'turnovers'}, inplace=True)
             print(psql_data)
+            clean_current_team_ratings(df)
             if len(full_data) > 0:
                 print(len(full_data))
                 utils.send_message('scraping of new games complete')
                 print("Scraping successful.")
                 for i in range(0, 3):
                     try:
-                        psql.upload_data(psql_data, '2026-2027_uncleaned')
+                        # psql.upload_data(psql_data, '2025-2026_uncleaned')
                         utils.send_message(f'NBA SCRAPING:Upload Complete') 
-                        return df, full_data, date
+                        print(run_date)
+                        if days_back != 0:
+                            days_back -= 1
+                            # clean_current_player_data(full_data, run_date)
+                            new_run_date = run_date - timedelta(days=1)
+                            scrape_current_games(retries, new_run_date, days_back)
+                            break
+                        else:
+                            return df, full_data, run_date
                     except Exception as e:
                         utils.send_message(f'NBA SCRAPING:Upload Failed Retry num: {i+1} Error: {e}') 
                         time.sleep(10)
                         continue
                 utils.send_message('NBA SCRAPING:Upload Failed Returning Data')
-            if days_back == 0:
-                return df, full_data, date
-            else:
-                days_back -= 1
-                date = date - timedelta(days=1)
-                scrape_current_games(retries, date, days_back)
         else:
             print('no games')
             utils.send_message('no games to scrape')

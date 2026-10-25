@@ -1,4 +1,4 @@
-"""Module for cleaning and processing current NBA player data before uploading to BigQuery."""
+"""Module for cleaning and processing current NBA player data before uploading to Postgres."""
 
 from datetime import datetime as dt
 from google.oauth2 import service_account
