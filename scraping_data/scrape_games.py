@@ -150,7 +150,6 @@ def scrape_current_games(retries, run_date, days_back):
             if 'to' in df.columns:
                 df.rename(columns={'to': 'turnovers'}, inplace=True)
             print(psql_data)
-            clean_current_team_ratings(df)
             if len(full_data) > 0:
                 print(len(full_data))
                 utils.send_message('scraping of new games complete')
@@ -162,7 +161,8 @@ def scrape_current_games(retries, run_date, days_back):
                         print(run_date)
                         if days_back != 0:
                             days_back -= 1
-                            # clean_current_player_data(full_data, run_date)
+                            clean_current_player_data(full_data, run_date)
+                            clean_current_team_ratings(df)
                             new_run_date = run_date - timedelta(days=1)
                             scrape_current_games(retries, new_run_date, days_back)
                             break
