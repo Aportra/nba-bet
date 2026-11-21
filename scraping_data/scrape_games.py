@@ -72,12 +72,24 @@ def scrape_current_games(retries, run_date, days_back):
             game_ids = df[df['game_date'] == scrape_date.date()]['game_id'].unique().tolist()
 
             games = []
+            player_adv_games = []
+            team_adv_games = []
 
+            tables = psql.query("""
+            SELECT 
+                table_name 
+            FROM information_schema.tables 
+            WHERE 
+                table_schema NOT IN ('pg_catalog', 'information_schema') 
+                AND table_type = 'BASE TABLE';
+            """)
+            table_names = tables['table_name'].to_list()
             for game in game_ids:
                 print(game)
                 game_response = utils.establish_requests(f"https://stats.nba.com/stats/boxscoretraditionalv3?GameID={game}&StartPeriod=0&EndPeriod=10")
+                advanced_response = utils.establish_requests(f"https://stats.nba.com/stats/boxscoreadvancedv3?GameID={game}&StartPeriod=0&EndPeriod=10")
                 game_response = game_response.json()
-
+                advanced_response = game_response.json()
                 # Home team players
                 home_players = game_response['boxScoreTraditional']['homeTeam']['players']
                 home_df = pd.json_normalize(home_players)
@@ -85,6 +97,12 @@ def scrape_current_games(retries, run_date, days_back):
                 # Away team players
                 away_players = game_response['boxScoreTraditional']['awayTeam']['players']
                 away_df = pd.json_normalize(away_players)
+
+                #advanced data
+                player_stats = advanced_response['data_sets']['PlayerStats']
+                team_adv_stats = advanced_response['data_sets']['TeamStats']
+                player_adv_stats = pd.json_normalize(player_adv_stats)
+                team_adv_stats = pd.json_normalize(team_adv_stats)
 
                 # Add context
                 home_df['team'] = game_response['boxScoreTraditional']['homeTeam']['teamTricode']
@@ -127,8 +145,13 @@ def scrape_current_games(retries, run_date, days_back):
                 game_data['game_id'] = game
 
                 games.append(game_data)
+                player_adv_games.append(player_adv_stats)
+                team_adv_games.append(team_adv_stats)
                 time.sleep(5)
             full_data = pd.concat(games)
+            player_adv_data = pd.concat(player_adv_games)
+            team_adv_data = pd.concat(team_adv_games)
+            psql.upload_data()
             # Your desired columns
             desired_columns = [
                 'game_id', 'team_abbreviation', 'player_id', 'player_name',
@@ -154,9 +177,12 @@ def scrape_current_games(retries, run_date, days_back):
                 print(len(full_data))
                 utils.send_message('scraping of new games complete')
                 print("Scraping successful.")
+            
                 for i in range(0, 3):
                     try:
                         psql.upload_data(psql_data, '2025-2026_uncleaned')
+                        psql.upload_data(player_adv_data,'player_adv_data')
+                        psql.upload_data(team_adv_data,'team_adv_data')
                         utils.send_message(f'NBA SCRAPING:Upload Complete') 
                         print(run_date)
                         if days_back != 0:
@@ -172,7 +198,6 @@ def scrape_current_games(retries, run_date, days_back):
                         utils.send_message(f'NBA SCRAPING:Upload Failed Retry num: {i+1} Error: {e}') 
                         time.sleep(10)
                         continue
-                utils.send_message('NBA SCRAPING:Upload Failed Returning Data')
         else:
             print('no games')
             utils.send_message('no games to scrape')
