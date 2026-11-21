@@ -189,7 +189,7 @@ def scrape_current_games(retries, run_date, days_back):
                         else:
                             psql.upload_data(player_adv_data,'player_adv_data')
                         if 'team_adv_data' not in table_names:
-                            psql.create_table(team)_adv_data,'team_adv_data')
+                            psql.create_table(team_adv_data,'team_adv_data')
                             utils.send_message(f'NBA SCRAPING TABLE CREATED: player_adv_data') 
                             psql.upload_data(team_adv_data,'team_adv_data')
                             utils.send_message(f'NBA SCRAPING UPLOAD COMPLETE: team_adv_data') 
