@@ -3,7 +3,7 @@
 import time
 import random
 import traceback
-from datetime import datetime as dt
+from datetime import datetime as dt, date
 from datetime import timedelta
 import pandas as pd
 from scraping_data import utils
@@ -17,7 +17,7 @@ def scrape_current_games(retries, run_date, days_back):
     psql = utils.psql()
 
     try:
-        scrape_date = run_date
+        scrape_date = run_date.date() if isinstance(run_date, dt) else run_date
 
         month = dt.today().month
 
