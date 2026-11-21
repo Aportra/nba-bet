@@ -93,25 +93,24 @@ def scrape_current_games(retries, run_date, days_back):
                 utils.send_message(f'{advanced_response}')
                 # Home team players
                 home_players = game_response['boxScoreTraditional']['homeTeam']['players']
-                advanced_home_players = advanced_response['boxScoreAdvanced']['homeTeam']['players']
-                home_player_adv_stats = pd.json_normalize(home_away_players)
+                home_advanced_players = advanced_response['boxScoreAdvanced']['homeTeam']['players']
+                home_player_adv_stats = pd.json_normalize(home_advanced_players)
                 home_df = pd.json_normalize(home_players)
 
                 # Away team players
                 away_players = game_response['boxScoreTraditional']['awayTeam']['players']
                 away_advanced_players = advanced_response['boxScoreAdvanced']['awayTeam']['players']
-                away_player_adv_stats = pd.json_normalize(advanced_away_players)
+                away_player_adv_stats = pd.json_normalize(away_advanced_players)
                 away_df = pd.json_normalize(away_players)
 
                 #advanced data
-                player_adv_stats = advanced_response['data_sets']['PlayerStats']
 
                 # Add context
                 home_df['team'] = game_response['boxScoreTraditional']['homeTeam']['teamTricode']
                 away_df['team'] = game_response['boxScoreTraditional']['awayTeam']['teamTricode']
 
-                home_player_adv_stats['team'] = game_response['boxScoreTraditional']['homeTeam']['teamTricode']
-                away_player_adv_stats['team'] = game_response['boxScoreTraditional']['awayTeam']['teamTricode']
+                home_player_adv_stats['team'] = advanced_response['boxScoreAdvanced']['homeTeam']['teamTricode']
+                away_player_adv_stats['team'] = advanced_response['boxScoreAdvanced']['awayTeam']['teamTricode']
 
                 # Combine
                 game_data = pd.concat([home_df, away_df], ignore_index=True) 
@@ -147,6 +146,9 @@ def scrape_current_games(retries, run_date, days_back):
 
                 game_data['min'] = game_data['min'].apply(lambda x: ''.join(x.split('.000000')) if isinstance(x, str) and '.000000' in x else x)
 
+                adv_rename_map = {col:col.replace('statistics.','') for col in advanced_game_data.columns} 
+
+                advanced_game_data.rename(columns=adv_rename_map,inplace=True)
 
                 game_data['player_name'] = game_data.apply(lambda row: f"{row['firstName']} {row['familyName']}", axis=1)
                 game_data['game_id'] = game
@@ -156,8 +158,6 @@ def scrape_current_games(retries, run_date, days_back):
                 time.sleep(5)
             full_data = pd.concat(games)
             player_adv_data = pd.concat(player_adv_games)
-            team_adv_data = pd.concat(team_adv_games)
-            psql.upload_data()
             # Your desired columns
             desired_columns = [
                 'game_id', 'team_abbreviation', 'player_id', 'player_name',
@@ -194,13 +194,6 @@ def scrape_current_games(retries, run_date, days_back):
                             utils.send_message(f'NBA SCRAPING UPLOAD COMPLETE: player_adv_data') 
                         else:
                             psql.upload_data(player_adv_data,'player_adv_data')
-                        if 'team_adv_data' not in table_names:
-                            psql.create_table(team_adv_data,'team_adv_data')
-                            utils.send_message(f'NBA SCRAPING TABLE CREATED: player_adv_data') 
-                            psql.upload_data(team_adv_data,'team_adv_data')
-                            utils.send_message(f'NBA SCRAPING UPLOAD COMPLETE: team_adv_data') 
-                        else:
-                            psql.upload_data(team_adv_data,'team_adv_data')
                         utils.send_message(f'NBA SCRAPING:Upload Complete') 
                         print(run_date)
                         if days_back != 0:
