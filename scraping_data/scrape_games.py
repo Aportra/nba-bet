@@ -181,8 +181,16 @@ def scrape_current_games(retries, run_date, days_back):
                 for i in range(0, 3):
                     try:
                         psql.upload_data(psql_data, '2025-2026_uncleaned')
-                        psql.upload_data(player_adv_data,'player_adv_data')
-                        psql.upload_data(team_adv_data,'team_adv_data')
+                        if 'player_adv_data' not in table_names:
+                            psql.create_table(player_adv_data,'player_adv_data')
+                            psql.upload_data(player_adv_data,'player_adv_data')
+                        else:
+                            psql.upload_data(player_adv_data,'player_adv_data')
+                        if 'team_adv_data' not in table_names:
+                            psql.create_table(team)_adv_data,'team_adv_data')
+                            psql.upload_data(team_adv_data,'team_adv_data')
+                        else:
+                            psql.upload_data(team_adv_data,'team_adv_data')
                         utils.send_message(f'NBA SCRAPING:Upload Complete') 
                         print(run_date)
                         if days_back != 0:
