@@ -4,7 +4,7 @@ import time
 import random
 import traceback
 from datetime import datetime as dt, date
-from datetime import timedelta
+from datetime import timedelta 
 import pandas as pd
 from scraping_data import utils
 from cleaning_data.cleaning_script import clean_current_player_data, clean_current_team_ratings
@@ -25,12 +25,12 @@ def scrape_current_games(retries, run_date, days_back):
             year = dt.today().year
             season = f'{year}-{year+1}'
             api_season = f'{year}-{(year+1) % 100}'
-            playoff_cutoff = dt(year+1, 4, 13)
+            playoff_cutoff = date(year+1, 4, 13)
         else:
             year = dt.today().year
             season = f'{year-1}-{year}'
             api_season = f'{year-1}-{(year) % 100}'
-            playoff_cutoff = dt(year, 4, 13)
+            playoff_cutoff = date(year, 4, 13)
         print(api_season)
         print(playoff_cutoff)
         if playoff_cutoff >= scrape_date:
@@ -62,14 +62,13 @@ def scrape_current_games(retries, run_date, days_back):
             df['game_date'] = pd.to_datetime(df['game_date']).dt.date
             print(df['game_date'])
             psql_table_id = f"2025-2026_team_ratings"
-            df = df[df['game_date'] == scrape_date.date()]
+            df = df[df['game_date'] == scrape_date]
 
             print(df)
-            date = list(df['game_date'])[0]
 
             # Upload team data
             psql.upload_data(df, psql_table_id)
-            game_ids = df[df['game_date'] == scrape_date.date()]['game_id'].unique().tolist()
+            game_ids = df[df['game_date'] == scrape_date]['game_id'].unique().tolist()
 
             games = []
             player_adv_games = []
@@ -90,6 +89,8 @@ def scrape_current_games(retries, run_date, days_back):
                 advanced_response = utils.establish_requests(f"https://stats.nba.com/stats/boxscoreadvancedv3?GameID={game}&StartPeriod=0&EndPeriod=0&StartRange=0&EndRange=0&RangeType=0")
                 game_response = game_response.json()
                 advanced_response = advanced_response.json()
+
+                utils.send_message(f'{advanced_response}')
                 # Home team players
                 home_players = game_response['boxScoreTraditional']['homeTeam']['players']
                 home_df = pd.json_normalize(home_players)
@@ -99,7 +100,7 @@ def scrape_current_games(retries, run_date, days_back):
                 away_df = pd.json_normalize(away_players)
 
                 #advanced data
-                player_stats = advanced_response['data_sets']['PlayerStats']
+                player_adv_stats = advanced_response['data_sets']['PlayerStats']
                 team_adv_stats = advanced_response['data_sets']['TeamStats']
                 player_adv_stats = pd.json_normalize(player_adv_stats)
                 team_adv_stats = pd.json_normalize(team_adv_stats)
@@ -231,5 +232,5 @@ def scrape_current_games(retries, run_date, days_back):
         time.sleep(10)
         retries += 1
         if retries < 5:
-            return scrape_current_games(retries, date, 0)
+            return scrape_current_games(retries, scrape_date, 0)
 
