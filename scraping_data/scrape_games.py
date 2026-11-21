@@ -86,7 +86,7 @@ def scrape_current_games(retries, run_date, days_back):
             for game in game_ids:
                 print(game)
                 game_response = utils.establish_requests(f"https://stats.nba.com/stats/boxscoretraditionalv3?GameID={game}&StartPeriod=0&EndPeriod=10")
-                advanced_response = utils.establish_requests(f"https://stats.nba.com/stats/boxscoreadvancedv3?GameID={game}&StartPeriod=0&EndPeriod=0&StartRange=0&EndRange=0&RangeType=0")
+                advanced_response = utils.establish_requests(f"https://stats.nba.com/stats/boxscoreadvancedv3?EndPeriod=0&EndRange=0&GameID={game}&RangeType=0&StartPeriod=0&StartRange=0")
                 game_response = game_response.json()
                 advanced_response = advanced_response.json()
 
