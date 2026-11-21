@@ -93,24 +93,30 @@ def scrape_current_games(retries, run_date, days_back):
                 utils.send_message(f'{advanced_response}')
                 # Home team players
                 home_players = game_response['boxScoreTraditional']['homeTeam']['players']
+                advanced_home_players = advanced_response['boxScoreAdvanced']['homeTeam']['players']
+                home_player_adv_stats = pd.json_normalize(home_away_players)
                 home_df = pd.json_normalize(home_players)
 
                 # Away team players
                 away_players = game_response['boxScoreTraditional']['awayTeam']['players']
+                away_advanced_players = advanced_response['boxScoreAdvanced']['awayTeam']['players']
+                away_player_adv_stats = pd.json_normalize(advanced_away_players)
                 away_df = pd.json_normalize(away_players)
 
                 #advanced data
                 player_adv_stats = advanced_response['data_sets']['PlayerStats']
-                team_adv_stats = advanced_response['data_sets']['TeamStats']
-                player_adv_stats = pd.json_normalize(player_adv_stats)
-                team_adv_stats = pd.json_normalize(team_adv_stats)
 
                 # Add context
                 home_df['team'] = game_response['boxScoreTraditional']['homeTeam']['teamTricode']
                 away_df['team'] = game_response['boxScoreTraditional']['awayTeam']['teamTricode']
 
+                home_player_adv_stats['team'] = game_response['boxScoreTraditional']['homeTeam']['teamTricode']
+                away_player_adv_stats['team'] = game_response['boxScoreTraditional']['awayTeam']['teamTricode']
+
                 # Combine
                 game_data = pd.concat([home_df, away_df], ignore_index=True) 
+
+                advanced_game_data = pd.concat([home_player_adv_stats, away_player_adv_stats], ignore_index=True)
 
                 rename_map = {
                     'personId': 'player_id',
@@ -146,8 +152,7 @@ def scrape_current_games(retries, run_date, days_back):
                 game_data['game_id'] = game
 
                 games.append(game_data)
-                player_adv_games.append(player_adv_stats)
-                team_adv_games.append(team_adv_stats)
+                player_adv_games.append(advanced_game_data)
                 time.sleep(5)
             full_data = pd.concat(games)
             player_adv_data = pd.concat(player_adv_games)
