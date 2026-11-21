@@ -89,7 +89,7 @@ def scrape_current_games(retries, run_date, days_back):
                 game_response = utils.establish_requests(f"https://stats.nba.com/stats/boxscoretraditionalv3?GameID={game}&StartPeriod=0&EndPeriod=10")
                 advanced_response = utils.establish_requests(f"https://stats.nba.com/stats/boxscoreadvancedv3?GameID={game}&StartPeriod=0&EndPeriod=10")
                 game_response = game_response.json()
-                advanced_response = game_response.json()
+                advanced_response = advanced_response.json()
                 # Home team players
                 home_players = game_response['boxScoreTraditional']['homeTeam']['players']
                 home_df = pd.json_normalize(home_players)
