@@ -10,8 +10,8 @@ if len(matchups) == 0:
     print("no games today")
 else:
     print("Starting scraping of game data")
-    dt = datetime.today().date() - timedelta(1)
-    team_data, player_data, date = scrape_current_games(retries=0, run_date=dt, days_back=1)
+    dt = datetime.today().date()
+    team_data, player_data, date = scrape_current_games(retries=0, run_date=dt, days_back=0)
 
     print("Cleaning Data")
 
