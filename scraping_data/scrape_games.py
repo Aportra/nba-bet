@@ -227,9 +227,11 @@ def scrape_current_games(retries, run_date, days_back):
         """
         print(error_message)
 
-        utils.send_message(f'NBA SCRAPING: SCRIPT CRASHED {error_message} retrying')
         time.sleep(10)
         retries += 1
         if retries < 5:
+            utils.send_message(f'NBA SCRAPING: SCRIPT CRASHED {error_message}: retrying #{retries}')
             return scrape_current_games(retries, scrape_date, 0)
+        else:
+            utils.send_message(f'NBA SCRAPING: SCRIPT CRASHED {error_message}. Exceeded maximum retires')
 
