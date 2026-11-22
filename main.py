@@ -11,7 +11,7 @@ if len(matchups) == 0:
 else:
     print("Starting scraping of game data")
     dt = datetime.today().date()
-    team_data, player_data, date = scrape_current_games(0, dt, 0)
+    team_data, player_data, date = scrape_current_games(retries=0, run_date=dt, days_back=1)
 
     print("Cleaning Data")
 

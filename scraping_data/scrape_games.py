@@ -46,25 +46,26 @@ def scrape_current_games(retries, run_date, days_back):
         print(url)
 
         response = utils.establish_requests(url[f"{season}_uncleaned"])
-        print(response.status_code)
+        # print(response.status_code)
         time.sleep(5)
 
         if response.status_code == 200:
-            print(response.status_code)
+            print('reached')
+            # print(response.status_code)
             data = response.json()
 
             headers = [header.lower() for header in data['resultSets'][0]['headers']]
             rows = data['resultSets'][0]['rowSet']
             df = pd.DataFrame(rows, columns=headers)
-            print(df)
+            # print(df)
             df = df.drop(columns=['video_available'])
-            print(df[['game_date', 'matchup']])
+            # print(df[['game_date', 'matchup']])
             df['game_date'] = pd.to_datetime(df['game_date']).dt.date
-            print(df['game_date'])
+            # print(df['game_date'])
             psql_table_id = f"2025-2026_team_ratings"
             df = df[df['game_date'] == scrape_date]
 
-            print(df)
+            # print(df)
 
             # Upload team data
             psql.upload_data(df, psql_table_id)
@@ -72,21 +73,22 @@ def scrape_current_games(retries, run_date, days_back):
 
             games = []
             player_adv_games = []
-            team_adv_games = []
 
             tables = psql.query("""
             SELECT 
                 table_name 
             FROM information_schema.tables 
             WHERE 
-                table_schema NOT IN ('pg_catalog', 'information_schema') 
+                table_schema NOT IN ('pg_catalog', 'information_schema')
                 AND table_type = 'BASE TABLE';
             """)
             table_names = tables['table_name'].to_list()
             for game in game_ids:
-                print(game)
+                # print(game)
                 game_response = utils.establish_requests(f"https://stats.nba.com/stats/boxscoretraditionalv3?GameID={game}&StartPeriod=0&EndPeriod=10")
                 advanced_response = utils.establish_requests(f"https://stats.nba.com/stats/boxscoreadvancedv3?EndPeriod=0&EndRange=0&GameID={game}&RangeType=0&StartPeriod=0&StartRange=0")
+                print('game repsonse code',game_response.status_code)
+                print('adv response code',advanced_response.status_code)
                 game_response = game_response.json()
                 advanced_response = advanced_response.json()
 
@@ -145,7 +147,7 @@ def scrape_current_games(retries, run_date, days_back):
                     'team': 'team_abbreviation'
                 }
 
-                game_data.rename(columns=rename_map,inplace=True)
+                game_data.rename(columns=rename_map, inplace=True)
 
                 game_data['min'] = game_data['min'].apply(lambda x: ''.join(x.split('.000000')) if isinstance(x, str) and '.000000' in x else x)
 
@@ -155,8 +157,10 @@ def scrape_current_games(retries, run_date, days_back):
 
                 game_data['player_name'] = game_data.apply(lambda row: f"{row['firstName']} {row['familyName']}", axis=1)
                 game_data['game_id'] = game
+                print(game_data)
 
                 games.append(game_data)
+                print(games)
                 player_adv_games.append(advanced_game_data)
                 time.sleep(5)
             full_data = pd.concat(games)
@@ -186,7 +190,6 @@ def scrape_current_games(retries, run_date, days_back):
                 print(len(full_data))
                 utils.send_message('scraping of new games complete')
                 print("Scraping successful.")
-            
                 for i in range(0, 3):
                     try:
                         psql.upload_data(psql_data, '2025-2026_uncleaned')
