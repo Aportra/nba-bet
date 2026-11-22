@@ -118,6 +118,8 @@ def scrape_current_games(retries, run_date, days_back):
 
                 advanced_game_data = pd.concat([home_player_adv_stats, away_player_adv_stats], ignore_index=True)
 
+                advanced_game_data['game_id'] = int(game)
+
                 rename_map = {
                     'personId': 'player_id',
                     'statistics.minutes': 'min',
