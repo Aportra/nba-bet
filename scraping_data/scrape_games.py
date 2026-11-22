@@ -112,7 +112,8 @@ def scrape_current_games(retries, run_date, days_back):
                 home_player_adv_stats['team'] = advanced_response['boxScoreAdvanced']['homeTeam']['teamTricode']
                 away_player_adv_stats['team'] = advanced_response['boxScoreAdvanced']['awayTeam']['teamTricode']
 
-                # Combine
+                home_player_adv_stats['game_id'] = game
+                away_player_adv_stats['game_id'] = game                # Combine
                 game_data = pd.concat([home_df, away_df], ignore_index=True) 
 
                 advanced_game_data = pd.concat([home_player_adv_stats, away_player_adv_stats], ignore_index=True)
