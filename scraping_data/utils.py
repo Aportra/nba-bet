@@ -95,6 +95,7 @@ class psql:
             "boolean": "boolean",
             "object": "text",
             "string": "text",
+            "str": "text",
             "datetime64[ns]": "timestamp",
             "datetime64[ns, utc]": "timestamptz",
         }
